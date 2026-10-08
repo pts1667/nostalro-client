@@ -3053,10 +3053,10 @@ impl App {
                     self.channel
                         .send_packet(build_upgrade_skill_packet(skill, self.active_packetver));
                 }
-                GameEvent::RequestGuildInvite { target_aid } => {
+                GameEvent::RequestGuildInvite { target_char_id } => {
                     let (my_aid, my_gid) = self.local_aid_gid();
                     self.channel.send_packet(build_req_join_guild(
-                        target_aid,
+                        target_char_id,
                         my_aid,
                         my_gid,
                         self.active_packetver,

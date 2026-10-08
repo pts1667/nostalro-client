@@ -39,7 +39,7 @@ pub fn build_in_game_ui(
         .as_ref()
         .map(|s| s.account_id)
         .unwrap_or(0);
-    let local_gid = local_aid;
+    let local_gid = game.world.entities.player_id().unwrap_or(0);
     let job_class = game.world.entities.player_job();
 
     let mut ctx = BuildCtx {
@@ -167,6 +167,7 @@ pub fn build_in_game_ui(
         game.boss_mark.as_ref(),
         game.session.current_map.as_deref(),
         ctx.local_aid,
+        ctx.local_gid,
     );
     events.extend(windows.minimap_window.build(ui, &mut ctx));
 
@@ -358,6 +359,7 @@ fn collect_minimap_markers(
     boss_mark: Option<&BossMark>,
     current_map: Option<&str>,
     local_aid: u32,
+    local_gid: u32,
 ) -> Vec<MinimapMarker> {
     let mut markers = Vec::new();
     let current_map = current_map.map(ragnarok_game::map_key);
@@ -382,7 +384,7 @@ fn collect_minimap_markers(
     }
     if let Some(guild) = guild {
         for member in &guild.members {
-            if member.aid == local_aid || !member.has_live_position {
+            if member.aid == local_gid || !member.has_live_position {
                 continue;
             }
             markers.push(MinimapMarker {
@@ -632,6 +634,7 @@ mod tests {
             &marks,
             Some(&boss),
             Some("prontera"),
+            1,
             1,
         );
 

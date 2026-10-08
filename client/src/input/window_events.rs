@@ -352,18 +352,12 @@ impl App {
             });
         }
         if let Some(g) = &self.game.guild {
-            let local_gid = self
-                .game
-                .session
-                .login_session
-                .as_ref()
-                .map(|s| s.account_id)
-                .unwrap_or(0);
+            let local_gid = self.game.world.entities.player_id().unwrap_or(0);
             let rights = g.my_rights(local_gid);
             if rights.can_invite {
                 items.push(ContextMenuItem {
                     label: "Invite to Guild".to_string(),
-                    action: ContextMenuAction::GuildInvite { target_aid },
+                    action: ContextMenuAction::GuildInvite { target_char_id: entity_id },
                 });
             }
             if g.is_master(local_gid) {

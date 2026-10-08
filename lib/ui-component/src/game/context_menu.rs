@@ -34,7 +34,7 @@ pub enum ContextMenuAction {
     },
     GuildLeave,
     GuildInvite {
-        target_aid: u32,
+        target_char_id: u32,
     },
     GuildAlly {
         target_aid: u32,
@@ -177,8 +177,8 @@ impl ContextMenu {
                 ContextMenuAction::GuildLeave => {
                     events.push(GameEvent::RequestGuildLeave);
                 }
-                ContextMenuAction::GuildInvite { target_aid } => {
-                    events.push(GameEvent::RequestGuildInvite { target_aid });
+                ContextMenuAction::GuildInvite { target_char_id } => {
+                    events.push(GameEvent::RequestGuildInvite { target_char_id });
                 }
                 ContextMenuAction::GuildAlly { target_aid } => {
                     events.push(GameEvent::RequestGuildAlly { target_aid });

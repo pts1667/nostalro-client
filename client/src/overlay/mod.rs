@@ -371,7 +371,7 @@ impl App {
                 .game
                 .party
                 .as_ref()
-                .is_some_and(|p| p.members.iter().any(|m| m.aid == entry.id));
+                .is_some_and(|p| p.members.iter().any(|m| self.game.world.entities.resolve_key(m.aid) == entry.id));
             let Some(entity) = self.game.world.entities.get(entry.id) else {
                 continue;
             };

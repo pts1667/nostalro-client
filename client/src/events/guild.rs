@@ -507,6 +507,8 @@ impl App {
 }
 
 impl App {
+    /// Guild packets carry the account id as `aid` and the char id as `gid`, which is
+    /// the id guild members are listed under.
     pub(crate) fn local_aid_gid(&self) -> (u32, u32) {
         let aid = self
             .game
@@ -515,7 +517,8 @@ impl App {
             .as_ref()
             .map(|s| s.account_id)
             .unwrap_or(0);
-        (aid, aid)
+        let gid = self.game.world.entities.player_id().unwrap_or(0);
+        (aid, gid)
     }
 
     pub(crate) fn open_emblem_picker(&mut self) {
@@ -620,13 +623,7 @@ impl App {
         y: f32,
     ) {
         use ragnarok_ui_component::game::context_menu::{ContextMenuAction, ContextMenuItem};
-        let local_gid = self
-            .game
-            .session
-            .login_session
-            .as_ref()
-            .map(|s| s.account_id)
-            .unwrap_or(0);
+        let local_gid = self.game.world.entities.player_id().unwrap_or(0);
         let mut items = Vec::new();
         let is_self = gid == local_gid;
         if !is_self {

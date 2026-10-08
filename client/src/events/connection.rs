@@ -200,13 +200,13 @@ impl App {
             .as_ref()
             .map(|s| s.sex)
             .unwrap_or(1);
-        let account_id = self
+        let (account_id, char_id) = self
             .game
             .session
             .login_session
             .as_ref()
-            .map(|s| s.account_id)
-            .unwrap_or(0);
+            .map(|s| (s.account_id, s.char_id))
+            .unwrap_or((0, 0));
         let (
             job,
             sex,
@@ -245,7 +245,7 @@ impl App {
             .unwrap_or((0, session_sex, 0, 0, 0, 0, 0, 0, 0, 0));
 
         let mut entity = Entity::new_player(
-            account_id,
+            char_id,
             job,
             sex,
             head,
@@ -265,8 +265,9 @@ impl App {
             entity.guild_id = guild.gdid;
             entity.guild_emblem_version = guild.emblem_version;
         }
-        self.game.world.entities.set_player_id(account_id);
+        self.game.world.entities.set_player_id(char_id);
         self.game.world.entities.insert(entity);
+        self.game.world.entities.register_account_id(account_id, char_id);
         self.game.character.hand_look = (weapon, shield_id);
 
         for &(bit, efst) in ragnarok_game::sprite_path::OPTION_STATUS_ICONS {
@@ -278,7 +279,7 @@ impl App {
         let sprite_job = ragnarok_game::sprite_path::visual_job(job, effect_state);
         let weapon_type = weapon_view_id_to_type(weapon);
         self.load_player_sprite(
-            account_id,
+            char_id,
             sprite_job,
             sex,
             head,
@@ -293,7 +294,7 @@ impl App {
         );
 
         if ragnarok_game::sprite_path::has_falcon(effect_state) {
-            self.spawn_falcon_visual(account_id);
+            self.spawn_falcon_visual(char_id);
         }
         if let Some((pid, design)) = self.game.player_cart_from_option() {
             self.spawn_cart_visual(pid, design);
@@ -378,7 +379,7 @@ impl App {
         if let Some(info) = &self.game.session.selected_character {
             self.game.character.init_from_info(info);
         }
-        self.refresh_level_aura(account_id);
+        self.refresh_level_aura(char_id);
 
         self.game.session.app_state = AppState::InGame;
         if !self.window_state_restored {

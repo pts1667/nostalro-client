@@ -620,7 +620,7 @@ impl App {
             .game
             .party
             .as_ref()
-            .is_some_and(|p| p.members.iter().any(|m| m.aid == caster_gid));
+            .is_some_and(|p| p.members.iter().any(|m| self.game.world.entities.resolve_key(m.aid) == caster_gid));
         !in_my_party && caster.entity_type == EntityType::Monster
     }
 
@@ -1066,7 +1066,8 @@ impl App {
         match skill_target_type {
             SkillTargetType::MySelf => {
                 if !respect_cooldown || !self.skill_on_cooldown(skill) {
-                    let target_id = self.game.world.entities.player_id().unwrap_or(0);
+                    // The server checks self-targeted skills against the char id, not the account id.
+                    let target_id = self.game.session.login_session.as_ref().map_or(0, |s| s.char_id);
                     self.channel.send_packet(build_use_skill_packet(
                         skill,
                         level,

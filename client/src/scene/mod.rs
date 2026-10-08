@@ -42,7 +42,7 @@ impl App {
             .game
             .party
             .as_ref()
-            .is_some_and(|p| p.members.iter().any(|m| m.aid == gid));
+            .is_some_and(|p| p.members.iter().any(|m| self.game.world.entities.resolve_key(m.aid) == gid));
         if is_ally {
             HiddenViewer::Ally
         } else {

@@ -1386,7 +1386,7 @@ pub enum GameEvent {
         skill: SkillEnum,
     },
     RequestGuildInvite {
-        target_aid: u32,
+        target_char_id: u32,
     },
     RequestGuildAlly {
         target_aid: u32,

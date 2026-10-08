@@ -345,7 +345,7 @@ impl App {
         self.game
             .party
             .as_ref()
-            .map(|p| p.members.iter().map(|m| m.aid).collect())
+            .map(|p| p.members.iter().map(|m| self.game.world.entities.resolve_key(m.aid)).collect())
             .unwrap_or_default()
     }
 }
