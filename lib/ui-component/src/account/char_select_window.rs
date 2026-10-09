@@ -1,7 +1,7 @@
 use crate::Window;
+use crate::helper::fallback;
 use crate::helper::window_chrome::{
-    draw_container, draw_footer,
-    draw_titlebar, text_color,
+    draw_container, draw_footer, draw_titlebar, label_color, text_color,
 };
 use ragnarok_game::event::{CharacterInfo, GameEvent};
 use ragnarok_game::job_class::job_class_name;
@@ -31,9 +31,9 @@ const SPRITE_ANCHOR_X: f32 = 63.0;
 const SPRITE_ANCHOR_Y: f32 = 110.0;
 
 
-const ARROW_W: f32 = 13.0;
-const ARROW_H: f32 = 13.0;
-const ARROW_TOP: f32 = 105.0;
+const ARROW_W: f32 = 18.0;
+const ARROW_H: f32 = 18.0;
+const ARROW_TOP: f32 = 101.0;
 const ARROW_MARGIN: f32 = 40.0;
 
 const BTN_W: f32 = 42.0;
@@ -44,8 +44,10 @@ const CANCEL_RIGHT: f32 = 4.0;
 const DEL_LEFT: f32 = 4.0;
 
 const PANEL_Y: f32 = 204.0;
-const VAL_COL1_X: f32 = 68.0;
-const VAL_COL2_X: f32 = 216.0;
+const LABEL_COL1_X: f32 = 60.0;
+const VAL_COL1_X: f32 = 140.0;
+const LABEL_COL2_X: f32 = 216.0;
+const VAL_COL2_X: f32 = 300.0;
 const ROW_YS: [f32; 6] = [2.0, 18.0, 34.0, 50.0, 66.0, 82.0];
 
 pub const CHAR_SELECT_WINDOW_ID: WidgetId = WidgetId(210);
@@ -67,7 +69,7 @@ const BIRTHDATE_MAX_LEN: usize = 8;
 
 
 const TEXT_COLOR: [f32; 4] = [0.15, 0.16, 0.32, 1.0];
-const SLOT_BORDER_COLOR: [f32; 4] = [0.78, 0.80, 0.86, 1.0];
+const SELECTED_COLOR: [f32; 4] = [0.36, 0.52, 0.86, 1.0];
 
 
 
@@ -254,14 +256,15 @@ impl CharSelectWindow {
         let win = ui.window_account(CHAR_SELECT_WINDOW_ID, WIN_W, WIN_H, TITLE_BAR_H);
         self.win_origin = (win.x, win.y);
 
-        push_color_quad(ui, win.x, win.y, WIN_W, WIN_H, [0.08, 0.08, 0.12, 0.95]);
-        let title = "Character Select";
-        let tw = ui.atlas.measure_text(title);
+        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_BAR_H);
+        draw_container(ui, win.x, win.y + TITLE_BAR_H, WIN_W, WIN_H - TITLE_BAR_H);
+        let title = rust_i18n::t!("char_select.title");
+        let tw = ui.atlas.measure_text(&title);
         ui.text(
             win.x + (WIN_W - tw) / 2.0,
-            win.y + ui.atlas.line_height,
-            title,
-            [1.0, 1.0, 1.0, 1.0],
+            win.y + (TITLE_BAR_H + ui.atlas.line_height) / 2.0 - 3.0,
+            &title,
+            text_color(),
         );
 
         self.build_slots(ui, win.x, win.y, events);
@@ -280,7 +283,7 @@ impl CharSelectWindow {
         for col in 0..SLOTS_PER_PAGE {
             let slot_rect = Rect::new(ox + SLOT_LEFTS[col], oy + SLOT_TOP, SLOT_W, SLOT_H);
 
-            push_border(ui, slot_rect, SLOT_BORDER_COLOR);
+            fallback::slot_cell(ui, slot_rect.x, slot_rect.y, slot_rect.w, slot_rect.h);
 
             let resp = ui.interact(
                 WidgetId(CHAR_SELECT_WINDOW_ID.0 + 10 + col as u32),
@@ -303,7 +306,15 @@ impl CharSelectWindow {
             }
 
             if col == self.selected_col {
-                push_border(ui, slot_rect, [0.5, 0.62, 0.9, 1.0]);
+                // Two-pixel ring, so the selected slot reads at a glance.
+                push_border(ui, slot_rect, SELECTED_COLOR);
+                let inner = Rect::new(
+                    slot_rect.x + 1.0,
+                    slot_rect.y + 1.0,
+                    slot_rect.w - 2.0,
+                    slot_rect.h - 2.0,
+                );
+                push_border(ui, inner, SELECTED_COLOR);
             }
         }
     }
@@ -347,9 +358,27 @@ impl CharSelectWindow {
             ch.dex.to_string(),
             ch.luk.to_string(),
         ];
+        let left_labels = [
+            rust_i18n::t!("char_select.name"),
+            rust_i18n::t!("char_select.job"),
+            rust_i18n::t!("char_select.base_level"),
+            rust_i18n::t!("char_select.base_exp"),
+            rust_i18n::t!("char_select.hp"),
+            rust_i18n::t!("char_select.sp"),
+        ];
+        let right_labels = [
+            rust_i18n::t!("char_select.str"),
+            rust_i18n::t!("char_select.agi"),
+            rust_i18n::t!("char_select.vit"),
+            rust_i18n::t!("char_select.int"),
+            rust_i18n::t!("char_select.dex"),
+            rust_i18n::t!("char_select.luk"),
+        ];
         for (i, y) in ROW_YS.iter().enumerate() {
             let ty = oy + PANEL_Y + y + ui.atlas.line_height / 1.5;
+            ui.text(ox + LABEL_COL1_X, ty, &left_labels[i], label_color());
             ui.text(ox + VAL_COL1_X, ty, &left[i], TEXT_COLOR);
+            ui.text(ox + LABEL_COL2_X, ty, &right_labels[i], label_color());
             ui.text(ox + VAL_COL2_X, ty, &right[i], TEXT_COLOR);
         }
     }

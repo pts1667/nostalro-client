@@ -1,5 +1,6 @@
 use crate::helper::{ButtonTextures};
 use crate::Window;
+use crate::helper::fallback;
 use crate::helper::window_chrome;
 use ragnarok_game::event::GameEvent;
 use ragnarok_renderer::ui_renderer::UiVertex;
@@ -61,8 +62,8 @@ const V2_COLOR_Y: f32 = 225.0;
 const V2_ARROW_L_X: f32 = 15.0;
 const V2_ARROW_R_X: f32 = 125.0;
 
-const ARROW_W: f32 = 13.0;
-const ARROW_H: f32 = 13.0;
+const ARROW_W: f32 = 18.0;
+const ARROW_H: f32 = 18.0;
 
 const BTN_W: f32 = 42.0;
 const BTN_H: f32 = 20.0;
@@ -100,7 +101,7 @@ const STAT_ROW_H: f32 = 16.0;
 // Perimeter order (clockwise from the top vertex) so the triangle fan winds cleanly.
 const STAT_HEX_ORDER: [usize; 6] = [0, 2, 5, 3, 4, 1];
 const STAT_HEX_MAX: f32 = 10.0;
-const STAT_HEX_COLOR: [f32; 4] = [0.5, 0.5, 0.5, 0.7];
+const STAT_HEX_COLOR: [f32; 4] = [0.36, 0.52, 0.86, 0.35];
 
 pub const CHAR_CREATE_WINDOW_ID: WidgetId = WidgetId(4500);
 const NAME_ID: WidgetId = WidgetId(4501);
@@ -294,8 +295,6 @@ impl CharCreateWindow {
         let (ox, oy) = self.win_origin;
         let rect = Rect::new(ox + 2.0, oy + 2.0, 40.0, 14.0);
         let label = if self.with_stats { "v1" } else { "v2" };
-        // Force the fallback (labelled box) look so the dev toggle reads the same
-        // regardless of the active skin's GRF state.
         let clicked = ui.button(SKIN_TOGGLE_ID, rect, label).clicked();
         if clicked {
             self.with_stats = !self.with_stats;
@@ -308,14 +307,24 @@ impl CharCreateWindow {
         self.win_origin = (win.x, win.y);
         let (ox, oy) = (win.x, win.y);
 
-        push_color_quad(ui, ox, oy, WIN_W, WIN_H, [0.08, 0.08, 0.12, 0.95]);
-        let title = "Create Character";
-        let tw = ui.atlas.measure_text(title);
+        window_chrome::draw_titlebar(ui, ox, oy, WIN_W, TITLE_BAR_H);
+        window_chrome::draw_container(ui, ox, oy + TITLE_BAR_H, WIN_W, WIN_H - TITLE_BAR_H);
+        let title = rust_i18n::t!("char_create.title");
+        let tw = ui.atlas.measure_text(&title);
         ui.text(
             ox + (WIN_W - tw) / 2.0,
-            oy + ui.atlas.line_height,
-            title,
-            [1.0; 4],
+            oy + (TITLE_BAR_H + ui.atlas.line_height) / 2.0 - 3.0,
+            &title,
+            window_chrome::text_color(),
+        );
+
+        // Framed preview area: the body sprite is drawn over it when available.
+        fallback::slot_cell(ui, ox + 44.0, oy + 98.0, 104.0, 128.0);
+        ui.text(
+            ox + NAME_X,
+            oy + NAME_Y - 6.0,
+            &rust_i18n::t!("char_create.name"),
+            window_chrome::label_color(),
         );
 
         let name_bg = TextInputBg::Default;
@@ -377,8 +386,17 @@ impl CharCreateWindow {
                 self.raise_stat(i);
             }
         }
-        for i in 0..6 {
+        let labels = [
+            rust_i18n::t!("char_create.str"),
+            rust_i18n::t!("char_create.agi"),
+            rust_i18n::t!("char_create.vit"),
+            rust_i18n::t!("char_create.int"),
+            rust_i18n::t!("char_create.dex"),
+            rust_i18n::t!("char_create.luk"),
+        ];
+        for (i, label) in labels.iter().enumerate() {
             let y = oy + STAT_INFO_Y + i as f32 * STAT_ROW_H + ui.atlas.line_height / 1.5;
+            ui.text(ox + STAT_INFO_X - 36.0, y, label, window_chrome::label_color());
             ui.text(ox + STAT_INFO_X, y, &self.stats[i].to_string(), TEXT_COLOR);
         }
     }
