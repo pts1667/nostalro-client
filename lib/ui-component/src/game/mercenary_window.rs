@@ -76,7 +76,7 @@ impl MercenaryWindow {
         ui.interact(MERCENARY_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
 
         draw_titlebar(ui, x, y, WIN_W, TITLE_H);
-        ui.text(x + 16.0, y + 13.0, "Mercenary Info", tc);
+        ui.text(x + 16.0, y + 13.0, &rust_i18n::t!("mercenary.mercenary_info"), tc);
 
         let sys_w = 11.0;
         let close_rect = Rect::new(x + WIN_W - 3.0 - sys_w, y + 3.0, sys_w, sys_w);
@@ -124,7 +124,7 @@ impl MercenaryWindow {
         let right_edge = x + WIN_W - PAD;
         let mut ry = y + TITLE_H + 4.0;
 
-        ui.text(rx, ry + BASELINE, "Name", tc);
+        ui.text(rx, ry + BASELINE, &rust_i18n::t!("mercenary.name"), tc);
         ui.text_bold(rx + 34.0, ry + BASELINE, &merc.name, lc);
         ry += 20.0;
 
@@ -134,13 +134,13 @@ impl MercenaryWindow {
         let skill_rect = Rect::new(right_edge - sw, ry, sw, sh);
         let dismiss_rect = Rect::new(right_edge - sw - 4.0 - fw, ry, fw, fh);
         if ui
-            .button(DISMISS_BTN_ID, dismiss_rect, "Dismiss")
+            .button(DISMISS_BTN_ID, dismiss_rect, &rust_i18n::t!("mercenary.dismiss"))
             .clicked()
         {
             events.push(GameEvent::RequestMercenaryCommand { command: 2 });
         }
         if ui
-            .button(SKILL_BTN_ID, skill_rect, "Skill")
+            .button(SKILL_BTN_ID, skill_rect, &rust_i18n::t!("mercenary.skill"))
             .clicked()
         {
             events.push(GameEvent::ToggleMercenarySkillWindow);
@@ -174,7 +174,7 @@ impl MercenaryWindow {
         );
         ry += 6.0;
 
-        ui.text(rx, ry + BASELINE, "Expiration", tc);
+        ui.text(rx, ry + BASELINE, &rust_i18n::t!("mercenary.expiration"), tc);
         ui.text(
             rx + 60.0,
             ry + BASELINE,
@@ -184,11 +184,11 @@ impl MercenaryWindow {
         ry += 22.0;
 
         let mid = rx + (right_edge - rx) * 0.5;
-        ui.text(rx, ry + BASELINE, "Loyalty", tc);
+        ui.text(rx, ry + BASELINE, &rust_i18n::t!("mercenary.loyalty"), tc);
         ui.text(rx + 52.0, ry + BASELINE, &merc.faith.to_string(), tc);
-        ui.text(mid + 8.0, ry + BASELINE, "Kill", tc);
+        ui.text(mid + 8.0, ry + BASELINE, &rust_i18n::t!("mercenary.kill"), tc);
         ry += 16.0;
-        ui.text(rx, ry + BASELINE, "Summons", tc);
+        ui.text(rx, ry + BASELINE, &rust_i18n::t!("mercenary.summons"), tc);
         ui.text(rx + 52.0, ry + BASELINE, &merc.calls.to_string(), tc);
         ui.text_right(right_edge, ry + BASELINE, &merc.kills.to_string(), tc);
 

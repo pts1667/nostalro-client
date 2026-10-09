@@ -94,7 +94,7 @@ impl MercenarySkillWindow {
         ui.interact(MERCENARY_SKILL_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
 
         draw_titlebar(ui, x, y, WIN_W, TITLE_H);
-        ui.text(x + 16.0, y + 13.0, "Mercenary Soldier Skill List", tc);
+        ui.text(x + 16.0, y + 13.0, &rust_i18n::t!("mercenary_skill.mercenary_soldier_skill_list"), tc);
 
         let sys_w = 11.0;
         let close_rect = Rect::new(x + WIN_W - 3.0 - sys_w, y + 3.0, sys_w, sys_w);
@@ -187,14 +187,14 @@ impl MercenarySkillWindow {
         // Footer.
         let footer_y = y + TITLE_H + list_h;
         draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
-        ui.text(x + PAD, footer_y + 15.0, "Skill Point: 0", tc);
+        ui.text(x + PAD, footer_y + 15.0, &rust_i18n::t!("mercenary_skill.skill_point_0"), tc);
 
         let (cw, ch) = self.close_size;
         let (uw, uh) = self.use_size;
         let btn_y = footer_y + (FOOTER_H - ch) * 0.5;
         let close_footer = Rect::new(x + WIN_W - PAD - cw, btn_y, cw, ch);
         let use_rect = Rect::new(x + WIN_W - PAD - cw - 4.0 - uw, btn_y, uw, uh);
-        if ui.button(USE_BTN_ID, use_rect, "use").clicked()
+        if ui.button(USE_BTN_ID, use_rect, &rust_i18n::t!("mercenary_skill.use")).clicked()
             && let Some(skill) = merc.skills.get(self.selected)
         {
             events.push(GameEvent::RequestCompanionUseSkill {
@@ -204,7 +204,7 @@ impl MercenarySkillWindow {
             });
         }
         if ui
-            .button(FOOTER_CLOSE_BTN_ID, close_footer, "close")
+            .button(FOOTER_CLOSE_BTN_ID, close_footer, &rust_i18n::t!("mercenary_skill.close"))
             .clicked()
         {
             self.visible = false;

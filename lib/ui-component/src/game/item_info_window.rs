@@ -312,7 +312,7 @@ impl ItemInfoWindow {
         let btn_x = info_window.win_x + 6.0;
         let btn_y = info_window.win_y + 6.0;
         let btn_rect = Rect::new(btn_x, btn_y, VIEW_BTN_W, VIEW_BTN_H);
-        let btn_resp = ui.button(CARD_INFO_VIEW_BTN_ID, btn_rect, "View");
+        let btn_resp = ui.button(CARD_INFO_VIEW_BTN_ID, btn_rect, &rust_i18n::t!("item_info.view"));
         if btn_resp.clicked() {
             events.push(GameEvent::ShowCardIllustration {
                 item_id: card_data.item_id,
@@ -328,7 +328,7 @@ impl ItemInfoWindow {
         item_id: u16,
     ) {
         let rect = Rect::new(x, y, VIEW_BTN_W, VIEW_BTN_H);
-        if ui.button(READ_BTN_ID, rect, "Read").clicked() {
+        if ui.button(READ_BTN_ID, rect, &rust_i18n::t!("item_info.read")).clicked() {
             events.push(GameEvent::ReadBook { item_id });
         }
     }

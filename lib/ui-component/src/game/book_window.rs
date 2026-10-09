@@ -180,13 +180,13 @@ impl InGameWindow for BookWindow {
         let next_x = win.x + WIN_W - 20.0 - NAV_BTN_W;
         if self.page > 0 {
             let rect = Rect::new(prev_x, footer_y, NAV_BTN_W, NAV_BTN_H);
-            if ui.button(PREV_BTN_ID, rect, "Prev").clicked() {
+            if ui.button(PREV_BTN_ID, rect, &rust_i18n::t!("book.prev")).clicked() {
                 self.page -= 1;
             }
         }
         if self.page + 1 < total_pages {
             let rect = Rect::new(next_x, footer_y, NAV_BTN_W, NAV_BTN_H);
-            if ui.button(NEXT_BTN_ID, rect, "Next").clicked() {
+            if ui.button(NEXT_BTN_ID, rect, &rust_i18n::t!("book.next")).clicked() {
                 self.page += 1;
             }
         }

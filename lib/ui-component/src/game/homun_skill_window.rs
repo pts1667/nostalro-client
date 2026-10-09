@@ -91,7 +91,7 @@ impl HomunSkillWindow {
         ui.interact(HOMUN_SKILL_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
 
         draw_titlebar(ui, x, y, WIN_W, TITLE_H);
-        ui.text(x + 16.0, y + 13.0, "Homunculus Skill List", tc);
+        ui.text(x + 16.0, y + 13.0, &rust_i18n::t!("homun_skill.homunculus_skill_list"), tc);
 
         let sys_w = 11.0;
         let close_rect = Rect::new(x + WIN_W - 3.0 - sys_w, y + 3.0, sys_w, sys_w);
@@ -209,7 +209,7 @@ impl HomunSkillWindow {
         let btn_y = footer_y + (FOOTER_H - ch) * 0.5;
         let close_footer = Rect::new(x + WIN_W - PAD - cw, btn_y, cw, ch);
         let use_rect = Rect::new(x + WIN_W - PAD - cw - 4.0 - uw, btn_y, uw, uh);
-        if ui.button(USE_BTN_ID, use_rect, "use").clicked()
+        if ui.button(USE_BTN_ID, use_rect, &rust_i18n::t!("homun_skill.use")).clicked()
             && let Some(skill) = homun.skills.get(self.selected)
         {
             events.push(GameEvent::RequestCompanionUseSkill {
@@ -219,7 +219,7 @@ impl HomunSkillWindow {
             });
         }
         if ui
-            .button(FOOTER_CLOSE_BTN_ID, close_footer, "close")
+            .button(FOOTER_CLOSE_BTN_ID, close_footer, &rust_i18n::t!("homun_skill.close"))
             .clicked()
         {
             self.visible = false;

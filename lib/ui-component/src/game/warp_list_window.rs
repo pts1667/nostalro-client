@@ -197,8 +197,8 @@ impl WarpListWindow {
             BTN_FIRST_RIGHT,
             BTN_SPACING,
         );
-        let cancel = ui.button(CANCEL_ID, btns[0], "Cancel");
-        let ok = ui.button(OK_ID, btns[1], "OK");
+        let cancel = ui.button(CANCEL_ID, btns[0], &rust_i18n::t!("common.cancel"));
+        let ok = ui.button(OK_ID, btns[1], &rust_i18n::t!("common.ok"));
 
         if ok.clicked() {
             self.confirm(&mut events);

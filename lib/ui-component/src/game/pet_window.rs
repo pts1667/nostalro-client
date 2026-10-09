@@ -85,7 +85,7 @@ impl PetWindow {
         let bounds = Rect::new(0.0, 0.0, ui.ctx.screen_width, ui.ctx.screen_height);
 
         draw_titlebar(ui, x, y, WIN_W, TITLE_H);
-        ui.text(x + 16.0, y + 13.0, "Pet Information", tc);
+        ui.text(x + 16.0, y + 13.0, &rust_i18n::t!("pet.pet_information"), tc);
 
         let sys_w = 11.0;
         let close_rect = Rect::new(x + WIN_W - 3.0 - sys_w, y + 3.0, sys_w, sys_w);
@@ -128,7 +128,7 @@ impl PetWindow {
             ui.text_input(NAME_INPUT_ID, input_rect, &mut self.name_input, bg);
             let btn_rect = Rect::new(rx + input_w + 4.0, ry, bw, bh.min(16.0));
             if ui
-                .button(RENAME_BTN_ID, btn_rect, "Name")
+                .button(RENAME_BTN_ID, btn_rect, &rust_i18n::t!("pet.name"))
                 .clicked()
             {
                 let name = self.name_input.text.trim().to_string();
@@ -140,19 +140,19 @@ impl PetWindow {
             ry += ROW_H + 2.0;
         }
 
-        ui.text_bold(rx, ry + BASELINE, "Level", lc);
+        ui.text_bold(rx, ry + BASELINE, &rust_i18n::t!("pet.level"), lc);
         ui.text_right(right_edge, ry + BASELINE, &pet.level.to_string(), tc);
         ry += ROW_H;
 
-        ui.text_bold(rx, ry + BASELINE, "Hunger", lc);
+        ui.text_bold(rx, ry + BASELINE, &rust_i18n::t!("pet.hunger"), lc);
         ui.text_right(right_edge, ry + BASELINE, pet.hunger_state().label(), tc);
         ry += ROW_H;
 
-        ui.text_bold(rx, ry + BASELINE, "Intimacy", lc);
+        ui.text_bold(rx, ry + BASELINE, &rust_i18n::t!("pet.intimacy"), lc);
         ui.text_right(right_edge, ry + BASELINE, pet.intimacy_state().label(), tc);
         ry += ROW_H;
 
-        ui.text_bold(rx, ry + BASELINE, "Accessory", lc);
+        ui.text_bold(rx, ry + BASELINE, &rust_i18n::t!("pet.accessory"), lc);
         let acc = if pet.accessory != 0 {
             "Equipped"
         } else {

@@ -548,7 +548,7 @@ impl NpcShop {
             let price_w = ui.atlas.measure_text(&price_str);
             let price_x = z_x - (2.0) - price_w;
             ui.text(price_x, text_y, &price_str, text_color);
-            ui.text(z_x, text_y, "Z", text_color);
+            ui.text(z_x, text_y, &rust_i18n::t!("npc_shop.z"), text_color);
 
             if response.right_clicked()
                 && let Some(item) = self.shop.item_at(basket_item.source_index)
@@ -613,7 +613,7 @@ impl NpcShop {
             None => "",
         };
         let action_btn = ui.button(BUY_SELL_BTN_ID, Rect::new(action_x, btn_y, btn_w, btn_h), action_label);
-        let cancel_btn = ui.button(CANCEL_BTN_ID, Rect::new(cancel_x, btn_y, btn_w, btn_h), "Cancel");
+        let cancel_btn = ui.button(CANCEL_BTN_ID, Rect::new(cancel_x, btn_y, btn_w, btn_h), &rust_i18n::t!("common.cancel"));
 
         if action_btn.clicked() && !self.shop.basket.is_empty() {
             match self.shop.mode {

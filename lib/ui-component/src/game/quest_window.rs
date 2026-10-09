@@ -294,7 +294,7 @@ impl InGameWindow for QuestWindow {
         ui.interact(QUEST_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
 
         draw_titlebar(ui, x, y, WIN_W, TITLE_H);
-        ui.text(x + 16.0, y + TITLE_H - 3.0, "Quest List", tc);
+        ui.text(x + 16.0, y + TITLE_H - 3.0, &rust_i18n::t!("quest.quest_list"), tc);
 
         let close_rect = Rect::new(
             x + WIN_W - CLOSE_BTN_SIZE - 3.0,
@@ -330,7 +330,7 @@ impl InGameWindow for QuestWindow {
         draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         let view_rect = Rect::new(x + 6.0, footer_y + 2.0, 42.0, 20.0);
         if ui
-            .button(VIEW_BTN_ID, view_rect, "View")
+            .button(VIEW_BTN_ID, view_rect, &rust_i18n::t!("quest.view"))
             .clicked()
         {
             if let Some(id) = self.selected {
@@ -339,7 +339,7 @@ impl InGameWindow for QuestWindow {
         }
         let close2_rect = Rect::new(x + WIN_W - 48.0, footer_y + 2.0, 42.0, 20.0);
         if ui
-            .button(FOOTER_CLOSE_BTN_ID, close2_rect, "Close")
+            .button(FOOTER_CLOSE_BTN_ID, close2_rect, &rust_i18n::t!("common.close"))
             .clicked()
         {
             self.open = false;

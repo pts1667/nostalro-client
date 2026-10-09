@@ -464,7 +464,7 @@ impl InGameWindow for WorldMapWindow {
                         img_x,
                         img_y + PREVIEW_SIZE / 2.0,
                         PREVIEW_SIZE,
-                        "no minimap",
+                        &rust_i18n::t!("world_map.no_minimap"),
                         [0.6, 0.6, 0.6, 1.0],
                     );
                 }

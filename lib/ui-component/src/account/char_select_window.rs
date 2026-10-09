@@ -364,7 +364,7 @@ impl CharSelectWindow {
 
         let cancel = Rect::new(ox + WIN_W - CANCEL_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
         if ui
-            .button(CANCEL_ID, cancel, "Cancel")
+            .button(CANCEL_ID, cancel, &rust_i18n::t!("common.cancel"))
             .clicked()
             && !modal
         {
@@ -373,17 +373,17 @@ impl CharSelectWindow {
 
         let action = Rect::new(ox + WIN_W - OK_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
         if occupied {
-            if ui.button(OK_ID, action, "OK").clicked() && !modal {
+            if ui.button(OK_ID, action, &rust_i18n::t!("common.ok")).clicked() && !modal {
                 events.push(GameEvent::RequestSelectCharacter { slot: slot as u8 });
             }
             let del = Rect::new(ox + DEL_LEFT, btn_y, BTN_W, BTN_H);
-            if ui.button(DEL_ID, del, "del").clicked() && !modal {
+            if ui.button(DEL_ID, del, &rust_i18n::t!("char_select.del")).clicked() && !modal {
                 if let Some(gid) = selected_gid {
                     self.open_delete_dialog(gid, 0);
                     events.push(GameEvent::RequestDeleteCharacterReserve { gid });
                 }
             }
-        } else if ui.button(MAKE_ID, action, "Make").clicked() && !modal {
+        } else if ui.button(MAKE_ID, action, &rust_i18n::t!("char_select.make")).clicked() && !modal {
             events.push(GameEvent::RequestCreateCharacter { slot: slot as u8 });
         }
 
@@ -422,13 +422,13 @@ impl CharSelectWindow {
         ui.text(
             dx + 20.0,
             dy + DIALOG_TITLE_H - 4.0,
-            &format!("Delete {name}?"),
+            &rust_i18n::t!("char_select.delete_name", name = name),
             fg,
         );
         ui.text(
             dx + 12.0,
             body_y + lh,
-            "Enter birthdate (YYMMDD) to confirm:",
+            &rust_i18n::t!("char_select.enter_birthdate_yymmdd_to_confirm"),
             fg,
         );
 
@@ -452,12 +452,12 @@ impl CharSelectWindow {
         let cancel = Rect::new(dx + DIALOG_W - CANCEL_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
 
         let submit =
-            ui.button(DEL_CONFIRM_ID, confirm, "OK").clicked() || ui.ctx.key_enter;
+            ui.button(DEL_CONFIRM_ID, confirm, &rust_i18n::t!("common.ok")).clicked() || ui.ctx.key_enter;
         if submit {
             events.push(GameEvent::RequestDeleteCharacterConfirm { gid, birthdate });
         }
         if ui
-            .button(DEL_CANCEL_ID, cancel, "Cancel")
+            .button(DEL_CANCEL_ID, cancel, &rust_i18n::t!("common.cancel"))
             .clicked()
             || ui.ctx.key_escape
         {

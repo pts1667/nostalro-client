@@ -287,8 +287,8 @@ impl ItemListSelectionWindow {
 
         let win_rect = Rect::new(dx, dy, WIN_W, win_h);
         let btns = win_rect.buttons_bottom_right(2, btn_w, btn_h, 5.0, 5.0, 3.0);
-        let cancel = ui.button(CANCEL_ID, btns[0], "Cancel");
-        let ok = ui.button(OK_ID, btns[1], "OK");
+        let cancel = ui.button(CANCEL_ID, btns[0], &rust_i18n::t!("common.cancel"));
+        let ok = ui.button(OK_ID, btns[1], &rust_i18n::t!("common.ok"));
         if ok.clicked() {
             self.confirm(&mut events);
         } else if cancel.clicked() {

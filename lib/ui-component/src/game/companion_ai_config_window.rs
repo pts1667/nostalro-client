@@ -1208,7 +1208,7 @@ impl CompanionAiConfigWindow {
         ui.interact(COMPANION_AI_CONFIG_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
 
         draw_titlebar(ui, x, y, WIN_W, TITLE_H);
-        ui.text(x + 16.0, y + 13.0, "Companion AI Settings", tc);
+        ui.text(x + 16.0, y + 13.0, &rust_i18n::t!("companion_ai_config.companion_ai_settings"), tc);
 
         let sys_w = 11.0;
         let close_rect = Rect::new(x + WIN_W - 3.0 - sys_w, y + 3.0, sys_w, sys_w);
@@ -1318,7 +1318,7 @@ impl CompanionAiConfigWindow {
         let bw = 84.0;
         let by = footer_y + 3.0;
         if ui
-            .button(APPLY_BTN_ID, Rect::new(x + PAD, by, 32.0, 18.0), "Apply")
+            .button(APPLY_BTN_ID, Rect::new(x + PAD, by, 32.0, 18.0), &rust_i18n::t!("companion_ai_config.apply"))
             .clicked()
         {
             events.push(GameEvent::SaveCompanionAiConfig);
@@ -1327,7 +1327,7 @@ impl CompanionAiConfigWindow {
             .text_button(
                 REVERT_BTN_ID,
                 Rect::new(x + PAD + bw + 6.0, by, bw, 18.0),
-                "Revert",
+                &rust_i18n::t!("companion_ai_config.revert"),
             )
             .clicked()
         {
@@ -1337,7 +1337,7 @@ impl CompanionAiConfigWindow {
             .text_button(
                 RESET_BTN_ID,
                 Rect::new(x + PAD + (bw + 6.0) * 2.0, by, bw, 18.0),
-                "Defaults",
+                &rust_i18n::t!("companion_ai_config.defaults"),
             )
             .clicked()
         {
@@ -1489,7 +1489,7 @@ impl CompanionAiConfigWindow {
         }
         cx += bw + 4.0;
         if ui
-            .text_button(TACT_ADD_ID, Rect::new(cx, y, 32.0, 18.0), "Add")
+            .text_button(TACT_ADD_ID, Rect::new(cx, y, 32.0, 18.0), &rust_i18n::t!("companion_ai_config.add"))
             .clicked()
         {
             let mut t = Tactic::default_row();
@@ -1501,7 +1501,7 @@ impl CompanionAiConfigWindow {
         }
         cx += 58.0;
         if ui
-            .button(TACT_DEL_ID, Rect::new(cx, y, 32.0, 18.0), "Del")
+            .button(TACT_DEL_ID, Rect::new(cx, y, 32.0, 18.0), &rust_i18n::t!("companion_ai_config.del"))
             .clicked()
             && rows[self.tactic_sel].id != 0
             && rows[self.tactic_sel].id != 13

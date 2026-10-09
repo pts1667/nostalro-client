@@ -176,7 +176,7 @@ impl InGameWindow for StorageWindow {
         ui.interact(STORAGE_WINDOW_ID, Rect::new(x, y, WIN_W, win_h));
 
         draw_titlebar(ui, x, y, WIN_W, TITLE_H);
-        ui.text(x + 17.0, y + TITLE_H - 3.0, "Storage", tc);
+        ui.text(x + 17.0, y + TITLE_H - 3.0, &rust_i18n::t!("storage.storage"), tc);
 
         let container_y = y + TITLE_H;
         let list_h = self.rows as f32 * ROW_H;
@@ -369,7 +369,7 @@ impl InGameWindow for StorageWindow {
         ui.text(
             x + 6.0,
             footer_y + FOOTER_H - 9.0,
-            &format!("{cur}/{max}"),
+            &rust_i18n::t!("storage.cur_max", cur = cur, max = max),
             count_color,
         );
 
@@ -380,7 +380,7 @@ impl InGameWindow for StorageWindow {
             cw,
             ch,
         );
-        let close = ui.button(CLOSE_BTN_ID, close_rect, "Close");
+        let close = ui.button(CLOSE_BTN_ID, close_rect, &rust_i18n::t!("common.close"));
 
         let resize_rect = Rect::new(
             x + WIN_W - RESIZE_SIZE,

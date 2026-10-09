@@ -229,7 +229,7 @@ impl PartyFriendsWindow {
     ) {
         let members: &[PartyMember] = party.map(|p| p.members.as_slice()).unwrap_or(&[]);
         if members.is_empty() {
-            ui.text(x + 8.0, content_y + 18.0, "Not in a party", OFFLINE_COLOR);
+            ui.text(x + 8.0, content_y + 18.0, &rust_i18n::t!("party_friends.not_in_a_party"), OFFLINE_COLOR);
             return;
         }
         for (idx, m) in members.iter().enumerate() {
@@ -274,7 +274,7 @@ impl PartyFriendsWindow {
             ui.text_right(
                 x + WIN_W - 8.0,
                 row_y + 11.0,
-                &format!("({map})"),
+                &rust_i18n::t!("party_friends.map", map = map),
                 OFFLINE_COLOR,
             );
 
@@ -302,7 +302,7 @@ impl PartyFriendsWindow {
                     ui.text(
                         bar_x + HP_BAR_W + 6.0,
                         bar_y + HP_BAR_H + 2.0,
-                        &format!("{hp}/{max_hp}"),
+                        &rust_i18n::t!("party_friends.hp_max_hp", hp = hp, max_hp = max_hp),
                         tc,
                     );
                 }
@@ -312,7 +312,7 @@ impl PartyFriendsWindow {
 
     fn build_friend_list(&mut self, ui: &mut UiFrame, friends: &[Friend], x: f32, content_y: f32) {
         if friends.is_empty() {
-            ui.text(x + 8.0, content_y + 18.0, "No friends", OFFLINE_COLOR);
+            ui.text(x + 8.0, content_y + 18.0, &rust_i18n::t!("party_friends.no_friends"), OFFLINE_COLOR);
             return;
         }
         for (idx, f) in friends.iter().enumerate() {
@@ -436,7 +436,7 @@ impl PartyFriendsWindow {
         // Friends radio
         let friend_rect = Rect::new(x + 6.0, by, 60.0, 15.0);
         Self::draw_radio(ui, friend_rect.x, friend_rect.y, self.friend_tab);
-        ui.text(friend_rect.x + 16.0, by + 11.0, "Friends", tc);
+        ui.text(friend_rect.x + 16.0, by + 11.0, &rust_i18n::t!("party_friends.friends"), tc);
         let fresp = ui.interact(TAB_FRIEND_BTN_ID, friend_rect);
         if fresp.hovered() {
             ui.any_interactive_hovered = true;
@@ -448,7 +448,7 @@ impl PartyFriendsWindow {
         // Party radio
         let party_rect = Rect::new(x + 76.0, by, 60.0, 15.0);
         Self::draw_radio(ui, party_rect.x, party_rect.y, !self.friend_tab);
-        ui.text(party_rect.x + 16.0, by + 11.0, "Party", tc);
+        ui.text(party_rect.x + 16.0, by + 11.0, &rust_i18n::t!("party_friends.party"), tc);
         let presp = ui.interact(TAB_PARTY_BTN_ID, party_rect);
         if presp.hovered() {
             ui.any_interactive_hovered = true;

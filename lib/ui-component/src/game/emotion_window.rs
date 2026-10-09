@@ -91,7 +91,12 @@ impl InGameWindow for EmotionWindow {
         ui.interact(EMOTION_WINDOW_ID, Rect::new(x, y, w, h));
 
         draw_titlebar(ui, x, y, w, TITLE_H);
-        ui.text(x + 16.0, y + TITLE_H - 3.0, "Emoticon", tc);
+        ui.text(
+            x + 16.0,
+            y + TITLE_H - 3.0,
+            &rust_i18n::t!("emotion.emoticon"),
+            tc,
+        );
 
         let close_rect = Rect::new(
             x + w - CLOSE_BTN_SIZE - 3.0,

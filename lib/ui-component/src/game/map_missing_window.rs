@@ -80,13 +80,13 @@ impl MapMissingWindow {
         let charselect_y = warp_y + BTN_H + BTN_SPACING;
 
         if ui
-            .button(WARP_BTN_ID, Rect::new(btn_x, warp_y, BTN_W, BTN_H), "Warp to Prontera")
+            .button(WARP_BTN_ID, Rect::new(btn_x, warp_y, BTN_W, BTN_H), &rust_i18n::t!("map_missing.warp_to_prontera"))
             .clicked()
         {
             events.push(GameEvent::RequestMapRecoveryWarp);
         }
         if ui
-            .button(CHARSELECT_BTN_ID, Rect::new(btn_x, charselect_y, BTN_W, BTN_H), "Return to Character Select")
+            .button(CHARSELECT_BTN_ID, Rect::new(btn_x, charselect_y, BTN_W, BTN_H), &rust_i18n::t!("map_missing.return_to_character_select"))
             .clicked()
         {
             events.push(GameEvent::BackToCharacterSelect);

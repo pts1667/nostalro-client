@@ -104,7 +104,7 @@ impl InGameWindow for SkillTreeWindow {
         ui.interact(SKILL_WINDOW_ID, win_rect);
 
         draw_titlebar(ui, x, y, WIN_W, TITLE_H);
-        ui.text(x + 20.0, y + 13.0, "Skill Tree", tc);
+        ui.text(x + 20.0, y + 13.0, &rust_i18n::t!("skill_tree.skill_tree"), tc);
 
         let close_x = x + WIN_W - 17.0;
         let close_y = y + 3.0;
@@ -256,7 +256,7 @@ impl InGameWindow for SkillTreeWindow {
             let type_x = x + WIN_W - SCROLLBAR_W - PAD_X - 50.0;
             let type_y = row_y + ROW_H / 2.0 + 4.0;
             if skill.skill_target_type == SkillTargetType::Passive {
-                ui.text(type_x, type_y, "Passive", tc);
+                ui.text(type_x, type_y, &rust_i18n::t!("skill_tree.passive"), tc);
             } else if is_level_selectable {
                 let sp = data
                     .skill_use_level
@@ -335,7 +335,7 @@ impl InGameWindow for SkillTreeWindow {
         let btn_y = footer_y + (FOOTER_H - btn_h) / 2.0;
 
         let close_btn_x = x + WIN_W - btn_w - 8.0;
-        let close_btn = ui.button(SKILL_FOOTER_CLOSE_BTN_ID, Rect::new(close_btn_x, btn_y, btn_w, btn_h), "close");
+        let close_btn = ui.button(SKILL_FOOTER_CLOSE_BTN_ID, Rect::new(close_btn_x, btn_y, btn_w, btn_h), &rust_i18n::t!("skill_tree.close"));
         if close_btn.clicked() {
             character.skills.close();
             return events;

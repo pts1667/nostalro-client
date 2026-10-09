@@ -237,7 +237,7 @@ impl InGameWindow for StoragePasswordWindow {
         ui.interact(STORAGE_PASSWORD_WINDOW_ID, Rect::new(x, y, WIN_W, win_h));
 
         draw_titlebar(ui, x, y, WIN_W, TITLE_H);
-        ui.text(x + 16.0, y + TITLE_H - 3.0, "Storage Password", tc);
+        ui.text(x + 16.0, y + TITLE_H - 3.0, &rust_i18n::t!("storage_password.storage_password"), tc);
 
         let close_rect = Rect::new(
             x + WIN_W - CLOSE_BTN_SIZE - 3.0,
@@ -278,7 +278,7 @@ impl InGameWindow for StoragePasswordWindow {
 
         match self.mode {
             StoragePasswordMode::Enter => {
-                ui.text(x + PAD, row_y + 12.0, "Password :", tc);
+                ui.text(x + PAD, row_y + 12.0, &rust_i18n::t!("storage_password.password"), tc);
                 ui.text_input(
                     PASSWORD_INPUT_ID,
                     Rect::new(field_x, row_y, field_w, FIELD_H),
@@ -288,7 +288,7 @@ impl InGameWindow for StoragePasswordWindow {
                 row_y += ROW_H;
             }
             StoragePasswordMode::SetNew => {
-                ui.text(x + PAD, row_y + 12.0, "New Password :", tc);
+                ui.text(x + PAD, row_y + 12.0, &rust_i18n::t!("storage_password.new_password"), tc);
                 ui.text_input(
                     NEW_PASSWORD_INPUT_ID,
                     Rect::new(field_x, row_y, field_w, FIELD_H),
@@ -296,7 +296,7 @@ impl InGameWindow for StoragePasswordWindow {
                     bg,
                 );
                 row_y += ROW_H;
-                ui.text(x + PAD, row_y + 12.0, "Confirm :", tc);
+                ui.text(x + PAD, row_y + 12.0, &rust_i18n::t!("storage_password.confirm"), tc);
                 ui.text_input(
                     CONFIRM_INPUT_ID,
                     Rect::new(field_x, row_y, field_w, FIELD_H),
@@ -316,11 +316,11 @@ impl InGameWindow for StoragePasswordWindow {
         let btn_y = footer_y + (FOOTER_H - btn_h) / 2.0;
         let mut bx = x + WIN_W - PAD - btn_w;
         let cancel = ui
-            .button(CANCEL_ID, Rect::new(bx, btn_y, btn_w, btn_h), "cancel")
+            .button(CANCEL_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("storage_password.cancel"))
             .clicked();
         bx -= btn_w + 4.0;
         let ok = ui
-            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), "OK")
+            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("common.ok"))
             .clicked();
 
         if cancel {

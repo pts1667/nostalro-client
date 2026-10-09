@@ -133,7 +133,12 @@ impl InGameWindow for CartWindow {
         ui.interact(CART_WINDOW_ID, Rect::new(win.x, win.y, win_w, win_h));
 
         draw_titlebar(ui, win.x, win.y, win_w, TITLE_H);
-        ui.text(win.x + 17.0, win.y + TITLE_H - 3.0, "Cart", text_color);
+        ui.text(
+            win.x + 17.0,
+            win.y + TITLE_H - 3.0,
+            &rust_i18n::t!("cart.cart"),
+            text_color,
+        );
 
         let mini_rect = Rect::new(
             win.x + win_w - MINI_BTN_SIZE * 2.0 - 6.0,

@@ -297,7 +297,7 @@ impl VendingShopWindow {
         ui.interact(VENDING_BUY_WINDOW_ID, Rect::new(dx, dy, WIN_W, win_h));
 
         draw_titlebar(ui, dx, dy, WIN_W, TITLE_H);
-        ui.text(dx + 17.0, dy + TITLE_H - 4.0, "Buying Items", tc);
+        ui.text(dx + 17.0, dy + TITLE_H - 4.0, &rust_i18n::t!("vending_shop.buying_items"), tc);
 
         let body_y = dy + TITLE_H;
         let body_h = PAD + list_h + PAD + TOTAL_H;
@@ -391,8 +391,8 @@ impl VendingShopWindow {
         let win_rect = Rect::new(dx, dy, WIN_W, win_h);
         ui.text(dx + PAD, win_rect.y + win_rect.h - 10.0, &total_str, tc);
         let btns = win_rect.buttons_bottom_right(2, btn_w, btn_h, 5.0, GRIP + 3.0, 3.0);
-        let cancel = ui.button(CANCEL_ID, btns[0], "Cancel");
-        let buy = ui.button(BUY_ID, btns[1], "Buy");
+        let cancel = ui.button(CANCEL_ID, btns[0], &rust_i18n::t!("common.cancel"));
+        let buy = ui.button(BUY_ID, btns[1], &rust_i18n::t!("vending_shop.buy"));
         if buy.clicked() && !self.staged.is_empty() {
             let items = self.staged.iter().map(|s| (s.count, s.index)).collect();
             events.push(GameEvent::RequestPurchaseFromVendor {

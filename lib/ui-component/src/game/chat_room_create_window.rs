@@ -214,7 +214,7 @@ impl InGameWindow for ChatRoomCreateWindow {
         let mut row_y = body_y + PAD;
 
         // Title
-        ui.text(x + PAD, row_y + 12.0, "Title :", tc);
+        ui.text(x + PAD, row_y + 12.0, &rust_i18n::t!("chat_room_create.title"), tc);
         ui.text_input(
             TITLE_INPUT_ID,
             Rect::new(field_x, row_y, field_w, 16.0),
@@ -224,7 +224,7 @@ impl InGameWindow for ChatRoomCreateWindow {
         row_y += ROW_H;
 
         // Limit / Type
-        ui.text(x + PAD, row_y + 12.0, "Limit :", tc);
+        ui.text(x + PAD, row_y + 12.0, &rust_i18n::t!("chat_room_create.limit"), tc);
         let limit_label = format!("{} People", self.limit);
         let limit_dd = self.limit_dropdown.show(
             ui,
@@ -235,7 +235,7 @@ impl InGameWindow for ChatRoomCreateWindow {
             bounds,
             false,
         );
-        ui.text(right_label_x, row_y + 12.0, "Type :", tc);
+        ui.text(right_label_x, row_y + 12.0, &rust_i18n::t!("chat_room_create.type"), tc);
         let type_dd = self.type_dropdown.show(
             ui,
             TYPE_DROPDOWN_ID,
@@ -253,23 +253,23 @@ impl InGameWindow for ChatRoomCreateWindow {
             .any(|r| r.contains(mx, my));
 
         // Public / Private
-        ui.text(x + PAD, row_y + 12.0, "Public :", tc);
+        ui.text(x + PAD, row_y + 12.0, &rust_i18n::t!("chat_room_create.public"), tc);
         Self::draw_radio(ui, field_x, row_y + 2.0, self.public);
-        ui.text(field_x + 16.0, row_y + 12.0, "Public", tc);
+        ui.text(field_x + 16.0, row_y + 12.0, &rust_i18n::t!("chat_room_create.public_2"), tc);
         let pub_rect = Rect::new(field_x, row_y, 48.0, ROW_H);
         if !overlay_hit && ui.interact(RADIO_PUBLIC_ID, pub_rect).clicked() {
             self.public = true;
         }
         let priv_x = field_x + 50.0;
         Self::draw_radio(ui, priv_x, row_y + 2.0, !self.public);
-        ui.text(priv_x + 16.0, row_y + 12.0, "Private", tc);
+        ui.text(priv_x + 16.0, row_y + 12.0, &rust_i18n::t!("chat_room_create.private"), tc);
         let priv_rect = Rect::new(priv_x, row_y, right_label_x - priv_x, ROW_H);
         if !overlay_hit && ui.interact(RADIO_PRIVATE_ID, priv_rect).clicked() {
             self.public = false;
         }
 
         // Sign (password)
-        ui.text(right_label_x, row_y + 12.0, "Sign :", tc);
+        ui.text(right_label_x, row_y + 12.0, &rust_i18n::t!("chat_room_create.sign"), tc);
         ui.text_input(
             PASSWORD_INPUT_ID,
             Rect::new(right_field_x, row_y, right_field_w, 16.0),
@@ -283,12 +283,12 @@ impl InGameWindow for ChatRoomCreateWindow {
         let btn_y = footer_y + (FOOTER_H - btn_h) / 2.0;
         let mut bx = x + WIN_W - PAD - btn_w;
         let cancel = ui
-            .button(CANCEL_ID, Rect::new(bx, btn_y, btn_w, btn_h), "cancel")
+            .button(CANCEL_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("chat_room_create.cancel"))
             .clicked()
             && !overlay_hit;
         bx -= btn_w + 4.0;
         let ok = ui
-            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), "OK")
+            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("common.ok"))
             .clicked()
             && !overlay_hit;
 

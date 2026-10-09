@@ -100,7 +100,7 @@ impl InGameWindow for CartSelectWindow {
         ui.text(
             win.x + 17.0,
             win.y + TITLE_H - 3.0,
-            "Change Cart",
+            &rust_i18n::t!("cart_select.change_cart"),
             text_color,
         );
 

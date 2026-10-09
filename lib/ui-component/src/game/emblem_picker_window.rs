@@ -139,7 +139,7 @@ impl InGameWindow for EmblemPickerWindow {
         ui.interact(EMBLEM_PICKER_WINDOW_ID, Rect::new(x, y, WIN_W, win_h));
 
         draw_titlebar(ui, x, y, WIN_W, TITLE_H);
-        ui.text(x + 17.0, y + TITLE_H - 3.0, "Select emblem", tc);
+        ui.text(x + 17.0, y + TITLE_H - 3.0, &rust_i18n::t!("emblem_picker.select_emblem"), tc);
 
         let close_rect = Rect::new(
             x + WIN_W - CLOSE_BTN_SIZE - 3.0,
@@ -181,7 +181,7 @@ impl EmblemPickerWindow {
         let box_h = CONTENT_H - 12.0;
         Self::fill(ui, gx, gy, GRID_W, box_h, LISTBOX_BG);
         if self.entries.is_empty() {
-            ui.text(gx + 6.0, gy + 18.0, "No .bmp emblems found.", OFFLINE_COLOR);
+            ui.text(gx + 6.0, gy + 18.0, &rust_i18n::t!("emblem_picker.no_bmp_emblems_found"), OFFLINE_COLOR);
             return;
         }
 
@@ -235,7 +235,7 @@ impl EmblemPickerWindow {
     }
 
     fn build_preview(&self, ui: &mut UiFrame, px: f32, py: f32) {
-        ui.text(px, py + 10.0, "Preview", TEXT);
+        ui.text(px, py + 10.0, &rust_i18n::t!("emblem_picker.preview"), TEXT);
         let box_x = px + (WIN_W - GRID_W - 12.0 - PREVIEW) / 2.0 - 6.0;
         let box_y = py + 16.0;
         Self::fill_border(ui, box_x - 1.0, box_y - 1.0, PREVIEW + 2.0, PREVIEW + 2.0);
@@ -269,7 +269,7 @@ impl EmblemPickerWindow {
             .unwrap_or(false);
 
         let cancel_rect = Rect::new(x + WIN_W - 50.0, footer_y + 4.0, 42.0, 20.0);
-        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, "Cancel");
+        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, &rust_i18n::t!("common.cancel"));
         if cancel.hovered() {
             ui.any_interactive_hovered = true;
         }
@@ -280,7 +280,7 @@ impl EmblemPickerWindow {
 
         if can_ok {
             let ok_rect = Rect::new(x + WIN_W - 96.0, footer_y + 4.0, 42.0, 20.0);
-            let ok = ui.button(OK_BTN_ID, ok_rect, "OK");
+            let ok = ui.button(OK_BTN_ID, ok_rect, &rust_i18n::t!("common.ok"));
             if ok.hovered() {
                 ui.any_interactive_hovered = true;
             }

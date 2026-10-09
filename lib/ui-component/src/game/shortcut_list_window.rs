@@ -111,7 +111,7 @@ impl InGameWindow for ShortcutListWindow {
         ui.interact(SHORTCUT_LIST_WINDOW_ID, Rect::new(x, y, WIN_W, h));
 
         draw_titlebar(ui, x, y, WIN_W, TITLE_H);
-        ui.text(x + 16.0, y + TITLE_H - 3.0, "Shortcut List", tc);
+        ui.text(x + 16.0, y + TITLE_H - 3.0, &rust_i18n::t!("shortcut_list.shortcut_list"), tc);
 
         let close_rect = Rect::new(
             x + WIN_W - CLOSE_BTN_SIZE - 3.0,
@@ -166,7 +166,7 @@ impl InGameWindow for ShortcutListWindow {
             bw,
             bh,
         );
-        if ui.button(VIEW_BTN_ID, ok_rect, "view").clicked() {
+        if ui.button(VIEW_BTN_ID, ok_rect, &rust_i18n::t!("shortcut_list.view")).clicked() {
             events.push(GameEvent::ToggleEmotionWindow);
         }
 

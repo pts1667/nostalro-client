@@ -190,7 +190,7 @@ impl InGameWindow for MailboxWindow {
         // Close button (top-right).
         let close_rect = Rect::new(x + WIN_W - 17.0, y + 3.0, 16.0, 11.0);
         if ui
-            .button(MAIL_CLOSE_BTN_ID, close_rect, "x")
+            .button(MAIL_CLOSE_BTN_ID, close_rect, &rust_i18n::t!("mailbox.x"))
             .clicked()
         {
             character.mail.window_open = false;
@@ -222,8 +222,8 @@ impl InGameWindow for MailboxWindow {
             write_zone.h,
             mode == MailboxMode::Compose,
         );
-        ui.text(inbox_zone.x + 3.0, inbox_zone.y + 30.0, "In", tc);
-        ui.text(write_zone.x + 3.0, write_zone.y + 30.0, "Wr", tc);
+        ui.text(inbox_zone.x + 3.0, inbox_zone.y + 30.0, &rust_i18n::t!("mailbox.in"), tc);
+        ui.text(write_zone.x + 3.0, write_zone.y + 30.0, &rust_i18n::t!("mailbox.wr"), tc);
         if inbox_resp.clicked() && mode != MailboxMode::Inbox {
             character.mail.switch_to_inbox();
             self.clear_compose_inputs();
@@ -315,7 +315,7 @@ impl MailboxWindow {
         if prev_resp.hovered() || next_resp.hovered() {
             ui.any_interactive_hovered = true;
         }
-        ui.text(prev_rect.x, pager_y + 15.0, "Prev", tc);
+        ui.text(prev_rect.x, pager_y + 15.0, &rust_i18n::t!("mailbox.prev"), tc);
         let page_label = format!("{}/{}", mail.page + 1, page_count);
         let plw = ui.atlas.measure_text(&page_label);
         ui.text(
@@ -324,7 +324,7 @@ impl MailboxWindow {
             &page_label,
             tc,
         );
-        ui.text(next_rect.x, pager_y + 15.0, "Next", tc);
+        ui.text(next_rect.x, pager_y + 15.0, &rust_i18n::t!("mailbox.next"), tc);
         if prev_resp.clicked() && mail.page > 0 {
             mail.page -= 1;
         }
@@ -356,7 +356,7 @@ impl MailboxWindow {
         let field_x = x + 55.0;
         let field_w = 150.0;
 
-        ui.text(field_x, y + 44.0, "To :", LABEL_COLOR);
+        ui.text(field_x, y + 44.0, &rust_i18n::t!("mailbox.to"), LABEL_COLOR);
         ui.text_input(
             TO_INPUT_ID,
             Rect::new(field_x + 33.0, y + 34.0, field_w, 16.0),
@@ -364,7 +364,7 @@ impl MailboxWindow {
             TextInputBg::Transparent,
         );
 
-        ui.text(field_x, y + 74.0, "Title :", LABEL_COLOR);
+        ui.text(field_x, y + 74.0, &rust_i18n::t!("mailbox.title"), LABEL_COLOR);
         ui.text_input(
             TITLE_INPUT_ID,
             Rect::new(field_x + 33.0, y + 64.0, field_w + 20.0, 16.0),
@@ -491,10 +491,10 @@ impl MailboxWindow {
         let send_rect = Rect::new(x + WIN_W - 100.0, y + WIN_H - 27.0, 43.0, 21.0);
         let cancel_rect = Rect::new(x + WIN_W - 52.0, y + WIN_H - 27.0, 43.0, 21.0);
         let send_clicked = ui
-            .button(SEND_BTN_ID, send_rect, "Send")
+            .button(SEND_BTN_ID, send_rect, &rust_i18n::t!("mailbox.send"))
             .clicked();
         let cancel_clicked = ui
-            .button(CANCEL_BTN_ID, cancel_rect, "Cancel")
+            .button(CANCEL_BTN_ID, cancel_rect, &rust_i18n::t!("common.cancel"))
             .clicked();
 
         if send_clicked && !character.mail.send_pending {
@@ -503,7 +503,7 @@ impl MailboxWindow {
                 ui.tooltip(
                     send_rect.x - 40.0,
                     send_rect.y - 16.0,
-                    "Please enter a title.",
+                    &rust_i18n::t!("mailbox.please_enter_a_title"),
                 );
             } else {
                 character.mail.send_pending = true;

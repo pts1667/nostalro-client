@@ -163,8 +163,8 @@ impl ServerListWindow {
 
         let ok_rect = Rect::new(btn_start_x, btn_y, btn_w, btn_h);
         let cancel_rect = Rect::new(btn_start_x + btn_w + btn_spacing, btn_y, btn_w, btn_h);
-        let ok = ui.button(OK_ID, ok_rect, "OK");
-        let cancel = ui.button(CANCEL_ID, cancel_rect, "Cancel");
+        let ok = ui.button(OK_ID, ok_rect, &rust_i18n::t!("common.ok"));
+        let cancel = ui.button(CANCEL_ID, cancel_rect, &rust_i18n::t!("common.cancel"));
 
         if ok.clicked() && self.selected_index.is_some() {
             events.push(GameEvent::RequestSelectServer {

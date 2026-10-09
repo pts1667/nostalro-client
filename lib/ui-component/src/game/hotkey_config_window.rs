@@ -306,7 +306,7 @@ impl InGameWindow for HotkeyConfigWindow {
         ui.text(
             x + 16.0,
             y + TITLE_H - 3.0,
-            "Shortcut key setting window",
+            &rust_i18n::t!("hotkey_config.shortcut_key_setting_window"),
             tc,
         );
 
@@ -445,7 +445,7 @@ impl InGameWindow for HotkeyConfigWindow {
         let (rw, rh) = self.reset_size;
         let reset_rect = Rect::new(x + PAD, footer_y + (FOOTER_H - rh) / 2.0, rw, rh);
         if ui
-            .button(RESET_BTN_ID, reset_rect, "reset")
+            .button(RESET_BTN_ID, reset_rect, &rust_i18n::t!("hotkey_config.reset"))
             .clicked()
         {
             self.reset_active_tab();
@@ -454,7 +454,7 @@ impl InGameWindow for HotkeyConfigWindow {
         let by = footer_y + (FOOTER_H - bh) / 2.0;
         let close_rect = Rect::new(x + WIN_W - PAD - bw, by, bw, bh);
         if ui
-            .text_button(FOOTER_CLOSE_BTN_ID, close_rect, "close")
+            .text_button(FOOTER_CLOSE_BTN_ID, close_rect, &rust_i18n::t!("hotkey_config.close"))
             .clicked()
         {
             self.close();
@@ -462,14 +462,14 @@ impl InGameWindow for HotkeyConfigWindow {
         }
         let cancel_rect = Rect::new(close_rect.x - CELL_GAP - bw, by, bw, bh);
         if ui
-            .button(CANCEL_BTN_ID, cancel_rect, "cancel")
+            .button(CANCEL_BTN_ID, cancel_rect, &rust_i18n::t!("hotkey_config.cancel"))
             .clicked()
         {
             self.close();
             return events;
         }
         let ok_rect = Rect::new(cancel_rect.x - CELL_GAP - bw, by, bw, bh);
-        if ui.button(OK_BTN_ID, ok_rect, "ok").clicked() {
+        if ui.button(OK_BTN_ID, ok_rect, &rust_i18n::t!("hotkey_config.ok")).clicked() {
             self.dirty = true;
             self.close();
         }

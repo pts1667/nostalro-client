@@ -117,11 +117,11 @@ impl InGameWindow for ReadMailWindow {
         let sender = opened.sender.clone();
         let has_attachment = opened.has_attachment();
 
-        ui.text(x + 25.0, y + TITLE_H - 4.0, "Read Mail", tc);
+        ui.text(x + 25.0, y + TITLE_H - 4.0, &rust_i18n::t!("read_mail.read_mail"), tc);
 
-        ui.text(x + BODY_X_OFF, y + 40.0, "From:", LABEL_COLOR);
+        ui.text(x + BODY_X_OFF, y + 40.0, &rust_i18n::t!("read_mail.from"), LABEL_COLOR);
         ui.text(x + 80.0, y + 40.0, &opened.sender, tc);
-        ui.text(x + BODY_X_OFF, y + 58.0, "Title:", LABEL_COLOR);
+        ui.text(x + BODY_X_OFF, y + 58.0, &rust_i18n::t!("read_mail.title"), LABEL_COLOR);
         ui.text(x + 80.0, y + 58.0, &opened.title, tc);
 
         let body = opened.body.clone();
@@ -206,7 +206,7 @@ impl InGameWindow for ReadMailWindow {
         let delete_rect = Rect::new(x + WIN_W - 52.0, btn_y, 43.0, 21.0);
 
         if ui
-            .button(READ_RETURN_BTN_ID, return_rect, "Return")
+            .button(READ_RETURN_BTN_ID, return_rect, &rust_i18n::t!("read_mail.return"))
             .clicked()
         {
             events.push(GameEvent::RequestMailReturn {
@@ -215,7 +215,7 @@ impl InGameWindow for ReadMailWindow {
             });
         }
         if ui
-            .button(READ_REPLY_BTN_ID, reply_rect, "Reply")
+            .button(READ_REPLY_BTN_ID, reply_rect, &rust_i18n::t!("read_mail.reply"))
             .clicked()
         {
             let title = character
@@ -229,14 +229,14 @@ impl InGameWindow for ReadMailWindow {
             character.mail.compose_prefill = Some((sender.clone(), format!("RE:{title}")));
         }
         let delete_clicked = ui
-            .button(READ_DELETE_BTN_ID, delete_rect, "Delete")
+            .button(READ_DELETE_BTN_ID, delete_rect, &rust_i18n::t!("read_mail.delete"))
             .clicked();
         if delete_clicked {
             if has_attachment {
                 ui.tooltip(
                     delete_rect.x - 120.0,
                     delete_rect.y - 16.0,
-                    "Remove the attachment before deleting.",
+                    &rust_i18n::t!("read_mail.remove_the_attachment_before_deleting"),
                 );
             } else {
                 events.push(GameEvent::RequestMailDelete { mail_id });
@@ -246,7 +246,7 @@ impl InGameWindow for ReadMailWindow {
         // Close.
         let close_rect = Rect::new(x + WIN_W - 17.0, y + 3.0, 16.0, 11.0);
         if ui
-            .button(READ_CLOSE_BTN_ID, close_rect, "x")
+            .button(READ_CLOSE_BTN_ID, close_rect, &rust_i18n::t!("read_mail.x"))
             .clicked()
         {
             character.mail.read_open = false;

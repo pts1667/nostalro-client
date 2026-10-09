@@ -271,8 +271,8 @@ impl InGameWindow for CardInsertDialog {
             BTN_SPACING,
         );
 
-        let cancel = ui.button(CANCEL_BTN_ID, btns[0], "Cancel");
-        let ok = ui.button(OK_BTN_ID, btns[1], "OK");
+        let cancel = ui.button(CANCEL_BTN_ID, btns[0], &rust_i18n::t!("common.cancel"));
+        let ok = ui.button(OK_BTN_ID, btns[1], &rust_i18n::t!("common.ok"));
 
         if cancel.clicked() {
             self.close();

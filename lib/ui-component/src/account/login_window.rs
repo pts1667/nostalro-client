@@ -138,8 +138,8 @@ let input_bg = TextInputBg::Default;
             btn_w,
             btn_h,
         );
-        let connect = ui.button(CONNECT_ID, connect_rect, "Connect");
-        let exit = ui.button(EXIT_ID, exit_rect, "Exit");
+        let connect = ui.button(CONNECT_ID, connect_rect, &rust_i18n::t!("login.connect"));
+        let exit = ui.button(EXIT_ID, exit_rect, &rust_i18n::t!("login.exit"));
 
         let (keep_w, keep_h) = (FALLBACK_KEEP_W, FALLBACK_KEEP_H);
         let keep_rect = Rect::new(

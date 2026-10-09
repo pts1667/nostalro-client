@@ -180,7 +180,7 @@ impl InGameWindow for GraphicOptionsWindow {
         ui.text(
             win.x + 20.0,
             win.y + TITLE_H - 5.0,
-            "Graphic Settings",
+            &rust_i18n::t!("graphic_options.graphic_settings"),
             text_color(),
         );
 
@@ -214,7 +214,12 @@ impl InGameWindow for GraphicOptionsWindow {
         let mut changed = false;
 
         // Row 0: UI scale dropdown + full screen
-        ui.text(win.x + 10.0, text_y(0), "UI Scale", label_color);
+        ui.text(
+            win.x + 10.0,
+            text_y(0),
+            &rust_i18n::t!("graphic_options.ui_scale"),
+            label_color,
+        );
         let labels: Vec<String> = UI_SCALE_OPTIONS.iter().map(|p| format!("{p}%")).collect();
         let selected_label = labels
             .get(self.selected_ui_scale)
@@ -240,7 +245,7 @@ impl InGameWindow for GraphicOptionsWindow {
         ui.text(
             fs_cb.x + CB_SIZE + 4.0,
             text_y(0),
-            "Full Screen",
+            &rust_i18n::t!("graphic_options.full_screen"),
             label_color,
         );
 
@@ -258,7 +263,12 @@ impl InGameWindow for GraphicOptionsWindow {
         };
 
         let x0 = win.x + 10.0;
-        ui.text(x0, text_y(1), "Texture Filtering:", label_color);
+        ui.text(
+            x0,
+            text_y(1),
+            &rust_i18n::t!("graphic_options.texture_filtering"),
+            label_color,
+        );
         changed |= check_row(
             ui,
             1,
@@ -326,7 +336,12 @@ impl InGameWindow for GraphicOptionsWindow {
             &mut self.display.show_other_cast_bars,
         );
 
-        ui.text(x0, text_y(8), "Name plates:", label_color);
+        ui.text(
+            x0,
+            text_y(8),
+            &rust_i18n::t!("graphic_options.name_plates"),
+            label_color,
+        );
         let mut show_player = !self.display.hide_name_player;
         let mut show_monster = !self.display.hide_name_monster;
         let mut show_npc = !self.display.hide_name_npc;
@@ -353,7 +368,12 @@ impl InGameWindow for GraphicOptionsWindow {
             changed = true;
         }
 
-        ui.text(x0, text_y(9), "Auto-refuse:", label_color);
+        ui.text(
+            x0,
+            text_y(9),
+            &rust_i18n::t!("graphic_options.auto_refuse"),
+            label_color,
+        );
         changed |= check_row(
             ui,
             9,
@@ -371,7 +391,12 @@ impl InGameWindow for GraphicOptionsWindow {
             &mut self.refuse_party_invite,
         );
 
-        ui.text(x0, text_y(10), "Cursor snap:", label_color);
+        ui.text(
+            x0,
+            text_y(10),
+            &rust_i18n::t!("graphic_options.cursor_snap"),
+            label_color,
+        );
         changed |= check_row(
             ui,
             10,

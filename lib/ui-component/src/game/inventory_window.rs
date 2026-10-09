@@ -177,7 +177,7 @@ impl InGameWindow for InventoryWindow {
         ui.text(
             win.x + (17.0),
             win.y + (TITLE_H) - (3.0),
-            "Inventory",
+            &rust_i18n::t!("inventory.inventory"),
             text_color,
         );
 

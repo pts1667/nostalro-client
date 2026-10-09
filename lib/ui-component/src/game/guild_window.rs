@@ -466,7 +466,7 @@ impl GuildWindow {
             return events;
         }
         let ok_rect = Rect::new(x + WIN_W - 46.0, footer_y + 4.0, 42.0, 20.0);
-        let resp = ui.button(FOOTER_OK_BTN, ok_rect, "OK");
+        let resp = ui.button(FOOTER_OK_BTN, ok_rect, &rust_i18n::t!("common.ok"));
         if resp.hovered() {
             ui.any_interactive_hovered = true;
         }
@@ -500,7 +500,7 @@ impl GuildWindow {
     ) -> Vec<GameEvent> {
         let mut events = Vec::new();
         let Some(g) = guild else {
-            ui.text(x + 10.0, cy + 20.0, "Not in a guild.", OFFLINE_COLOR);
+            ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.not_in_a_guild"), OFFLINE_COLOR);
             return events;
         };
         let lx = x + 9.0;
@@ -529,9 +529,9 @@ impl GuildWindow {
         } else {
             &g.manage_land
         };
-        ui.text(lx, cy + 100.0, &format!("Territory : {land}"), TEXT);
+        ui.text(lx, cy + 100.0, &rust_i18n::t!("guild.territory_land", land = land), TEXT);
 
-        ui.text(lx, cy + 137.0, "Tendency :", TEXT);
+        ui.text(lx, cy + 137.0, &rust_i18n::t!("guild.tendency"), TEXT);
         Self::draw_tendency(ui, lx + 5.0, cy + 150.0);
 
         // Right column.
@@ -543,7 +543,7 @@ impl GuildWindow {
             TEXT,
         );
 
-        ui.text(rx, cy + 52.0, "emblem", TEXT);
+        ui.text(rx, cy + 52.0, &rust_i18n::t!("guild.emblem"), TEXT);
         Self::fill(ui, x + 400.0, cy + 32.0, 24.0, 24.0, EMBLEM_BG);
         if g.emblem_bmp.is_some() {
             let key = ragnarok_game::guild::emblem_texture_key(g.gdid, g.emblem_version);
@@ -556,7 +556,7 @@ impl GuildWindow {
         }
         if is_master {
             let edit_rect = Rect::new(x + 444.0, cy + 36.0, 42.0, 20.0);
-            let resp = ui.button(EMBLEM_EDIT_BTN, edit_rect, "Edit");
+            let resp = ui.button(EMBLEM_EDIT_BTN, edit_rect, &rust_i18n::t!("guild.edit"));
             if resp.hovered() {
                 ui.any_interactive_hovered = true;
             }
@@ -608,10 +608,10 @@ impl GuildWindow {
             [1.0; 4],
         );
         let black = [0.0, 0.0, 0.0, 1.0];
-        ui.text(gx + size / 2.0 - 3.0, gy - 3.0, "R", black);
-        ui.text(gx + size / 2.0 - 3.0, gy + size + 6.0, "W", black);
-        ui.text(gx - 9.0, gy + size / 2.0 + 3.0, "V", black);
-        ui.text(gx + size + 3.0, gy + size / 2.0 + 3.0, "F", black);
+        ui.text(gx + size / 2.0 - 3.0, gy - 3.0, &rust_i18n::t!("guild.r"), black);
+        ui.text(gx + size / 2.0 - 3.0, gy + size + 6.0, &rust_i18n::t!("guild.w"), black);
+        ui.text(gx - 9.0, gy + size / 2.0 + 3.0, &rust_i18n::t!("guild.v"), black);
+        ui.text(gx + size + 3.0, gy + size / 2.0 + 3.0, &rust_i18n::t!("guild.f"), black);
     }
 
     fn build_relation_box(
@@ -667,7 +667,7 @@ impl GuildWindow {
     ) -> Vec<GameEvent> {
         let mut events = Vec::new();
         let Some(g) = guild else {
-            ui.text(x + 10.0, cy + 20.0, "Not in a guild.", OFFLINE_COLOR);
+            ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.not_in_a_guild"), OFFLINE_COLOR);
             return events;
         };
 
@@ -679,13 +679,13 @@ impl GuildWindow {
         let dev_x = x + WIN_W - SCROLLBAR_W - 96.0;
         let tax_x = x + WIN_W - SCROLLBAR_W - 6.0;
 
-        ui.text(name_x, cy + 12.0, "Name", TEXT);
-        ui.text(pos_x, cy + 12.0, "Position", TEXT);
-        ui.text(job_x, cy + 12.0, "Job", TEXT);
-        ui.text(lv_x, cy + 12.0, "Lv", TEXT);
-        ui.text(note_x, cy + 12.0, "Note", TEXT);
-        ui.text(dev_x, cy + 12.0, "Devotion", TEXT);
-        ui.text_right(tax_x, cy + 12.0, "Tax", TEXT);
+        ui.text(name_x, cy + 12.0, &rust_i18n::t!("guild.name"), TEXT);
+        ui.text(pos_x, cy + 12.0, &rust_i18n::t!("guild.position"), TEXT);
+        ui.text(job_x, cy + 12.0, &rust_i18n::t!("guild.job"), TEXT);
+        ui.text(lv_x, cy + 12.0, &rust_i18n::t!("guild.lv"), TEXT);
+        ui.text(note_x, cy + 12.0, &rust_i18n::t!("guild.note"), TEXT);
+        ui.text(dev_x, cy + 12.0, &rust_i18n::t!("guild.devotion"), TEXT);
+        ui.text_right(tax_x, cy + 12.0, &rust_i18n::t!("guild.tax"), TEXT);
         Self::fill(ui, x + 2.0, cy + HEADER_H, WIN_W - 4.0, 1.0, BORDER);
 
         let total_exp: i64 = g.members.iter().map(|m| m.contribution_exp as i64).sum();
@@ -794,7 +794,7 @@ impl GuildWindow {
             } else {
                 0
             };
-            ui.text(dev_x, baseline, &format!("{devotion} %"), color);
+            ui.text(dev_x, baseline, &rust_i18n::t!("guild.devotion_2", devotion = devotion), color);
             ui.text_right(tax_x, baseline, &m.contribution_exp.to_string(), color);
 
             let target_master = m.position_id == 0;
@@ -865,7 +865,7 @@ impl GuildWindow {
         cy: f32,
     ) {
         if !guild_present {
-            ui.text(x + 10.0, cy + 20.0, "Not in a guild.", OFFLINE_COLOR);
+            ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.not_in_a_guild"), OFFLINE_COLOR);
             return;
         }
 
@@ -874,11 +874,11 @@ impl GuildWindow {
         let inv_x = x + 226.0;
         let pun_x = x + 294.0;
         let tax_x = x + WIN_W - SCROLLBAR_W - 60.0;
-        ui.text(id_x, cy + 12.0, "Rank", TEXT);
-        ui.text(title_x, cy + 12.0, "Position Title", TEXT);
-        ui.text(inv_x, cy + 12.0, "Invite", TEXT);
-        ui.text(pun_x, cy + 12.0, "Punish", TEXT);
-        ui.text(tax_x, cy + 12.0, "Tax", TEXT);
+        ui.text(id_x, cy + 12.0, &rust_i18n::t!("guild.rank"), TEXT);
+        ui.text(title_x, cy + 12.0, &rust_i18n::t!("guild.position_title"), TEXT);
+        ui.text(inv_x, cy + 12.0, &rust_i18n::t!("guild.invite"), TEXT);
+        ui.text(pun_x, cy + 12.0, &rust_i18n::t!("guild.punish"), TEXT);
+        ui.text(tax_x, cy + 12.0, &rust_i18n::t!("guild.tax"), TEXT);
         Self::fill(ui, x + 2.0, cy + HEADER_H, WIN_W - 4.0, 1.0, BORDER);
 
         let list_top = cy + HEADER_H + 1.0;
@@ -995,7 +995,7 @@ impl GuildWindow {
                 ui.text(tax_x + 33.0, baseline, "%", TEXT);
             } else {
                 let tax_text = self.pos_edits[idx].tax.text.clone();
-                ui.text(tax_x, baseline, &format!("{tax_text} %"), TEXT);
+                ui.text(tax_x, baseline, &rust_i18n::t!("guild.tax_text", tax_text = tax_text), TEXT);
             }
         }
     }
@@ -1013,12 +1013,12 @@ impl GuildWindow {
         let (skills, skill_point) = match guild {
             Some(g) => (g.skills.clone(), g.skill_point),
             None => {
-                ui.text(x + 10.0, cy + 20.0, "Not in a guild.", OFFLINE_COLOR);
+                ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.not_in_a_guild"), OFFLINE_COLOR);
                 return events;
             }
         };
         if skills.is_empty() {
-            ui.text(x + 10.0, cy + 20.0, "No guild skills.", OFFLINE_COLOR);
+            ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.no_guild_skills"), OFFLINE_COLOR);
             return events;
         }
 
@@ -1074,7 +1074,7 @@ impl GuildWindow {
             ui.text(
                 x + 45.0,
                 row_y + 25.0,
-                &format!("Lv : {shown_level}"),
+                &rust_i18n::t!("guild.lv_shown_level", shown_level = shown_level),
                 name_color,
             );
 
@@ -1095,12 +1095,12 @@ impl GuildWindow {
         ui.text(
             x + 10.0,
             footer_y + 17.0,
-            &format!("Skill Points: {remaining}"),
+            &rust_i18n::t!("guild.skill_points_remaining", remaining = remaining),
             TEXT,
         );
         if is_master && pending_total > 0 {
             let apply_rect = Rect::new(x + WIN_W - 100.0, footer_y + 4.0, 42.0, 20.0);
-            let apply = ui.button(SKILL_APPLY_BTN, apply_rect, "Apply");
+            let apply = ui.button(SKILL_APPLY_BTN, apply_rect, &rust_i18n::t!("guild.apply"));
             if apply.hovered() {
                 ui.any_interactive_hovered = true;
             }
@@ -1112,7 +1112,7 @@ impl GuildWindow {
                 }
             }
             let reset_rect = Rect::new(x + WIN_W - 50.0, footer_y + 4.0, 42.0, 20.0);
-            let reset = ui.button(SKILL_RESET_BTN, reset_rect, "Reset");
+            let reset = ui.button(SKILL_RESET_BTN, reset_rect, &rust_i18n::t!("guild.reset"));
             if reset.hovered() {
                 ui.any_interactive_hovered = true;
             }
@@ -1136,13 +1136,13 @@ impl GuildWindow {
 
     fn build_expel_tab(&self, ui: &mut UiFrame, guild: Option<&Guild>, x: f32, cy: f32) {
         let Some(g) = guild else {
-            ui.text(x + 10.0, cy + 20.0, "Not in a guild.", OFFLINE_COLOR);
+            ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.not_in_a_guild"), OFFLINE_COLOR);
             return;
         };
         let name_x = x + 8.0;
         let reason_x = x + 110.0;
-        ui.text(name_x, cy + 12.0, "Name", TEXT);
-        ui.text(reason_x, cy + 12.0, "The Reason of Expulsion", TEXT);
+        ui.text(name_x, cy + 12.0, &rust_i18n::t!("guild.name"), TEXT);
+        ui.text(reason_x, cy + 12.0, &rust_i18n::t!("guild.the_reason_of_expulsion"), TEXT);
         Self::fill(ui, x + 2.0, cy + HEADER_H, WIN_W - 4.0, 1.0, BORDER);
         Self::fill(ui, reason_x - 4.0, cy, 1.0, CONTENT_H, BORDER);
 
@@ -1150,7 +1150,7 @@ impl GuildWindow {
             ui.text(
                 x + 10.0,
                 cy + HEADER_H + 18.0,
-                "No expelled members.",
+                &rust_i18n::t!("guild.no_expelled_members"),
                 OFFLINE_COLOR,
             );
             return;
@@ -1174,12 +1174,12 @@ impl GuildWindow {
         cy: f32,
     ) {
         if guild.is_none() {
-            ui.text(x + 10.0, cy + 20.0, "Not in a guild.", OFFLINE_COLOR);
+            ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.not_in_a_guild"), OFFLINE_COLOR);
             return;
         }
-        ui.text(x + 9.0, cy + 23.0, "Title", TEXT);
+        ui.text(x + 9.0, cy + 23.0, &rust_i18n::t!("guild.title"), TEXT);
         let subj_rect = Rect::new(x + 50.0, cy + 13.0, WIN_W - 60.0, 16.0);
-        ui.text(x + 9.0, cy + 46.0, "Contents", TEXT);
+        ui.text(x + 9.0, cy + 46.0, &rust_i18n::t!("guild.contents"), TEXT);
         let body_rect = Rect::new(x + 9.0, cy + 52.0, WIN_W - 18.0, CONTENT_H - 68.0);
 
         if is_master {

@@ -125,7 +125,7 @@ impl InGameWindow for StatusWindow {
 
         draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H);
 
-        ui.text(x + 18.0, y + 13.0, "Status", tc);
+        ui.text(x + 18.0, y + 13.0, &rust_i18n::t!("status.status"), tc);
 
         let sys_w = self.sys_btn_size.0;
         let sys_h = self.sys_btn_size.1;

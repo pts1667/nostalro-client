@@ -112,7 +112,7 @@ impl HomunWindow {
         draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         draw_container(ui, x, y + TITLE_H, WIN_W, WIN_H - TITLE_H);
 
-        ui.text(x + 5.0, y + 2.0 + BASELINE, "Homunculus Info", tc);
+        ui.text(x + 5.0, y + 2.0 + BASELINE, &rust_i18n::t!("homun.homunculus_info"), tc);
 
         let sys_w = 11.0;
         let close_rect = Rect::new(x + WIN_W - 14.0, y + 3.0, sys_w, sys_w);
@@ -150,7 +150,7 @@ impl HomunWindow {
 
         // Name: an edit box and a Rename button until the server accepts a name.
         if homun.renamed {
-            ui.text(x + RIGHT_LABEL_X, y + 24.0 + BASELINE, "Name", tc);
+            ui.text(x + RIGHT_LABEL_X, y + 24.0 + BASELINE, &rust_i18n::t!("homun.name"), tc);
             let (color, shadow) = colors::GREEN_WITH_SHADOW;
             ui.text_with_shadow(
                 x + RIGHT_VALUE_X,
@@ -166,7 +166,7 @@ impl HomunWindow {
             let (rw, rh) = self.rename_size;
             let btn_rect = Rect::new(x + 232.0, y + 21.0, rw, rh);
             if ui
-                .button(RENAME_BTN_ID, btn_rect, "Name")
+                .button(RENAME_BTN_ID, btn_rect, &rust_i18n::t!("homun.name"))
                 .clicked()
             {
                 let name = self.rename_input.text.trim().to_string();
@@ -177,7 +177,7 @@ impl HomunWindow {
             }
         }
 
-        ui.text(x + RIGHT_LABEL_X, y + 47.0 + BASELINE, "Level", tc);
+        ui.text(x + RIGHT_LABEL_X, y + 47.0 + BASELINE, &rust_i18n::t!("homun.level"), tc);
         ui.text(
             x + RIGHT_VALUE_X,
             y + 47.0 + BASELINE,
@@ -187,13 +187,13 @@ impl HomunWindow {
         let (dw, dh) = self.del_size;
         let (sw, sh) = self.skill_size;
         if ui
-            .button(DEL_BTN_ID, Rect::new(x + 187.0, y + 44.0, dw, dh), "Delete")
+            .button(DEL_BTN_ID, Rect::new(x + 187.0, y + 44.0, dw, dh), &rust_i18n::t!("homun.delete"))
             .clicked()
         {
             events.push(GameEvent::RequestHomunDelete);
         }
         if ui
-            .button(SKILL_BTN_ID, Rect::new(x + 232.0, y + 44.0, sw, sh), "Skill")
+            .button(SKILL_BTN_ID, Rect::new(x + 232.0, y + 44.0, sw, sh), &rust_i18n::t!("homun.skill"))
             .clicked()
         {
             events.push(GameEvent::ToggleHomunSkillWindow);
@@ -212,7 +212,7 @@ impl HomunWindow {
         );
 
         // EXP shows what the next level costs, not what has been earned.
-        ui.text(x + RIGHT_LABEL_X, y + 105.0 + BASELINE, "EXP", tc);
+        ui.text(x + RIGHT_LABEL_X, y + 105.0 + BASELINE, &rust_i18n::t!("homun.exp"), tc);
         ui.text_right(
             x + VALUE_RIGHT_X,
             y + 104.0 + BASELINE,
@@ -235,7 +235,7 @@ impl HomunWindow {
 
         self.accessory(ui, x, y, homun.accessory, data, tc);
 
-        ui.text(x + RIGHT_LABEL_X, y + 131.0 + BASELINE, "Hunger", tc);
+        ui.text(x + RIGHT_LABEL_X, y + 131.0 + BASELINE, &rust_i18n::t!("homun.hunger"), tc);
         ui.text_right(
             x + VALUE_RIGHT_X,
             y + 130.0 + BASELINE,
@@ -257,7 +257,7 @@ impl HomunWindow {
             hunger_fill,
         );
 
-        ui.text(x + RIGHT_LABEL_X, y + 159.0 + BASELINE, "Intimacy", tc);
+        ui.text(x + RIGHT_LABEL_X, y + 159.0 + BASELINE, &rust_i18n::t!("homun.intimacy"), tc);
         ui.text(x + 140.0, y + 159.0 + BASELINE, ":", tc);
         ui.text(
             x + 150.0,
@@ -268,7 +268,7 @@ impl HomunWindow {
 
         let (fw, fh) = self.feed_size;
         if ui
-            .button(FEED_BTN_ID, Rect::new(x + 210.0, y + 155.0, fw, fh), "Feed")
+            .button(FEED_BTN_ID, Rect::new(x + 210.0, y + 155.0, fw, fh), &rust_i18n::t!("homun.feed"))
             .clicked()
         {
             events.push(GameEvent::RequestHomunMenu { command: 1 });
@@ -286,7 +286,7 @@ impl HomunWindow {
         data: &DataTable,
         tc: [f32; 4],
     ) {
-        ui.text(x + 216.0, y + 105.0 + BASELINE, "Accessory", tc);
+        ui.text(x + 216.0, y + 105.0 + BASELINE, &rust_i18n::t!("homun.accessory"), tc);
         let icon = (accessory != 0)
             .then(|| {
                 data.item_resource
@@ -304,7 +304,7 @@ impl HomunWindow {
                     texture: TextureRef::Named(path),
                 });
             }
-            None => ui.text(x + 220.0, y + 130.0 + BASELINE, "Unequipped", tc),
+            None => ui.text(x + 220.0, y + 130.0 + BASELINE, &rust_i18n::t!("homun.unequipped"), tc),
         }
     }
 }
@@ -339,7 +339,7 @@ fn gauge_row(
     ui.text(
         x + HPSP_TEXT_X,
         y - 3.0 + BASELINE,
-        &format!("{cur} / {max}"),
+        &rust_i18n::t!("homun.cur_max", cur = cur, max = max),
         tc,
     );
 }
@@ -412,7 +412,7 @@ pub(crate) fn bar(
     let bx = x + HPSP_LABEL_W;
     let bw = w - HPSP_LABEL_W;
     draw_gauge(ui, bx, y, bw, BAR_H, ratio, is_red);
-    ui.text_centered(bx, y + BAR_H - 2.0, bw, &format!("{cur} / {max}"), tc);
+    ui.text_centered(bx, y + BAR_H - 2.0, bw, &rust_i18n::t!("homun.cur_max", cur = cur, max = max), tc);
     y + BAR_H + 3.0
 }
 

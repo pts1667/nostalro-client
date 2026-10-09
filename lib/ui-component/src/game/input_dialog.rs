@@ -250,10 +250,10 @@ impl InputDialog {
         }
 
         ui.text_input(input_id, input_rect, &mut self.input, input_bg);
-        let ok = ui.button(ok_id, ok_rect, "OK");
+        let ok = ui.button(ok_id, ok_rect, &rust_i18n::t!("common.ok"));
 
         if let Some(cancel_rect) = cancel_rect {
-            let cancel = ui.button(self.cancel_id(), cancel_rect, "Cancel");
+            let cancel = ui.button(self.cancel_id(), cancel_rect, &rust_i18n::t!("common.cancel"));
             if cancel.clicked() {
                 return InputDialogResult::Cancel;
             }

@@ -121,7 +121,12 @@ impl InGameWindow for SoundOptionsWindow {
         crate::helper::fallback::window_body(ui, win.x, win.y + TITLE_H, WIN_W, WIN_H - TITLE_H);
 
         draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H);
-        ui.text(win.x + 20.0, win.y + TITLE_H - 5.0, "Sound", text_color());
+        ui.text(
+            win.x + 20.0,
+            win.y + TITLE_H - 5.0,
+            &rust_i18n::t!("sound_options.sound"),
+            text_color(),
+        );
 
         let close_rect = Rect::new(
             win.x + WIN_W - CLOSE_SIZE - 4.0,
@@ -151,7 +156,12 @@ impl InGameWindow for SoundOptionsWindow {
         let mute_x = win.x + 60.0 + SLIDER_W + 8.0;
 
         // BGM row
-        ui.text(win.x + 12.0, row(0) + SLIDER_H - 4.0, "BGM", label_color);
+        ui.text(
+            win.x + 12.0,
+            row(0) + SLIDER_H - 4.0,
+            &rust_i18n::t!("sound_options.bgm"),
+            label_color,
+        );
         let bgm_rect = Rect::new(slider_x, row(0), SLIDER_W, SLIDER_H);
         let bgm_resp = ui.slider(BGM_SLIDER_ID, bgm_rect, &mut self.bgm_volume, 0.0, 1.0);
         if bgm_resp.changed {
@@ -175,12 +185,17 @@ impl InGameWindow for SoundOptionsWindow {
         ui.text(
             bgm_cb.x + CB_SIZE + 4.0,
             row(0) + SLIDER_H - 4.0,
-            "On",
+            &rust_i18n::t!("sound_options.on"),
             label_color,
         );
 
         // SFX row
-        ui.text(win.x + 12.0, row(1) + SLIDER_H - 4.0, "SFX", label_color);
+        ui.text(
+            win.x + 12.0,
+            row(1) + SLIDER_H - 4.0,
+            &rust_i18n::t!("sound_options.sfx"),
+            label_color,
+        );
         let sfx_rect = Rect::new(slider_x, row(1), SLIDER_W, SLIDER_H);
         let sfx_resp = ui.slider(SFX_SLIDER_ID, sfx_rect, &mut self.sfx_volume, 0.0, 1.0);
         if sfx_resp.changed {
@@ -204,7 +219,7 @@ impl InGameWindow for SoundOptionsWindow {
         ui.text(
             sfx_cb.x + CB_SIZE + 4.0,
             row(1) + SLIDER_H - 4.0,
-            "On",
+            &rust_i18n::t!("sound_options.on"),
             label_color,
         );
 

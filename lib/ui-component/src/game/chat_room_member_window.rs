@@ -363,12 +363,12 @@ impl InGameWindow for ChatRoomMemberWindow {
         let btn_y = footer_y + (FOOTER_H - btn_h) / 2.0;
         let mut bx = x + win_w - PAD - RESIZE_SIZE - btn_w;
         let leave = ui
-            .button(LEAVE_BTN_ID, Rect::new(bx, btn_y, btn_w, btn_h), "Leave")
+            .button(LEAVE_BTN_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("chat_room_member.leave"))
             .clicked();
         if i_am_owner {
             bx -= btn_w + 4.0;
             let edit = ui
-                .button(EDIT_BTN_ID, Rect::new(bx, btn_y, btn_w, btn_h), "Edit")
+                .button(EDIT_BTN_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("chat_room_member.edit"))
                 .clicked();
             if edit {
                 events.push(GameEvent::RequestEditChatRoomSettings);

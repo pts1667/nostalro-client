@@ -95,7 +95,12 @@ impl InGameWindow for MonsterInfoWindow {
         ui.interact(MONSTER_INFO_WINDOW_ID, Rect::new(x, y, w, h));
 
         draw_titlebar(ui, x, y, w, TITLE_H);
-        ui.text(x + 16.0, y + TITLE_H - 3.0, "Monster Info", text_color());
+        ui.text(
+            x + 16.0,
+            y + TITLE_H - 3.0,
+            &rust_i18n::t!("monster_info.monster_info"),
+            text_color(),
+        );
 
         let close_rect = Rect::new(
             x + w - CLOSE_BTN_SIZE - 3.0,

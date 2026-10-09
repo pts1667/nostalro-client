@@ -236,8 +236,8 @@ impl MakeItemWindow {
 
         let win_rect = Rect::new(dx, dy, WIN_W, win_h);
         let btns = win_rect.buttons_bottom_right(2, btn_w, btn_h, 5.0, 5.0, 3.0);
-        let cancel = ui.button(CANCEL_ID, btns[0], "Cancel");
-        let ok = ui.button(OK_ID, btns[1], "OK");
+        let cancel = ui.button(CANCEL_ID, btns[0], &rust_i18n::t!("common.cancel"));
+        let ok = ui.button(OK_ID, btns[1], &rust_i18n::t!("common.ok"));
         if ok.clicked() || ui.ctx.key_enter {
             if self.rows.get(self.selected).is_some() {
                 self.phase = Phase::Process;
@@ -352,8 +352,8 @@ impl MakeItemWindow {
 
         let win_rect = Rect::new(dx, dy, WIN_W, win_h);
         let btns = win_rect.buttons_bottom_right(2, btn_w, btn_h, 5.0, 5.0, 3.0);
-        let cancel = ui.button(CANCEL_ID, btns[0], "Cancel");
-        let make = ui.button(MAKE_ID, btns[1], "Make");
+        let cancel = ui.button(CANCEL_ID, btns[0], &rust_i18n::t!("common.cancel"));
+        let make = ui.button(MAKE_ID, btns[1], &rust_i18n::t!("make_item.make"));
         if make.clicked() || ui.ctx.key_enter {
             let materials = std::array::from_fn(|i| {
                 self.slots[i].as_ref().map(|s| s.item.item_id).unwrap_or(0)

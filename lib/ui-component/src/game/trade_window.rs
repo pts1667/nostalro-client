@@ -329,7 +329,7 @@ impl InGameWindow for TradeWindow {
         if my_locked {
             draw_disabled(ui, lock_rect, LOCK_BTN_DIS, "Lock", tc);
         } else if ui
-            .button(LOCK_BTN_ID, lock_rect, "Lock")
+            .button(LOCK_BTN_ID, lock_rect, &rust_i18n::t!("trade.lock"))
             .clicked()
         {
             let amount: i64 = self
@@ -356,7 +356,7 @@ impl InGameWindow for TradeWindow {
         let trade_rect = Rect::new(x + (WIN_W - BTN_W) / 2.0, by, BTN_W, BTN_H);
         if character.trade.both_locked() {
             if ui
-                .button(TRADE_BTN_ID, trade_rect, "Trade")
+                .button(TRADE_BTN_ID, trade_rect, &rust_i18n::t!("trade.trade"))
                 .clicked()
             {
                 events.push(GameEvent::RequestExecExchange);
@@ -366,7 +366,7 @@ impl InGameWindow for TradeWindow {
         }
 
         let cancel_rect = Rect::new(x + WIN_W - BTN_W - 6.0, by, BTN_W, BTN_H);
-        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, "Cancel");
+        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, &rust_i18n::t!("common.cancel"));
 
         // --- Quantity dialog (modal) ---
         if let Some((index, dialog)) = &mut self.qty_dialog {

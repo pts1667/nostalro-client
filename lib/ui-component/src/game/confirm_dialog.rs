@@ -220,10 +220,10 @@ impl ConfirmDialog {
 
         let mut cancelled = false;
         if state.show_cancel {
-            let cancel = ui.button(CANCEL_BTN_ID, btns[0], "Cancel");
+            let cancel = ui.button(CANCEL_BTN_ID, btns[0], &rust_i18n::t!("common.cancel"));
             cancelled = cancel.clicked();
         }
-        let ok = ui.button(OK_BTN_ID, btns[num_buttons - 1], "OK");
+        let ok = ui.button(OK_BTN_ID, btns[num_buttons - 1], &rust_i18n::t!("common.ok"));
         let confirmed = ok.clicked() || enter;
 
         if cancelled {

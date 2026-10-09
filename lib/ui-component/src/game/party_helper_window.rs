@@ -230,7 +230,7 @@ impl InGameWindow for PartyHelperWindow {
             cy += 24.0;
         }
         if has_exp {
-            ui.text(x + 10.0, cy + 11.0, "How to share EXP", lc);
+            ui.text(x + 10.0, cy + 11.0, &rust_i18n::t!("party_helper.how_to_share_exp"), lc);
             cy += 16.0;
             let mut v = if self.exp_share { 1 } else { 0 };
             Self::radio_row(
@@ -260,7 +260,7 @@ impl InGameWindow for PartyHelperWindow {
             self.exp_share = v == 1;
         }
         if has_items {
-            ui.text(x + 10.0, cy + 11.0, "How to share Items", lc);
+            ui.text(x + 10.0, cy + 11.0, &rust_i18n::t!("party_helper.how_to_share_items"), lc);
             cy += 16.0;
             Self::radio_row(
                 ui,
@@ -287,7 +287,7 @@ impl InGameWindow for PartyHelperWindow {
             );
             cy += ROW_H + 6.0;
 
-            ui.text(x + 10.0, cy + 11.0, "Item Sharing type", lc);
+            ui.text(x + 10.0, cy + 11.0, &rust_i18n::t!("party_helper.item_sharing_type"), lc);
             cy += 16.0;
             Self::radio_row(
                 ui,
@@ -319,11 +319,11 @@ impl InGameWindow for PartyHelperWindow {
         draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         let ok_rect = Rect::new(x + WIN_W - 46.0 - 42.0, footer_y + 4.0, 42.0, 20.0);
         let cancel_rect = Rect::new(x + WIN_W - 2.0 - 42.0, footer_y + 4.0, 42.0, 20.0);
-        let ok = ui.button(OK_BTN_ID, ok_rect, "OK");
+        let ok = ui.button(OK_BTN_ID, ok_rect, &rust_i18n::t!("common.ok"));
         if ok.hovered() {
             ui.any_interactive_hovered = true;
         }
-        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, "Cancel");
+        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, &rust_i18n::t!("common.cancel"));
         if cancel.hovered() {
             ui.any_interactive_hovered = true;
         }

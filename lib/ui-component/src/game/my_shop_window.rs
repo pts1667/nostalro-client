@@ -200,7 +200,7 @@ impl InGameWindow for MyShopWindow {
 
         let win_rect = Rect::new(dx, dy, WIN_W, win_h);
         let btns = win_rect.buttons_bottom_right(1, btn_w, btn_h, 5.0, 5.0, 3.0);
-        if ui.button(CLOSE_ID, btns[0], "Close").clicked() {
+        if ui.button(CLOSE_ID, btns[0], &rust_i18n::t!("common.close")).clicked() {
             events.push(GameEvent::RequestCloseStore);
         }
 

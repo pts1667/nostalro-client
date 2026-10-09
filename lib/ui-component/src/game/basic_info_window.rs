@@ -170,7 +170,7 @@ impl BasicInfoWindow {
             None,
         );
 
-        ui.text(x + 18.0, y + 13.0, "Basic Info", tc);
+        ui.text(x + 18.0, y + 13.0, &rust_i18n::t!("basic_info.basic_info"), tc);
 
         let mini_rect = Rect::new(
             x + WIN_W - 2.0 - self.sys_btn_size.0,
@@ -207,7 +207,7 @@ impl BasicInfoWindow {
         Self::update_shadow(&mut self.hp_shadow, hp_pct, delta);
         let is_red = hp_pct < 0.25;
 
-        ui.text(x + 90.0, y + 39.0, "HP", tc);
+        ui.text(x + 90.0, y + 39.0, &rust_i18n::t!("basic_info.hp"), tc);
         let hp_fill = if is_red {
             [0.8, 0.2, 0.2, 1.0]
         } else {
@@ -245,7 +245,7 @@ impl BasicInfoWindow {
         let sp_pct = character.sp_percentage();
         Self::update_shadow(&mut self.sp_shadow, sp_pct, delta);
 
-        ui.text(x + 90.0, y + 59.0, "SP", tc);
+        ui.text(x + 90.0, y + 59.0, &rust_i18n::t!("basic_info.sp"), tc);
         let sp_fill = [0.2, 0.7, 0.3, 1.0];
         Self::draw_bar_fallback(
             ui,

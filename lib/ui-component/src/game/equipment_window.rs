@@ -225,7 +225,7 @@ impl InGameWindow for EquipmentWindow {
         ui.text(
             win.x + (17.0),
             win.y + (TITLE_H) - (3.0),
-            "Equipment",
+            &rust_i18n::t!("equipment.equipment"),
             text_color,
         );
 
@@ -309,7 +309,7 @@ impl InGameWindow for EquipmentWindow {
             ui.text(
                 btn_rect.x + 8.0,
                 btn_rect.y + 12.0,
-                "Off",
+                &rust_i18n::t!("equipment.off"),
                 [1.0, 1.0, 1.0, 1.0],
             );
             if resp.clicked() {
@@ -337,7 +337,7 @@ impl InGameWindow for EquipmentWindow {
                 ui.tooltip(
                     cart_rect.x,
                     cart_rect.y - ui.atlas.line_height - 4.0,
-                    "Cart (click to open, right-click to remove)",
+                    &rust_i18n::t!("equipment.cart_click_to_open_right_click_to_remove"),
                 );
             }
         }

@@ -193,7 +193,7 @@ impl VendingSetupWindow {
         ui.text(
             wx + 17.0,
             wy + TITLE_H - 3.0,
-            "Available items for Vending",
+            &rust_i18n::t!("vending_setup.available_items_for_vending"),
             tc,
         );
 
@@ -345,7 +345,7 @@ impl InGameWindow for VendingSetupWindow {
         ui.interact(VENDING_SETUP_WINDOW_ID, Rect::new(dx, dy, WIN_W, win_h));
 
         draw_titlebar(ui, dx, dy, WIN_W, TITLE_H);
-        ui.text(dx + 6.0, dy + TITLE_H - 3.0, "Open a Shop", tc);
+        ui.text(dx + 6.0, dy + TITLE_H - 3.0, &rust_i18n::t!("vending_setup.open_a_shop"), tc);
 
         let body_y = dy + TITLE_H;
         let body_h = PAD + NAME_ROW_H + PAD + list_h + PAD;
@@ -353,7 +353,7 @@ impl InGameWindow for VendingSetupWindow {
         draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H);
 
         let name_y = body_y + PAD;
-        ui.text(dx + PAD, name_y + NAME_ROW_H - 6.0, "Shop Name", tc);
+        ui.text(dx + PAD, name_y + NAME_ROW_H - 6.0, &rust_i18n::t!("vending_setup.shop_name"), tc);
         let name_rect = Rect::new(dx + PAD + 70.0, name_y, WIN_W - PAD * 2.0 - 70.0, 16.0);
         ui.text_input(TITLE_INPUT_ID, name_rect, &mut self.title, bg);
 
@@ -436,7 +436,7 @@ impl InGameWindow for VendingSetupWindow {
             }
 
             let price_label_x = list_x + list_w - PRICE_W - PRICE_LABEL_W;
-            ui.text(price_label_x, row_y + ROW_H - 12.0, "Price:", tc);
+            ui.text(price_label_x, row_y + ROW_H - 12.0, &rust_i18n::t!("vending_setup.price"), tc);
             let price_rect = Rect::new(
                 list_x + list_w - PRICE_W,
                 row_y + (ROW_H - 16.0) / 2.0,
@@ -482,15 +482,15 @@ impl InGameWindow for VendingSetupWindow {
 
         let mut bx = dx + WIN_W - PAD - btn_w;
         let cancel = ui
-            .button(CANCEL_ID, Rect::new(bx, btn_y, btn_w, btn_h), "cancel")
+            .button(CANCEL_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("vending_setup.cancel"))
             .clicked();
         bx -= btn_w + 4.0;
         let ok = ui
-            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), "OK")
+            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("common.ok"))
             .clicked();
         bx -= reset_w + 4.0;
         let reset = ui
-            .button(RESET_ID, Rect::new(bx, reset_y, reset_w, reset_h), "Reset")
+            .button(RESET_ID, Rect::new(bx, reset_y, reset_w, reset_h), &rust_i18n::t!("vending_setup.reset"))
             .clicked();
 
         if ok {

@@ -289,7 +289,7 @@ impl InGameWindow for NpcDialog {
 
                 let ok_rect = Rect::new(dx + dialog_w - padding - btn_w, input_y, btn_w, btn_h);
                 cancel_drag_on_press(ui, NPC_DIALOG_WINDOW_ID, &[input_rect, ok_rect]);
-                let ok = ui.button(OK_BTN_ID, ok_rect, "OK");
+                let ok = ui.button(OK_BTN_ID, ok_rect, &rust_i18n::t!("common.ok"));
                 if ok.clicked() {
                     let text = self.string_input.text.clone();
                     events.push(GameEvent::RequestNpcInputString {
@@ -320,7 +320,7 @@ impl InGameWindow for NpcDialog {
             }
 
             if self.dialog.next_button {
-                let response = ui.button(NEXT_BTN_ID, btns[0], "Next");
+                let response = ui.button(NEXT_BTN_ID, btns[0], &rust_i18n::t!("npc.next"));
                 if response.clicked() {
                     events.push(GameEvent::RequestNpcNext {
                         npc_id: self.dialog.npc_id,
@@ -334,7 +334,7 @@ impl InGameWindow for NpcDialog {
                 } else {
                     btns[0]
                 };
-                let response = ui.button(CLOSE_BTN_ID, slot, "Close");
+                let response = ui.button(CLOSE_BTN_ID, slot, &rust_i18n::t!("common.close"));
                 if response.clicked() {
                     events.push(GameEvent::RequestNpcClose {
                         npc_id: self.dialog.npc_id,
@@ -512,8 +512,8 @@ impl NpcDialog {
 
         cancel_drag_on_press(ui, NPC_MENU_WINDOW_ID, &menu_btns);
 
-        let cancel = ui.button(CANCEL_BTN_ID, menu_btns[0], "Cancel");
-        let ok = ui.button(MENU_OK_BTN_ID, menu_btns[1], "OK");
+        let cancel = ui.button(CANCEL_BTN_ID, menu_btns[0], &rust_i18n::t!("common.cancel"));
+        let ok = ui.button(MENU_OK_BTN_ID, menu_btns[1], &rust_i18n::t!("common.ok"));
 
         if ok.clicked() || submit {
             let choice = (self.dialog.selected_menu_index + 1) as u8;
@@ -583,9 +583,9 @@ impl NpcDialog {
         let text_color = [1.0, 1.0, 1.0, 1.0];
         ui.text(text_x, text_y, message, text_color);
 
-        let cancel = ui.button(DEAL_CANCEL_BTN_ID, btns[0], "Cancel");
-        let sell = ui.button(SELL_BTN_ID, btns[1], "Sell");
-        let buy = ui.button(BUY_BTN_ID, btns[2], "Buy");
+        let cancel = ui.button(DEAL_CANCEL_BTN_ID, btns[0], &rust_i18n::t!("common.cancel"));
+        let sell = ui.button(SELL_BTN_ID, btns[1], &rust_i18n::t!("npc.sell"));
+        let buy = ui.button(BUY_BTN_ID, btns[2], &rust_i18n::t!("npc.buy"));
 
         if buy.clicked() {
             events.push(GameEvent::RequestNpcDealType {

@@ -355,10 +355,10 @@ impl CharCreateWindow {
         let btn_y = oy + WIN_H - BTN_BOTTOM - BTN_H;
         let make = Rect::new(ox + WIN_W - MAKE_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
         let cancel = Rect::new(ox + WIN_W - CANCEL_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
-        let submit = ui.button(MAKE_ID, make, "Make").clicked() || ui.ctx.key_enter;
+        let submit = ui.button(MAKE_ID, make, &rust_i18n::t!("char_create.make")).clicked() || ui.ctx.key_enter;
         self.try_submit(submit, events);
         if ui
-            .button(CANCEL_ID, cancel, "Cancel")
+            .button(CANCEL_ID, cancel, &rust_i18n::t!("common.cancel"))
             .clicked()
             || ui.ctx.key_escape
         {
@@ -439,7 +439,7 @@ impl CharCreateWindow {
         ui.text(
             ox + 18.0,
             oy + 2.0 + ui.atlas.ascent,
-            "New Character",
+            &rust_i18n::t!("char_create.new_character"),
             window_chrome::text_color(),
         );
 
@@ -504,10 +504,10 @@ let name_bg = TextInputBg::Default;
         let btn_y = footer_y + V2_FOOTER_H - BTN_BOTTOM - BTN_H;
         let make = Rect::new(ox + V2_W - MAKE_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
         let cancel = Rect::new(ox + V2_W - CANCEL_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
-        let submit = ui.button(MAKE_ID, make, "Make").clicked() || ui.ctx.key_enter;
+        let submit = ui.button(MAKE_ID, make, &rust_i18n::t!("char_create.make")).clicked() || ui.ctx.key_enter;
         self.try_submit(submit, events);
         if ui
-            .button(CANCEL_ID, cancel, "Cancel")
+            .button(CANCEL_ID, cancel, &rust_i18n::t!("common.cancel"))
             .clicked()
             || ui.ctx.key_escape
         {
