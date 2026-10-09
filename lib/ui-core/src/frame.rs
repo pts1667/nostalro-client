@@ -713,7 +713,7 @@ impl<'a> UiFrame<'a> {
         }
     }
 
-    /// A labeled button drawn procedurally regardless of GRF textures — for
+    /// A labeled button drawn procedurally, with no named texture — for
     /// buttons whose label has no dedicated texture (e.g. Apply/Revert/Add).
     pub fn text_button(&mut self, id: WidgetId, rect: Rect, label: &str) -> Response {
         let response = self.interact(id, rect);
@@ -1619,7 +1619,7 @@ mod tests {
             !ui.draw_calls
                 .iter()
                 .any(|c| matches!(c.texture, TextureRef::Named(_))),
-            "fallback button must not reference GRF textures"
+            "fallback button must not reference named textures"
         );
         assert!(
             ui.draw_calls

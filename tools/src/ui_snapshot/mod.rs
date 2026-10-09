@@ -29,7 +29,7 @@ options:
   --all                  every single window
   --list                 print scene and category names and exit
   --mode fallback|grf    fallback (default): no data files, procedural look.
-                         grf: textured look, needs --grf
+                         grf: adds game art (items, skills, emotes, maps), needs --grf
   --grf PATH             GRF archive, repeatable (grf mode, default data/data.grf)
   --data-dir PATH        extracted data folder that overrides the archives (grf mode)
   --out DIR              output root (default target/ui-snapshots)
@@ -483,8 +483,8 @@ fn content_bounds(image: &image::RgbaImage, background: [u8; 4]) -> Option<(u32,
     bounds
 }
 
-/// Lists the GRF textures a frame draws. In fallback mode they appear as white
-/// boxes, so this shows what still depends on the data files.
+/// Lists the game-art textures a frame draws. Without data they are skipped, so
+/// this shows what still depends on the data files.
 fn report_grf_textures(stem: &str, calls: &[UiDrawCall]) {
     let mut names: Vec<&str> = calls
         .iter()
@@ -499,7 +499,7 @@ fn report_grf_textures(stem: &str, calls: &[UiDrawCall]) {
         return;
     }
     eprintln!(
-        "note: {stem} draws {} GRF texture(s) without data (skipped in fallback):",
+        "note: {stem} draws {} game texture(s) without data (skipped in fallback):",
         names.len()
     );
     for name in names {
