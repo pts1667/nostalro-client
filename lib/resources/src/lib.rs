@@ -484,174 +484,32 @@ pub mod texture {
 /// The `유저인터페이스` tree — every window, button and icon texture.
 pub mod ui {
     crate::paths! {
-        BTN_ADD = "data/texture/유저인터페이스/btn_add.bmp";
-        BTN_ADD_A = "data/texture/유저인터페이스/btn_add_a.bmp";
-        BTN_ADD_B = "data/texture/유저인터페이스/btn_add_b.bmp";
-        BTN_APPLY = "data/texture/유저인터페이스/btn_apply.bmp";
-        BTN_APPLY_A = "data/texture/유저인터페이스/btn_apply_a.bmp";
-        BTN_APPLY_B = "data/texture/유저인터페이스/btn_apply_b.bmp";
-        BTN_BACK = "data/texture/유저인터페이스/btn_back.bmp";
-        BTN_BACK_A = "data/texture/유저인터페이스/btn_back_a.bmp";
-        BTN_BACK_B = "data/texture/유저인터페이스/btn_back_b.bmp";
-        BTN_BUY = "data/texture/유저인터페이스/btn_buy.bmp";
-        BTN_BUY_A = "data/texture/유저인터페이스/btn_buy_a.bmp";
-        BTN_BUY_B = "data/texture/유저인터페이스/btn_buy_b.bmp";
         BTN_CANCEL = "data/texture/유저인터페이스/btn_cancel.bmp";
         BTN_CANCEL_A = "data/texture/유저인터페이스/btn_cancel_a.bmp";
         BTN_CANCEL_B = "data/texture/유저인터페이스/btn_cancel_b.bmp";
-        BTN_CLOSE = "data/texture/유저인터페이스/btn_close.bmp";
-        BTN_CLOSE_A = "data/texture/유저인터페이스/btn_close_a.bmp";
-        BTN_CLOSE_B = "data/texture/유저인터페이스/btn_close_b.bmp";
-        BTN_DEL = "data/texture/유저인터페이스/btn_del.bmp";
-        BTN_DEL_A = "data/texture/유저인터페이스/btn_del_a.bmp";
-        BTN_DEL_B = "data/texture/유저인터페이스/btn_del_b.bmp";
-        BTN_EDIT = "data/texture/유저인터페이스/btn_edit.bmp";
-        BTN_EDIT_A = "data/texture/유저인터페이스/btn_edit_a.bmp";
-        BTN_EDIT_B = "data/texture/유저인터페이스/btn_edit_b.bmp";
-        BTN_EXCHANGE = "data/texture/유저인터페이스/btn_exchange.bmp";
-        BTN_EXCHANGE_A = "data/texture/유저인터페이스/btn_exchange_a.bmp";
-        BTN_EXCHANGE_B = "data/texture/유저인터페이스/btn_exchange_b.bmp";
         BTN_EXCHANGE_DIS = "data/texture/유저인터페이스/btn_exchange_dis.bmp";
-        BTN_FEED = "data/texture/유저인터페이스/btn_feed.bmp";
-        BTN_FEED_A = "data/texture/유저인터페이스/btn_feed_a.bmp";
-        BTN_FEED_B = "data/texture/유저인터페이스/btn_feed_b.bmp";
-        BTN_FIRED = "data/texture/유저인터페이스/btn_fired.bmp";
-        BTN_FIRED_A = "data/texture/유저인터페이스/btn_fired_a.bmp";
-        BTN_FIRED_B = "data/texture/유저인터페이스/btn_fired_b.bmp";
         BTN_MAKE = "data/texture/유저인터페이스/btn_make.bmp";
         BTN_MAKE_A = "data/texture/유저인터페이스/btn_make_a.bmp";
         BTN_MAKE_B = "data/texture/유저인터페이스/btn_make_b.bmp";
-        BTN_NEXT = "data/texture/유저인터페이스/btn_next.bmp";
-        BTN_NEXT_A = "data/texture/유저인터페이스/btn_next_a.bmp";
-        BTN_NEXT_B = "data/texture/유저인터페이스/btn_next_b.bmp";
         BTN_OK = "data/texture/유저인터페이스/btn_ok.bmp";
         BTN_OK_A = "data/texture/유저인터페이스/btn_ok_a.bmp";
         BTN_OK_B = "data/texture/유저인터페이스/btn_ok_b.bmp";
         BTN_OK_DIS = "data/texture/유저인터페이스/btn_ok_dis.bmp";
-        BTN_RESET = "data/texture/유저인터페이스/btn_reset.bmp";
-        BTN_RESET_A = "data/texture/유저인터페이스/btn_reset_a.bmp";
-        BTN_RESET_B = "data/texture/유저인터페이스/btn_reset_b.bmp";
-        BTN_RESIZE = "data/texture/유저인터페이스/btn_resize.bmp";
-        BTN_REWRITE = "data/texture/유저인터페이스/btn_rewrite.bmp";
-        BTN_REWRITE_A = "data/texture/유저인터페이스/btn_rewrite_a.bmp";
-        BTN_REWRITE_B = "data/texture/유저인터페이스/btn_rewrite_b.bmp";
-        BTN_SELL = "data/texture/유저인터페이스/btn_sell.bmp";
-        BTN_SELL_A = "data/texture/유저인터페이스/btn_sell_a.bmp";
-        BTN_SELL_B = "data/texture/유저인터페이스/btn_sell_b.bmp";
-        BTN_SKILL = "data/texture/유저인터페이스/btn_skill.bmp";
-        BTN_SKILL_A = "data/texture/유저인터페이스/btn_skill_a.bmp";
-        BTN_SKILL_B = "data/texture/유저인터페이스/btn_skill_b.bmp";
-        BTN_USE = "data/texture/유저인터페이스/btn_use.bmp";
-        BTN_USE_A = "data/texture/유저인터페이스/btn_use_a.bmp";
-        BTN_USE_B = "data/texture/유저인터페이스/btn_use_b.bmp";
-        BTN_VIEW = "data/texture/유저인터페이스/btn_view.bmp";
-        BTN_VIEW_A = "data/texture/유저인터페이스/btn_view_a.bmp";
-        BTN_VIEW_B = "data/texture/유저인터페이스/btn_view_b.bmp";
         CHECKBOX_0 = "data/texture/유저인터페이스/checkbox_0.bmp";
         CHECKBOX_1 = "data/texture/유저인터페이스/checkbox_1.bmp";
-        EMPTY_CARD_SLOT = "data/texture/유저인터페이스/empty_card_slot.bmp";
-        ESC_01A = "data/texture/유저인터페이스/esc_01a.bmp";
-        ESC_01B = "data/texture/유저인터페이스/esc_01b.bmp";
-        ESC_01C = "data/texture/유저인터페이스/esc_01c.bmp";
-        ESC_02A = "data/texture/유저인터페이스/esc_02a.bmp";
-        ESC_02B = "data/texture/유저인터페이스/esc_02b.bmp";
-        ESC_02C = "data/texture/유저인터페이스/esc_02c.bmp";
-        ESC_03A = "data/texture/유저인터페이스/esc_03a.bmp";
-        ESC_03B = "data/texture/유저인터페이스/esc_03b.bmp";
-        ESC_03C = "data/texture/유저인터페이스/esc_03c.bmp";
-        ESC_04A = "data/texture/유저인터페이스/esc_04a.bmp";
-        ESC_04B = "data/texture/유저인터페이스/esc_04b.bmp";
-        ESC_04C = "data/texture/유저인터페이스/esc_04c.bmp";
-        ESC_05A = "data/texture/유저인터페이스/esc_05a.bmp";
-        ESC_05B = "data/texture/유저인터페이스/esc_05b.bmp";
-        ESC_05C = "data/texture/유저인터페이스/esc_05c.bmp";
-        ESC_06A = "data/texture/유저인터페이스/esc_06a.bmp";
-        ESC_06B = "data/texture/유저인터페이스/esc_06b.bmp";
-        ESC_06C = "data/texture/유저인터페이스/esc_06c.bmp";
-        ESC_07A = "data/texture/유저인터페이스/esc_07a.bmp";
-        ESC_07B = "data/texture/유저인터페이스/esc_07b.bmp";
-        ESC_07C = "data/texture/유저인터페이스/esc_07c.bmp";
-        ESC_08A = "data/texture/유저인터페이스/esc_08a.bmp";
-        ESC_08B = "data/texture/유저인터페이스/esc_08b.bmp";
-        ESC_08C = "data/texture/유저인터페이스/esc_08c.bmp";
-        RADIOBTN_OFF = "data/texture/유저인터페이스/radiobtn_off.bmp";
-        RADIOBTN_ON = "data/texture/유저인터페이스/radiobtn_on.bmp";
         RAG_TITLE = "data/texture/유저인터페이스/rag_title.bmp";
         RAG_TITLE2 = "data/texture/유저인터페이스/rag_title2.bmp";
         RAG_TITLE3 = "data/texture/유저인터페이스/rag_title3.bmp";
-        SCROLL0BAR_DOWN = "data/texture/유저인터페이스/scroll0bar_down.bmp";
-        SCROLL0BAR_MID = "data/texture/유저인터페이스/scroll0bar_mid.bmp";
-        SCROLL0BAR_UP = "data/texture/유저인터페이스/scroll0bar_up.bmp";
-        SCROLL0DOWN = "data/texture/유저인터페이스/scroll0down.bmp";
-        SCROLL0MID = "data/texture/유저인터페이스/scroll0mid.bmp";
         SCROLL0UP = "data/texture/유저인터페이스/scroll0up.bmp";
         SCROLL1LEFT = "data/texture/유저인터페이스/scroll1left.bmp";
         SCROLL1RIGHT = "data/texture/유저인터페이스/scroll1right.bmp";
-        SYSBOX_BG = "data/texture/유저인터페이스/sysbox_bg.bmp";
-        SYSBOX_LD = "data/texture/유저인터페이스/sysbox_ld.bmp";
-        SYSBOX_LM = "data/texture/유저인터페이스/sysbox_lm.bmp";
-        SYSBOX_LU = "data/texture/유저인터페이스/sysbox_lu.bmp";
-        SYSBOX_MD = "data/texture/유저인터페이스/sysbox_md.bmp";
-        SYSBOX_MU = "data/texture/유저인터페이스/sysbox_mu.bmp";
-        SYSBOX_RD = "data/texture/유저인터페이스/sysbox_rd.bmp";
-        SYSBOX_RM = "data/texture/유저인터페이스/sysbox_rm.bmp";
-        SYSBOX_RU = "data/texture/유저인터페이스/sysbox_ru.bmp";
-        WIN_MSGBOX = "data/texture/유저인터페이스/win_msgbox.bmp";
         WORLDMAP = "data/texture/유저인터페이스/worldmap.bmp";
     }
 
     /// Shared window chrome and the in-game HUD.
     pub mod basic {
         crate::paths! {
-            ARW_LEFT = "data/texture/유저인터페이스/basic_interface/arw_left.bmp";
-            ARW_RIGHT = "data/texture/유저인터페이스/basic_interface/arw_right.bmp";
-            ARW_RIGHT_ON = "data/texture/유저인터페이스/basic_interface/arw_right_on.bmp";
-            BASEWIN_BG = "data/texture/유저인터페이스/basic_interface/basewin_bg.bmp";
-            BASEWIN_MINI = "data/texture/유저인터페이스/basic_interface/basewin_mini.bmp";
             BTNBAR_MID2 = "data/texture/유저인터페이스/basic_interface/btnbar_mid2.bmp";
-            BTN_CANCEL2 = "data/texture/유저인터페이스/basic_interface/cancel2.bmp";
-            BTN_CANCEL2_A = "data/texture/유저인터페이스/basic_interface/cancel2_a.bmp";
-            BTN_CLOSE = "data/texture/유저인터페이스/basic_interface/btn_close.bmp";
-            BTN_CLOSE2 = "data/texture/유저인터페이스/basic_interface/close2.bmp";
-            BTN_CLOSE2_A = "data/texture/유저인터페이스/basic_interface/close2_a.bmp";
-            BTN_CLOSE_A = "data/texture/유저인터페이스/basic_interface/btn_close_a.bmp";
-            BTN_CLOSE_B = "data/texture/유저인터페이스/basic_interface/btn_close_b.bmp";
-            BTN_DEL = "data/texture/유저인터페이스/basic_interface/del.bmp";
-            BTN_DEL_A = "data/texture/유저인터페이스/basic_interface/del_a.bmp";
-            BTN_DIALOG_OFF = "data/texture/유저인터페이스/basic_interface/btn_dialog_off.bmp";
-            BTN_DIALOG_ON = "data/texture/유저인터페이스/basic_interface/btn_dialog_on.bmp";
-            BTN_EQUIP_OFF = "data/texture/유저인터페이스/basic_interface/btn_equip_off.bmp";
-            BTN_EQUIP_ON = "data/texture/유저인터페이스/basic_interface/btn_equip_on.bmp";
-            BTN_FRIEND_OFF = "data/texture/유저인터페이스/basic_interface/btn_friend_off.bmp";
-            BTN_FRIEND_ON = "data/texture/유저인터페이스/basic_interface/btn_friend_on.bmp";
-            BTN_ITEMS_OFF = "data/texture/유저인터페이스/basic_interface/btn_items_off.bmp";
-            BTN_ITEMS_ON = "data/texture/유저인터페이스/basic_interface/btn_items_on.bmp";
-            BTN_MAP_OFF = "data/texture/유저인터페이스/basic_interface/btn_map_off.bmp";
-            BTN_MAP_ON = "data/texture/유저인터페이스/basic_interface/btn_map_on.bmp";
-            BTN_OFF = "data/texture/유저인터페이스/basic_interface/btn_off.bmp";
-            BTN_OPTION_OFF = "data/texture/유저인터페이스/basic_interface/btn_option_off.bmp";
-            BTN_OPTION_ON = "data/texture/유저인터페이스/basic_interface/btn_option_on.bmp";
-            BTN_REMAIL = "data/texture/유저인터페이스/basic_interface/remail.bmp";
-            BTN_REMAIL_A = "data/texture/유저인터페이스/basic_interface/remail_a.bmp";
-            BTN_RETURN = "data/texture/유저인터페이스/basic_interface/return.bmp";
-            BTN_RETURN_A = "data/texture/유저인터페이스/basic_interface/return_a.bmp";
-            BTN_SEND = "data/texture/유저인터페이스/basic_interface/send.bmp";
-            BTN_SEND_A = "data/texture/유저인터페이스/basic_interface/send_a.bmp";
-            BTN_SKILL_OFF = "data/texture/유저인터페이스/basic_interface/btn_skill_off.bmp";
-            BTN_SKILL_ON = "data/texture/유저인터페이스/basic_interface/btn_skill_on.bmp";
-            BTN_STATUS_OFF = "data/texture/유저인터페이스/basic_interface/btn_status_off.bmp";
-            BTN_STATUS_ON = "data/texture/유저인터페이스/basic_interface/btn_status_on.bmp";
-            COLLECTION_BG = "data/texture/유저인터페이스/basic_interface/collection_bg.bmp";
-            COPARISON_DISABLE_CARD_SLOT = "data/texture/유저인터페이스/basic_interface/coparison_disable_card_slot.bmp";
-            DIALOG_BG = "data/texture/유저인터페이스/basic_interface/dialog_bg.bmp";
-            DIALOG_BTN0 = "data/texture/유저인터페이스/basic_interface/dialog_btn0.bmp";
-            DIALOG_BTN1 = "data/texture/유저인터페이스/basic_interface/dialog_btn1.bmp";
-            DIALOG_BTN2 = "data/texture/유저인터페이스/basic_interface/dialog_btn2.bmp";
-            DIALSCR_DOWN = "data/texture/유저인터페이스/basic_interface/dialscr_down.bmp";
-            DIALSCR_UP = "data/texture/유저인터페이스/basic_interface/dialscr_up.bmp";
-            ENVELOP = "data/texture/유저인터페이스/basic_interface/envelop.bmp";
-            EQUIPWIN_BG = "data/texture/유저인터페이스/basic_interface/equipwin_bg.bmp";
-            EXCHANGE_BG2 = "data/texture/유저인터페이스/basic_interface/exchange_bg2.bmp";
             GRP_LEADER = "data/texture/유저인터페이스/basic_interface/grp_leader.bmp";
             GRP_ONLINE = "data/texture/유저인터페이스/basic_interface/grp_online.bmp";
             GZEBLUE_LEFT = "data/texture/유저인터페이스/basic_interface/gzeblue_left.bmp";
@@ -660,49 +518,20 @@ pub mod ui {
             GZERED_LEFT = "data/texture/유저인터페이스/basic_interface/gzered_left.bmp";
             GZERED_MID = "data/texture/유저인터페이스/basic_interface/gzered_mid.bmp";
             GZERED_RIGHT = "data/texture/유저인터페이스/basic_interface/gzered_right.bmp";
-            HOMUNINFO_BG = "data/texture/유저인터페이스/basic_interface/homuninfo_bg.bmp";
             ITEMWIN_MID = "data/texture/유저인터페이스/basic_interface/itemwin_mid.bmp";
-            ITEM_INVERT = "data/texture/유저인터페이스/basic_interface/item_invert.bmp";
             MAILLIST1_BG = "data/texture/유저인터페이스/basic_interface/maillist1_bg.bmp";
             MAILLIST2_BG = "data/texture/유저인터페이스/basic_interface/maillist2_bg.bmp";
-            MAILLIST3_BG = "data/texture/유저인터페이스/basic_interface/maillist3_bg.bmp";
-            MESBTN_010 = "data/texture/유저인터페이스/basic_interface/mesbtn_010.bmp";
-            MESBTN_02 = "data/texture/유저인터페이스/basic_interface/mesbtn_02.bmp";
-            MESBTN_04 = "data/texture/유저인터페이스/basic_interface/mesbtn_04.bmp";
-            MESBTN_05 = "data/texture/유저인터페이스/basic_interface/mesbtn_05.bmp";
-            MESBTN_08 = "data/texture/유저인터페이스/basic_interface/mesbtn_08.bmp";
-            MESBTN_09 = "data/texture/유저인터페이스/basic_interface/mesbtn_09.bmp";
-            QUEST_WINDOW = "data/texture/유저인터페이스/basic_interface/quest_window.bmp";
-            SHORTITEM_BG = "data/texture/유저인터페이스/basic_interface/shortitem_bg.bmp";
-            SKILL_UP_A = "data/texture/유저인터페이스/basic_interface/skill_up_a.bmp";
-            SKILL_UP_B = "data/texture/유저인터페이스/basic_interface/skill_up_b.bmp";
-            SKILL_UP_C = "data/texture/유저인터페이스/basic_interface/skill_up_c.bmp";
-            STATWIN0_BG = "data/texture/유저인터페이스/basic_interface/statwin0_bg.bmp";
             SYS_BASE_OFF = "data/texture/유저인터페이스/basic_interface/sys_base_off.bmp";
             SYS_BASE_ON = "data/texture/유저인터페이스/basic_interface/sys_base_on.bmp";
-            SYS_CLOSE_OFF = "data/texture/유저인터페이스/basic_interface/sys_close_off.bmp";
-            SYS_CLOSE_ON = "data/texture/유저인터페이스/basic_interface/sys_close_on.bmp";
-            SYS_MINI_OFF = "data/texture/유저인터페이스/basic_interface/sys_mini_off.bmp";
-            SYS_MINI_ON = "data/texture/유저인터페이스/basic_interface/sys_mini_on.bmp";
             TAB_ITM_01 = "data/texture/유저인터페이스/basic_interface/tab_itm_01.bmp";
             TAB_ITM_02 = "data/texture/유저인터페이스/basic_interface/tab_itm_02.bmp";
             TAB_ITM_03 = "data/texture/유저인터페이스/basic_interface/tab_itm_03.bmp";
-            TAB_QUE_01 = "data/texture/유저인터페이스/basic_interface/tab_que_01.bmp";
-            TAB_QUE_02 = "data/texture/유저인터페이스/basic_interface/tab_que_02.bmp";
-            TAB_QUE_03 = "data/texture/유저인터페이스/basic_interface/tab_que_03.bmp";
-            TITLEBAR_FIX = "data/texture/유저인터페이스/basic_interface/titlebar_fix.bmp";
             TITLEBAR_MID = "data/texture/유저인터페이스/basic_interface/titlebar_mid.bmp";
-            TXTBOX_BTN_A = "data/texture/유저인터페이스/basic_interface/txtbox_btn_a.bmp";
-            TXTBOX_BTN_B = "data/texture/유저인터페이스/basic_interface/txtbox_btn_b.bmp";
-            TXTBOX_BTN_C = "data/texture/유저인터페이스/basic_interface/txtbox_btn_c.bmp";
         }
 
         /// Party-recruitment board buttons.
         pub mod seekparty {
             crate::paths! {
-                BTN_CLEAR_A = "data/texture/유저인터페이스/basic_interface/seekparty/btn_clear_a.bmp";
-                BTN_CLEAR_B = "data/texture/유저인터페이스/basic_interface/seekparty/btn_clear_b.bmp";
-                BTN_CLEAR_C = "data/texture/유저인터페이스/basic_interface/seekparty/btn_clear_c.bmp";
             }
         }
     }
@@ -790,7 +619,6 @@ pub mod ui {
     /// Inventory item icons.
     pub mod item {
         crate::paths! {
-            CAT_PAW_HAIRPIN = "data/texture/유저인터페이스/item/고양이발머리핀.bmp";
         }
 
         pub fn icon(name: &str) -> String {
@@ -813,31 +641,15 @@ pub mod ui {
             ARW_STR1 = "data/texture/유저인터페이스/login_interface/arw-str1.bmp";
             ARW_VIT0 = "data/texture/유저인터페이스/login_interface/arw-vit0.bmp";
             ARW_VIT1 = "data/texture/유저인터페이스/login_interface/arw-vit1.bmp";
-            BOX_SELECT = "data/texture/유저인터페이스/login_interface/box_select.bmp";
-            BTN_CONNECT = "data/texture/유저인터페이스/login_interface/btn_connect.bmp";
-            BTN_CONNECT_A = "data/texture/유저인터페이스/login_interface/btn_connect_a.bmp";
-            BTN_CONNECT_B = "data/texture/유저인터페이스/login_interface/btn_connect_b.bmp";
-            BTN_EXIT = "data/texture/유저인터페이스/login_interface/btn_exit.bmp";
-            BTN_EXIT_A = "data/texture/유저인터페이스/login_interface/btn_exit_a.bmp";
-            BTN_EXIT_B = "data/texture/유저인터페이스/login_interface/btn_exit_b.bmp";
-            CHK_SAVEOFF = "data/texture/유저인터페이스/login_interface/chk_saveoff.bmp";
-            CHK_SAVEON = "data/texture/유저인터페이스/login_interface/chk_saveon.bmp";
             NAME_EDIT = "data/texture/유저인터페이스/login_interface/name-edit.bmp";
-            WIN_LOGIN = "data/texture/유저인터페이스/login_interface/win_login.bmp";
             WIN_MAKE = "data/texture/유저인터페이스/login_interface/win_make.bmp";
             WIN_MAKE2 = "data/texture/유저인터페이스/login_interface/win_make2.bmp";
-            WIN_SELECT = "data/texture/유저인터페이스/login_interface/win_select.bmp";
-            WIN_SERVICE = "data/texture/유저인터페이스/login_interface/win_service.bmp";
         }
     }
 
     /// Minimap frame and per-map minimap images.
     pub mod minimap {
         crate::paths! {
-            MAP_MINUS0 = "data/texture/유저인터페이스/map/map_minus0.bmp";
-            MAP_MINUS1 = "data/texture/유저인터페이스/map/map_minus1.bmp";
-            MAP_PLUS0 = "data/texture/유저인터페이스/map/map_plus0.bmp";
-            MAP_PLUS1 = "data/texture/유저인터페이스/map/map_plus1.bmp";
             PRONTERA = "data/texture/유저인터페이스/map/prontera.bmp";
         }
 

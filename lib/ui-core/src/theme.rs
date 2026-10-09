@@ -8,7 +8,7 @@ const fn rgb(r: u8, g: u8, b: u8) -> [f32; 4] {
 }
 
 /// Palette reproducing the light, glossy, blue-tinted `basic_interface` look for
-/// the no-GRF fallback path. Values sampled from the real interface BMPs.
+/// every procedural widget and window. Values sampled from the real interface BMPs.
 pub struct FallbackPalette;
 
 impl FallbackPalette {

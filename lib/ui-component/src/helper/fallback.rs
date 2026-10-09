@@ -28,7 +28,7 @@ fn rounded(
 }
 
 /// Glossy blue title bar with rounded top corners, a 1px black baseline, and the
-/// top-left system button (mirrors the GRF title bar).
+/// top-left system button.
 pub fn titlebar(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
     let (v, i) = draw::rounded_rect_corners_vgrad(
         x,

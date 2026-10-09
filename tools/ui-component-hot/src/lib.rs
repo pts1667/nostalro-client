@@ -2179,8 +2179,8 @@ impl Scene {
         })
     }
 
-    /// Switches the windows to textured rendering. `size_fn` reports GRF texture
-    /// sizes and may return `None` for textures that are not loaded yet.
+    /// Loads the game data this scene needs: item names and icon keys. `size_fn`
+    /// may return `None` for textures that are not loaded yet.
     pub fn enable_grf_textures(
         &mut self,
         size_fn: &impl Fn(&str) -> Option<(u32, u32)>,
@@ -2400,7 +2400,7 @@ fn grf_init_single(
     }
 }
 
-/// Called once after GRF textures are loaded, and again after each reload.
+/// Called once after the game data loads, and again after each reload.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn hot_grf_init(
     state_ptr: *mut (),
@@ -2790,8 +2790,10 @@ mod tests {
         }
     }
 
-    /// Scenes whose fallback still draws chrome as a GRF texture. Each entry must
-    /// still leak, so a fixed scene has to leave this list (the gate says so).
+    /// Scenes allowed to draw chrome textures while their look is being converted.
+    /// Empty now that every scene is procedural. A scene that starts leaking again
+    /// must be added here on purpose, and the gate fails if a listed scene is fixed
+    /// but not removed.
     const PENDING_CHROME_LEAKS: &[&str] = &[];
 
     /// Game content that a window may draw with no data loaded. The renderer

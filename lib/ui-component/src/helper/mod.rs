@@ -21,7 +21,3 @@ pub struct CheckboxTextures {
     pub on: &'static str,
 }
 
-pub const CHECKBOX: CheckboxTextures = CheckboxTextures {
-    off: ragnarok_resources::ui::CHECKBOX_0,
-    on: ragnarok_resources::ui::CHECKBOX_1,
-};
