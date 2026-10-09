@@ -263,17 +263,17 @@ pub(crate) fn draw_companion_skill_tooltip(
     let mut lines = vec![display_name];
 
     let type_str = match skill.skill_target_type {
-        SkillTargetType::Passive => "Passive",
-        SkillTargetType::Target => "Target",
-        SkillTargetType::Ground => "Ground",
-        SkillTargetType::MySelf => "Self",
-        SkillTargetType::Trap => "Trap",
-        _ => "Support",
+        SkillTargetType::Passive => rust_i18n::t!("skill_type.passive"),
+        SkillTargetType::Target => rust_i18n::t!("skill_type.target"),
+        SkillTargetType::Ground => rust_i18n::t!("skill_type.ground"),
+        SkillTargetType::MySelf => rust_i18n::t!("skill_type.self"),
+        SkillTargetType::Trap => rust_i18n::t!("skill_type.trap"),
+        _ => rust_i18n::t!("skill_type.support"),
     };
-    lines.push(format!("Type: {type_str}"));
-    lines.push(format!("Lv: {}", skill.level));
+    lines.push(rust_i18n::t!("skill_tooltip.type", kind = type_str).to_string());
+    lines.push(rust_i18n::t!("homun_skill.level", level = skill.level).to_string());
     if skill.sp_cost > 0 {
-        lines.push(format!("SP Cost: {}", skill.sp_cost));
+        lines.push(rust_i18n::t!("skill_tooltip.sp_cost", sp = skill.sp_cost).to_string());
     }
     if let Some(desc_lines) = data
         .skill_description

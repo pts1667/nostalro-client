@@ -409,7 +409,7 @@ impl InGameWindow for InventoryWindow {
         let footer_y = container_y + container_h;
         draw_footer(ui, win.x, footer_y, win_w, FOOTER_H);
         let total_count = character.inventory.all_items().len();
-        let item_count_label = format!("Num: {total_count}/100");
+        let item_count_label = rust_i18n::t!("inventory.num", count = total_count).to_string();
         ui.text(
             win.x + tab_img_w + (4.0),
             footer_y + (FOOTER_H) - (5.0),

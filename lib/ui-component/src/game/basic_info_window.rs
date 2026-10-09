@@ -316,11 +316,11 @@ impl BasicInfoWindow {
         } else {
             tc
         };
-        let weight_text = format!("Weight : {} / {}", weight / 10, max_weight / 10);
+        let weight_text = rust_i18n::t!("basic_info.weight", current = weight / 10, max = max_weight / 10).to_string();
         let weight_width = ui.atlas.measure_text(&weight_text);
         ui.text(x + 5.0, y + 115.0, &weight_text, weight_color);
 
-        let zeny_text = format!("Zeny : {}", format_zeny(character.inventory.zeny));
+        let zeny_text = rust_i18n::t!("basic_info.zeny", zeny = format_zeny(character.inventory.zeny)).to_string();
         ui.text(x + 5.0 + weight_width + 8.0, y + 115.0, &zeny_text, tc);
 
         let btn_w = self.menu_btn_size.0;
@@ -330,35 +330,20 @@ impl BasicInfoWindow {
 
         let row_y = |row: usize| y + BUTTONS_TOP + row as f32 * (btn_h + MENU_BTN_SPACING_Y);
 
-        let menu_buttons: &[(WidgetId, f32, f32, &str)] = &[
-            (BTN_OPTION_ID, col1_x, row_y(0), "Option"),
-            (BTN_STATUS_ID, col2_x, row_y(0), "Status"),
-            (
-                BTN_EQUIP_ID,
-                col1_x,
-                row_y(1),
-                "Equipment (Alt+Q)",
-            ),
-            (
-                BTN_INVENTORY_ID,
-                col2_x,
-                row_y(1),
-                "Inventory (Alt+E)",
-            ),
-            (BTN_MAP_ID, col1_x, row_y(2), "Map"),
-            (BTN_SKILL_ID, col2_x, row_y(2), "Skills (Alt+S)"),
-            (BTN_PARTY_ID, col1_x, row_y(3), "Party"),
-            (
-                BTN_CHAT_ID,
-                col2_x,
-                row_y(3),
-                "Chat Room (Alt+C)",
-            ),
+        let menu_buttons = [
+            (BTN_OPTION_ID, col1_x, row_y(0), rust_i18n::t!("basic_info.menu_option"), rust_i18n::t!("basic_info.tip_option")),
+            (BTN_STATUS_ID, col2_x, row_y(0), rust_i18n::t!("basic_info.menu_status"), rust_i18n::t!("basic_info.tip_status")),
+            (BTN_EQUIP_ID, col1_x, row_y(1), rust_i18n::t!("basic_info.menu_equipment"), rust_i18n::t!("basic_info.tip_equipment")),
+            (BTN_INVENTORY_ID, col2_x, row_y(1), rust_i18n::t!("basic_info.menu_inventory"), rust_i18n::t!("basic_info.tip_inventory")),
+            (BTN_MAP_ID, col1_x, row_y(2), rust_i18n::t!("basic_info.menu_map"), rust_i18n::t!("basic_info.tip_map")),
+            (BTN_SKILL_ID, col2_x, row_y(2), rust_i18n::t!("basic_info.menu_skills"), rust_i18n::t!("basic_info.tip_skills")),
+            (BTN_PARTY_ID, col1_x, row_y(3), rust_i18n::t!("basic_info.menu_party"), rust_i18n::t!("basic_info.tip_party")),
+            (BTN_CHAT_ID, col2_x, row_y(3), rust_i18n::t!("basic_info.menu_chat"), rust_i18n::t!("basic_info.tip_chat")),
         ];
 
-        for &(id, bx, by, tooltip_text) in menu_buttons {
+        for (id, bx, by, label, tooltip_text) in menu_buttons {
             let rect = Rect::new(bx, by, btn_w, btn_h);
-            let resp = ui.button(id, rect, "");
+            let resp = ui.button(id, rect, &label);
             if resp.clicked() {
                 match id {
                     BTN_OPTION_ID => events.push(GameEvent::ToggleSystemMenu),
@@ -373,7 +358,7 @@ impl BasicInfoWindow {
                 }
             }
             if resp.hovered() {
-                ui.tooltip(ui.ctx.mouse_x, ui.ctx.mouse_y, tooltip_text);
+                ui.tooltip(ui.ctx.mouse_x, ui.ctx.mouse_y, &tooltip_text);
             }
         }
 

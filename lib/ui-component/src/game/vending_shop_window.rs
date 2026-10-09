@@ -386,7 +386,7 @@ impl VendingShopWindow {
             }
         }
 
-        let total_str = format!("Total : {} Zeny", format_thousands(self.total()));
+        let total_str = rust_i18n::t!("vending_shop.total", zeny = format_thousands(self.total())).to_string();
 
         let win_rect = Rect::new(dx, dy, WIN_W, win_h);
         ui.text(dx + PAD, win_rect.y + win_rect.h - 10.0, &total_str, tc);

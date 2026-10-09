@@ -17,7 +17,7 @@ impl GuildExpelDialog {
     pub fn new(aid: u32, gid: u32, name: String) -> Self {
         let config = InputDialogConfig {
             layout: InputDialogLayout::Text {
-                label: Some(format!("Reason for expelling {name}:")),
+                label: Some(rust_i18n::t!("guild_expel.reason", name = name).to_string()),
                 show_cancel: true,
             },
             escape_cancels: true,

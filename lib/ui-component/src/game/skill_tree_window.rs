@@ -214,7 +214,7 @@ impl InGameWindow for SkillTreeWindow {
 
             if is_level_selectable {
                 let selected = skill.use_level();
-                let level_text = format!("Lv : {} / {}", selected, skill.level);
+                let level_text = rust_i18n::t!("skill_tree.level_of", selected = selected, level = skill.level).to_string();
 
                 let arw_y = level_y - ARW_SIZE + 2.0;
                 let left_id = WidgetId(SKILL_LEVEL_DOWN_BASE_ID + vis_i as u32);
@@ -249,7 +249,7 @@ impl InGameWindow for SkillTreeWindow {
                 }
                 pointer_on_row_widget |= left_resp.hovered() || right_resp.hovered();
             } else {
-                let level_text = format!("Lv : {}", skill.level);
+                let level_text = rust_i18n::t!("common.level_short", level = skill.level).to_string();
                 ui.text(name_x, level_y, &level_text, level_color);
             }
 
@@ -263,10 +263,10 @@ impl InGameWindow for SkillTreeWindow {
                     .as_ref()
                     .and_then(|t| t.sp_at_level(skill.skill, skill.use_level()))
                     .unwrap_or(skill.sp_cost);
-                let type_text = format!("Sp : {}", sp);
+                let type_text = rust_i18n::t!("common.sp_cost", sp = sp).to_string();
                 ui.text(type_x, type_y, &type_text, tc);
             } else {
-                let type_text = format!("Sp : {}", skill.sp_cost);
+                let type_text = rust_i18n::t!("common.sp_cost", sp = skill.sp_cost).to_string();
                 ui.text(type_x, type_y, &type_text, tc);
             }
 
@@ -357,17 +357,17 @@ pub(crate) fn draw_skill_tooltip(
     let mut tooltip_lines = vec![display_name.to_owned()];
 
     let type_str = match skill.skill_target_type {
-        SkillTargetType::Passive => "Passive",
-        SkillTargetType::Target => "Target",
-        SkillTargetType::Ground => "Ground",
-        SkillTargetType::MySelf => "Self",
-        SkillTargetType::Trap => "Trap",
-        _ => "Unknown",
+        SkillTargetType::Passive => rust_i18n::t!("skill_type.passive"),
+        SkillTargetType::Target => rust_i18n::t!("skill_type.target"),
+        SkillTargetType::Ground => rust_i18n::t!("skill_type.ground"),
+        SkillTargetType::MySelf => rust_i18n::t!("skill_type.self"),
+        SkillTargetType::Trap => rust_i18n::t!("skill_type.trap"),
+        _ => rust_i18n::t!("skill_type.unknown"),
     };
-    tooltip_lines.push(format!("Type: {type_str}"));
+    tooltip_lines.push(rust_i18n::t!("skill_tooltip.type", kind = type_str).to_string());
 
     if skill.sp_cost > 0 {
-        tooltip_lines.push(format!("SP Cost: {}", skill.sp_cost));
+        tooltip_lines.push(rust_i18n::t!("skill_tooltip.sp_cost", sp = skill.sp_cost).to_string());
     }
 
     if let Some(desc_lines) = data

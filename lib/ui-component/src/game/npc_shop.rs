@@ -595,7 +595,7 @@ impl NpcShop {
         draw_footer(ui, win.x, footer_y, win_w, footer_h);
 
         let total = self.shop.basket_total();
-        let total_label = format!("Total : {} Zeny", format_thousands(total));
+        let total_label = rust_i18n::t!("npc_shop.total", zeny = format_thousands(total)).to_string();
         ui.text(
             win.x + (10.0),
             footer_y + footer_h - (10.0),

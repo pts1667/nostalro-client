@@ -359,17 +359,17 @@ impl PartyFriendsWindow {
         let mut events = Vec::new();
         let mut bx = x + 3.0;
         if self.friend_tab {
-            if Self::nav_button(ui, NAV_ADD_ID, bx, nav_y, "Add", "Add Friend") {
+            if Self::nav_button(ui, NAV_ADD_ID, bx, nav_y, &rust_i18n::t!("party_friends.nav_add"), &rust_i18n::t!("party_friends.nav_add_tip")) {
                 events.push(GameEvent::ShowPartyHelper { mode: 3 });
             }
             bx += NAV_BTN_W;
-            if Self::nav_button(ui, NAV_CHAT_ID, bx, nav_y, "Chat", "1:1 Chat") {
+            if Self::nav_button(ui, NAV_CHAT_ID, bx, nav_y, &rust_i18n::t!("party_friends.nav_chat"), &rust_i18n::t!("party_friends.nav_chat_tip")) {
                 if let Some(name) = self.selected_friend_name(friends) {
                     events.push(GameEvent::RequestWhisper { name });
                 }
             }
             bx += NAV_BTN_W;
-            if Self::nav_button(ui, NAV_REMOVE_ID, bx, nav_y, "Del", "Delete") {
+            if Self::nav_button(ui, NAV_REMOVE_ID, bx, nav_y, &rust_i18n::t!("party_friends.nav_del"), &rust_i18n::t!("party_friends.nav_del_tip")) {
                 if let Some((aid, gid)) = self.selected_friend_ids(friends) {
                     events.push(GameEvent::RequestDeleteFriend { aid, gid });
                 }
@@ -380,31 +380,31 @@ impl PartyFriendsWindow {
         let has_party = party.map(|p| !p.members.is_empty()).unwrap_or(false);
         let is_leader = self.is_leader(party, local_aid);
         if !has_party {
-            if Self::nav_button(ui, NAV_CREATE_ID, bx, nav_y, "New", "Create Party") {
+            if Self::nav_button(ui, NAV_CREATE_ID, bx, nav_y, &rust_i18n::t!("party_friends.nav_new"), &rust_i18n::t!("party_friends.nav_new_tip")) {
                 events.push(GameEvent::ShowPartyHelper { mode: 0 });
             }
             return events;
         }
         if is_leader
-            && Self::nav_button(ui, NAV_INVITE_ID, bx, nav_y, "Inv", "Party Invitation")
+            && Self::nav_button(ui, NAV_INVITE_ID, bx, nav_y, &rust_i18n::t!("party_friends.nav_inv"), &rust_i18n::t!("party_friends.nav_inv_tip"))
         {
             events.push(GameEvent::ShowPartyHelper { mode: 1 });
         }
         bx += NAV_BTN_W;
         if is_leader
-            && Self::nav_button(ui, NAV_SETUP_ID, bx, nav_y, "Set", "Party Setup")
+            && Self::nav_button(ui, NAV_SETUP_ID, bx, nav_y, &rust_i18n::t!("party_friends.nav_set"), &rust_i18n::t!("party_friends.nav_set_tip"))
         {
             events.push(GameEvent::ShowPartyHelper { mode: 2 });
         }
         bx += NAV_BTN_W;
-        if Self::nav_button(ui, NAV_CHAT_ID, bx, nav_y, "Chat", "1:1 Chat") {
+        if Self::nav_button(ui, NAV_CHAT_ID, bx, nav_y, &rust_i18n::t!("party_friends.nav_chat"), &rust_i18n::t!("party_friends.nav_chat_tip")) {
             if let Some(name) = self.selected_member_name(party) {
                 events.push(GameEvent::RequestWhisper { name });
             }
         }
         bx += NAV_BTN_W;
         if is_leader
-            && Self::nav_button(ui, NAV_REMOVE_ID, bx, nav_y, "Kick", "Expel from party")
+            && Self::nav_button(ui, NAV_REMOVE_ID, bx, nav_y, &rust_i18n::t!("party_friends.nav_kick"), &rust_i18n::t!("party_friends.nav_kick_tip"))
         {
             if let Some((aid, name)) = self.selected_member_kick(party, local_aid) {
                 events.push(GameEvent::RequestExpelMember { aid, name });
@@ -412,20 +412,24 @@ impl PartyFriendsWindow {
         }
         bx += NAV_BTN_W;
         if is_leader
-            && Self::nav_button(ui, NAV_LEADER_ID, bx, nav_y, "Lead", "Delegate leader")
+            && Self::nav_button(ui, NAV_LEADER_ID, bx, nav_y, &rust_i18n::t!("party_friends.nav_lead"), &rust_i18n::t!("party_friends.nav_lead_tip"))
         {
             if let Some((aid, _)) = self.selected_member_kick(party, local_aid) {
                 events.push(GameEvent::RequestChangePartyLeader { aid });
             }
         }
         bx += NAV_BTN_W;
-        let leave_label = if is_leader { "End" } else { "Out" };
-        let leave_tip = if is_leader {
-            "Disband party"
+        let leave_label = if is_leader {
+            rust_i18n::t!("party_friends.nav_end")
         } else {
-            "Leave Party"
+            rust_i18n::t!("party_friends.nav_out")
         };
-        if Self::nav_button(ui, NAV_LEAVE_ID, bx, nav_y, leave_label, leave_tip) {
+        let leave_tip = if is_leader {
+            rust_i18n::t!("party_friends.nav_end_tip")
+        } else {
+            rust_i18n::t!("party_friends.nav_out_tip")
+        };
+        if Self::nav_button(ui, NAV_LEAVE_ID, bx, nav_y, &leave_label, &leave_tip) {
             events.push(GameEvent::RequestLeaveParty);
         }
         events

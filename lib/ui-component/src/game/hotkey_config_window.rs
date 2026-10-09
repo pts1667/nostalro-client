@@ -162,7 +162,7 @@ impl HotkeyConfigWindow {
             return;
         }
         if let Some(other) = self.conflict(target, &chord) {
-            self.warning = Some(format!("Already assigned to {other}"));
+            self.warning = Some(rust_i18n::t!("hotkey_config.already_assigned", other = other).to_string());
             return;
         }
         match target {

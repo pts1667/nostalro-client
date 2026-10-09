@@ -157,9 +157,9 @@ impl InGameWindow for CartSelectWindow {
             }
 
             let label = if unlocked {
-                format!("Cart {num}")
+                rust_i18n::t!("cart_select.cart", num = num).to_string()
             } else {
-                format!("Cart {num} (Lv {req_level})")
+                rust_i18n::t!("cart_select.cart_locked", num = num, level = req_level).to_string()
             };
             let label_color = if unlocked {
                 text_color
