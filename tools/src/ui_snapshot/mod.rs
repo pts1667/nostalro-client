@@ -412,7 +412,6 @@ impl<'a> Session<'a> {
             &self.shared.font,
             &mut self.state,
             0.0,
-            self.shared.grf.is_some(),
             None,
             &self.positions,
         );

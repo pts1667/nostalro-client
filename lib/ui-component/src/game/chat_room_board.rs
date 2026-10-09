@@ -9,8 +9,8 @@ pub const CHAT_OPEN_TEX: &str = ragnarok_resources::ui::CHAT_OPEN;
 pub const CHAT_CLOSE_TEX: &str = ragnarok_resources::ui::CHAT_CLOSE;
 
 /// Textures needed to render the board with GRF art (frame + open/close icon).
-pub fn grf_texture_paths() -> Vec<&'static str> {
-    head_board::grf_texture_paths(&[CHAT_OPEN_TEX, CHAT_CLOSE_TEX])
+pub fn preload_paths() -> Vec<&'static str> {
+    head_board::preload_paths(&[CHAT_OPEN_TEX, CHAT_CLOSE_TEX])
 }
 
 fn icon_texture(atype: u8) -> &'static str {

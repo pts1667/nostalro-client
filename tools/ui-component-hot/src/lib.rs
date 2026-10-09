@@ -2209,34 +2209,30 @@ fn grf_init_single(
     table: Option<&ItemResourceTable>,
 ) {
     match state {
-        State::Inventory { inv, character, .. } => {
+        State::Inventory { character, .. } => {
             if let Some(table) = table {
                 character.inventory.resolve_resource_names(table);
             }
-            inv.set_has_grf_textures(true);
         }
-        State::Cart { win, character, .. } => {
+        State::Cart { character, .. } => {
             if let Some(table) = table {
                 character.cart.resolve_resource_names(table);
             }
-            win.set_has_grf_textures(true);
         }
-        State::Storage { win, character, .. } => {
+        State::Storage { character, .. } => {
             if let Some(table) = table {
                 character.storage.resolve_resource_names(table);
             }
-            win.set_has_grf_textures(true);
         }
-        State::Trade { win, character, .. } => {
+        State::Trade { character, .. } => {
             if let Some(table) = table {
                 character.inventory.resolve_resource_names(table);
             }
-            win.set_has_grf_textures(true);
         }
         State::Mailbox {
-            win,
             character,
             data,
+            ..
         } => {
             if let Some(table) = table {
                 character.inventory.resolve_resource_names(table);
@@ -2247,12 +2243,11 @@ fn grf_init_single(
                     ));
                 }
             }
-            win.set_has_grf_textures(true);
         }
         State::ReadMail {
-            win,
             character,
             data,
+            ..
         } => {
             if let Some(table) = table
                 && data.item_resource.is_none()
@@ -2265,19 +2260,13 @@ fn grf_init_single(
                     .map(|it| it.nameid);
                 data.item_resource = Some(item_resource_from_ids(nameid, table));
             }
-            win.set_has_grf_textures(true);
         }
-        State::CartSelect { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::StoragePassword { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::VendingSetup { win, character, .. } => {
+        State::CartSelect { .. } => {}
+        State::StoragePassword { .. } => {}
+        State::VendingSetup { character, .. } => {
             if let Some(table) = table {
                 character.cart.resolve_resource_names(table);
             }
-            win.set_has_grf_textures(true);
         }
         State::MyShop {
             win,
@@ -2285,13 +2274,11 @@ fn grf_init_single(
             shop_name,
             ..
         } => {
-            win.set_has_grf_textures(true);
             if let Some(table) = table {
                 win.open(shop_name.clone(), resolve_stock_icons(src, table));
             }
         }
         State::VendingBuy { win, src, .. } => {
-            win.set_has_grf_textures(true);
             if let Some(table) = table {
                 win.open(
                     2000101,
@@ -2301,10 +2288,8 @@ fn grf_init_single(
                 );
             }
         }
-        State::VendingBoard { container: _, .. } => {
-        }
-        State::ChatRoomBoard { container: _, .. } => {
-        }
+        State::VendingBoard { .. } => {}
+        State::ChatRoomBoard { .. } => {}
         State::NpcShop {
             shop,
             buy_items,
@@ -2320,43 +2305,23 @@ fn grf_init_single(
                     item.item.resolve_resource_name(table);
                 }
             }
-            shop.set_has_grf_textures(true);
         }
-        State::Login { login } => {
-            login.set_has_grf_textures(true);
-        }
-        State::Chat { chat, .. } => {
-            chat.set_has_grf_textures(true);
-        }
-        State::NpcDialog { npc, .. } => {
-            npc.set_has_grf_textures(true);
-        }
-        State::ConfirmDialog { dialog, .. } => {
-            dialog.set_has_grf_textures(true);
-        }
-        State::NumberInput { dialog } => {
-            dialog.set_has_grf_textures(true);
-        }
-        State::ServerList { win } => {
-            win.set_has_grf_textures(true);
-        }
+        State::Login { .. } => {}
+        State::Chat { .. } => {}
+        State::NpcDialog { .. } => {}
+        State::ConfirmDialog { .. } => {}
+        State::NumberInput { .. } => {}
+        State::ServerList { .. } => {}
         State::Equipment {
-            equip, character, ..
+            character, ..
         } => {
             if let Some(table) = table {
                 character.inventory.resolve_resource_names(table);
             }
-            equip.set_has_grf_textures(true);
         }
-        State::SystemMenu { menu, .. } => {
-            menu.set_has_grf_textures(true);
-        }
-        State::CharSelect { win } => {
-            win.set_has_grf_textures(true);
-        }
-        State::CharCreate { win } => {
-            win.set_has_grf_textures(true);
-        }
+        State::SystemMenu { .. } => {}
+        State::CharSelect { .. } => {}
+        State::CharCreate { .. } => {}
         State::ItemInfo {
             win, data, item, ..
         } => {
@@ -2379,58 +2344,29 @@ fn grf_init_single(
                 win.close();
                 win.show(item, data, &CharNameCache::default(), false);
             }
-            win.set_has_grf_textures(true);
         }
-        State::SkillTree { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::Book { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::MonsterInfo { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::ChatRoomCreate { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::Emotion { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::ShortcutList { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::GraphicOptions { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::HotkeyConfig { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::Quest { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::QuestDetail { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::ChatRoomMember { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::Minimap { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
+        State::SkillTree { .. } => {}
+        State::Book { .. } => {}
+        State::MonsterInfo { .. } => {}
+        State::ChatRoomCreate { .. } => {}
+        State::Emotion { .. } => {}
+        State::ShortcutList { .. } => {}
+        State::GraphicOptions { .. } => {}
+        State::HotkeyConfig { .. } => {}
+        State::Quest { .. } => {}
+        State::QuestDetail { .. } => {}
+        State::ChatRoomMember { .. } => {}
+        State::Minimap { .. } => {}
         State::WorldMap { win, .. } => {
-            win.set_has_grf_textures(true);
             win.texture_loaded(WORLD_MAP_TEX, true);
             win.texture_loaded(&WorldMapWindow::minimap_texture_path("prontera"), true);
         }
-        State::CardInsert { dialog, .. } => {
-            dialog.set_has_grf_textures(true);
-        }
-        State::DialogContainerDemo { notification: _ } => {
-        }
+        State::CardInsert { .. } => {}
+        State::DialogContainerDemo { .. } => {}
         State::HotkeyBarDemo {
-            hotkey_win,
             character,
             data,
+            ..
         } => {
             if let Some(table) = table {
                 character.inventory.resolve_resource_names(table);
@@ -2445,35 +2381,16 @@ fn grf_init_single(
                         Some(ItemResourceTable::from_entries(entries, HashMap::new()));
                 }
             }
-            hotkey_win.set_has_grf_textures(true);
         }
-        State::BasicInfoDemo { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::StatusDemo { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::PartyDemo { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::GuildDemo { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::Mercenary { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::MercenarySkill { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::Pet { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::Homun { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
-        State::CompanionAiConfig { win, .. } => {
-            win.set_has_grf_textures(true);
-        }
+        State::BasicInfoDemo { .. } => {}
+        State::StatusDemo { .. } => {}
+        State::PartyDemo { .. } => {}
+        State::GuildDemo { .. } => {}
+        State::Mercenary { .. } => {}
+        State::MercenarySkill { .. } => {}
+        State::Pet { .. } => {}
+        State::Homun { .. } => {}
+        State::CompanionAiConfig { .. } => {}
         State::FallbackGallery { .. } => {}
         State::Category { components } => {
             for component in components.iter_mut() {
@@ -3562,9 +3479,6 @@ fn build_single(state: &mut State, ui: &mut UiFrame) {
 fn build_fallback_gallery(ui: &mut UiFrame, name_field: &mut TextInput) {
     use ragnarok_ui::theme::{self, FallbackPalette as P};
     use ragnarok_ui_component::helper::fallback;
-
-    // The gallery exists to iterate the no-GRF look, so force the fallback path.
-    ui.has_grf_textures = false;
 
     let heading = [0.72, 0.78, 0.92, 1.0];
     ui.text(24.0, 22.0, "Fallback components — edit lib/ui-core/src/theme.rs & lib/ui-component/src/helper/fallback.rs", heading);

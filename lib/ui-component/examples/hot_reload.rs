@@ -4,39 +4,7 @@ mod shared;
 use libloading::{Library, Symbol};
 use ragnarok_game::data_table::item_resource_table::ItemResourceTable;
 use ragnarok_ui::frame::UiFrame;
-use ragnarok_ui_component::Window;
-use ragnarok_ui_component::account::char_create_window::CharCreateWindow;
-use ragnarok_ui_component::account::char_select_window::CharSelectWindow;
-use ragnarok_ui_component::account::login_server_list_window::LoginServerListWindow;
-use ragnarok_ui_component::account::login_window::LoginWindow;
-use ragnarok_ui_component::account::server_list_window::ServerListWindow;
-use ragnarok_ui_component::game::basic_info_window::BasicInfoWindow;
-use ragnarok_ui_component::game::cart_window::CartWindow;
-use ragnarok_ui_component::game::chat_room_create_window::ChatRoomCreateWindow;
-use ragnarok_ui_component::game::chat_room_member_window::ChatRoomMemberWindow;
-use ragnarok_ui_component::game::chat_window::ChatWindow;
-use ragnarok_ui_component::game::confirm_dialog::ConfirmDialog;
-use ragnarok_ui_component::game::emotion_window::EmotionWindow;
-use ragnarok_ui_component::game::equipment_window::EquipmentWindow;
-use ragnarok_ui_component::game::guild_window::GuildWindow;
-use ragnarok_ui_component::game::homun_window::HomunWindow;
-use ragnarok_ui_component::game::hotkey_bar::HotkeyBarWindow;
-use ragnarok_ui_component::game::inventory_window::InventoryWindow;
-use ragnarok_ui_component::game::item_info_window::ItemInfoWindow;
-use ragnarok_ui_component::game::mercenary_skill_window::MercenarySkillWindow;
-use ragnarok_ui_component::game::mercenary_window::MercenaryWindow;
-use ragnarok_ui_component::game::minimap_window::MinimapWindow;
-use ragnarok_ui_component::game::my_shop_window::MyShopWindow;
-use ragnarok_ui_component::game::npc_dialog::NpcDialog;
-use ragnarok_ui_component::game::npc_shop::NpcShop;
-use ragnarok_ui_component::game::party_friends_window::PartyFriendsWindow;
-use ragnarok_ui_component::game::shortcut_list_window::ShortcutListWindow;
-use ragnarok_ui_component::game::skill_tree_window::SkillTreeWindow;
-use ragnarok_ui_component::game::storage_password_window::StoragePasswordWindow;
-use ragnarok_ui_component::game::system_menu::SystemMenu;
-use ragnarok_ui_component::game::vending_setup_window::VendingSetupWindow;
-use ragnarok_ui_component::game::vending_shop_window::VendingShopWindow;
-use ragnarok_ui_component::game::world_map_window::{WORLD_MAP_TEX, WorldMapWindow};
+use ragnarok_ui_component::game::world_map_window::WORLD_MAP_TEX;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
@@ -157,69 +125,17 @@ const SHOP_COMPONENTS: &[&str] = &["cart", "vending_setup", "my_shop", "vending_
 const COMPANION_COMPONENTS: &[&str] = &["mercenary", "mercenary_skill", "homun"];
 const MAP_COMPONENTS: &[&str] = &["world_map", "minimap"];
 
-fn grf_texture_paths_single(name: &str) -> Vec<&'static str> {
+fn content_texture_paths_single(name: &str) -> Vec<&'static str> {
     match name {
-        "inventory" => InventoryWindow::grf_texture_paths(),
-        "cart" => CartWindow::grf_texture_paths(),
-        "vending_setup" => VendingSetupWindow::grf_texture_paths(),
-        "my_shop" => MyShopWindow::grf_texture_paths(),
-        "vending_buy" => VendingShopWindow::grf_texture_paths(),
-        "vending_board" => ragnarok_ui_component::game::vending_board::grf_texture_paths(),
-        "chat_room_board" => ragnarok_ui_component::game::chat_room_board::grf_texture_paths(),
-        "chat_room_create" => ChatRoomCreateWindow::grf_texture_paths(),
-        "chat_room_member" => ChatRoomMemberWindow::grf_texture_paths(),
-        "emotion" => EmotionWindow::grf_texture_paths(),
-        "shortcut_list" => ShortcutListWindow::grf_texture_paths(),
-        "party" => PartyFriendsWindow::grf_texture_paths(),
-        "npc_shop_buy" => NpcShop::grf_texture_paths(),
-        "npc_shop_sell" => NpcShop::grf_texture_paths(),
-        "login" => LoginWindow::grf_texture_paths(),
-        "chat" => ChatWindow::grf_texture_paths(),
-        "npc_dialog" => NpcDialog::grf_texture_paths(),
-        "confirm_dialog" => ConfirmDialog::grf_texture_paths(),
-        "login_server_list" => LoginServerListWindow::grf_texture_paths(),
-        "server_list" => ServerListWindow::grf_texture_paths(),
-        "equipment" => EquipmentWindow::grf_texture_paths(),
-        "system_menu" => SystemMenu::grf_texture_paths(),
-        "char_select" => CharSelectWindow::grf_texture_paths(),
-        "char_create" => CharCreateWindow::grf_texture_paths(),
-        "dialog_container" => vec![],
-        "item_info" => ItemInfoWindow::grf_texture_paths(),
-        "skill_tree" => SkillTreeWindow::grf_texture_paths(),
-        "storage_password" => StoragePasswordWindow::grf_texture_paths(),
-        "card_insert" => vec![],
-        "minimap" => {
-            let mut paths = MinimapWindow::grf_texture_paths();
-            paths.push(ragnarok_resources::ui::minimap::PRONTERA);
-            paths
-        }
-        "world_map" => {
-            let mut paths = WorldMapWindow::grf_texture_paths();
-            paths.push(WORLD_MAP_TEX);
-            paths.push(ragnarok_resources::ui::minimap::PRONTERA);
-            paths
-        }
-        "mercenary" => MercenaryWindow::grf_texture_paths(),
-        "mercenary_skill" => MercenarySkillWindow::grf_texture_paths(),
-        "homun" => HomunWindow::grf_texture_paths(),
-        "guild" => GuildWindow::grf_texture_paths(),
-        "basic_info" => BasicInfoWindow::grf_texture_paths(),
-        "hotkey_bar" => {
-            let mut paths = HotkeyBarWindow::grf_texture_paths();
-            paths.extend(InventoryWindow::grf_texture_paths());
-            paths.extend(SkillTreeWindow::grf_texture_paths());
-            paths.sort_unstable();
-            paths.dedup();
-            paths
-        }
-        _ => {
-            eprintln!("Unknown example: {name}");
-            vec![]
-        }
+        "vending_board" => ragnarok_ui_component::game::vending_board::preload_paths(),
+        "chat_room_board" => ragnarok_ui_component::game::chat_room_board::preload_paths(),
+        "minimap" => vec![ragnarok_resources::ui::minimap::PRONTERA],
+        "world_map" => vec![WORLD_MAP_TEX, ragnarok_resources::ui::minimap::PRONTERA],
+        _ => vec![],
     }
 }
 
-fn grf_texture_paths(example_name: &str) -> Vec<&'static str> {
+fn content_texture_paths(example_name: &str) -> Vec<&'static str> {
     let names: &[&str] = match example_name {
         "game" => GAME_COMPONENTS,
         "social" => SOCIAL_COMPONENTS,
@@ -227,11 +143,11 @@ fn grf_texture_paths(example_name: &str) -> Vec<&'static str> {
         "shop" => SHOP_COMPONENTS,
         "companion" => COMPANION_COMPONENTS,
         "map" => MAP_COMPONENTS,
-        _ => return grf_texture_paths_single(example_name),
+        _ => return content_texture_paths_single(example_name),
     };
     let mut paths: Vec<&'static str> = names
         .iter()
-        .flat_map(|n| grf_texture_paths_single(n))
+        .flat_map(|n| content_texture_paths_single(n))
         .collect();
     paths.sort_unstable();
     paths.dedup();
@@ -293,7 +209,7 @@ fn main() {
     let mut grf_initialized = false;
     let mut reload_counter = 0u64;
 
-    let texture_paths = grf_texture_paths(&example_name);
+    let texture_paths = content_texture_paths(&example_name);
     let example_name_for_closure = example_name.clone();
     let is_category = matches!(
         example_name.as_str(),
@@ -352,7 +268,7 @@ fn main() {
             }
         }
 
-        if ctx.ui.has_grf_textures && !grf_initialized {
+        if ctx.grf_loaded && !grf_initialized {
             let cache_ptr = &ctx.texture_size as *const &dyn Fn(&str) -> Option<(u32, u32)>;
             TEXTURE_SIZE_CACHE.set(cache_ptr as *const ());
             hot_lib.grf_init(texture_size_trampoline, ctx.item_resource_table);

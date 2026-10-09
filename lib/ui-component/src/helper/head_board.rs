@@ -21,7 +21,7 @@ pub fn label_max_width() -> f32 {
 }
 
 /// Container art (frame) plus whatever icons a board type needs.
-pub fn grf_texture_paths(icons: &[&'static str]) -> Vec<&'static str> {
+pub fn preload_paths(icons: &[&'static str]) -> Vec<&'static str> {
     icons.to_vec()
 }
 

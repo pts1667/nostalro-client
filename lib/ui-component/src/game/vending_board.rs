@@ -8,8 +8,8 @@ pub use crate::helper::head_board::board_rect;
 pub const VENDING_ICON_TEX: &str = ragnarok_resources::ui::SHOP;
 
 /// Textures needed to render the board with GRF art (frame + bag icon).
-pub fn grf_texture_paths() -> Vec<&'static str> {
-    head_board::grf_texture_paths(&[VENDING_ICON_TEX])
+pub fn preload_paths() -> Vec<&'static str> {
+    head_board::preload_paths(&[VENDING_ICON_TEX])
 }
 
 /// Draw the vendor's shop board (frame + bag icon + name) into `draw_calls`.

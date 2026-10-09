@@ -6,7 +6,6 @@ use ragnarok_game::display_name::format_equipment_display_name;
 use ragnarok_game::entity::Entity;
 use ragnarok_game::inventory::{EquipmentItemData, NormalItemData};
 use ragnarok_game::item::Item;
-use ragnarok_ui_component::Window as UiWindow;
 use ragnarok_ui_component::game::card_insert_dialog::{CardInsertDialog, EligibleItem};
 use ragnarok_ui_component::game::chat_window::ChatChannel;
 use ragnarok_ui_component::helper::colors::{CYAN, RED};
@@ -404,10 +403,6 @@ impl App {
             .unwrap_or_default();
         let mut dialog = CardInsertDialog::new();
         dialog.open(card_index, card_name, eligible);
-        dialog.set_has_grf_textures(self.windows.card_insert_dialog_has_grf_textures);
-        if dialog.has_grf_textures()
-            && let Some(_renderer) = &self.renderer
-        {}
         let tex_paths = dialog.pending_texture_paths();
         self.windows.card_insert_dialog = Some(dialog);
         self.preload_item_icons(tex_paths);

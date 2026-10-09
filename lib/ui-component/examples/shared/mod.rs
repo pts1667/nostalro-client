@@ -33,11 +33,12 @@ struct Gpu {
     ui_renderer: UiRenderer,
 }
 
-/// Passed to the build closure so components can lazily call `set_texture_sizes()`.
+/// Passed to the build closure with the UI frame and the loaded game data.
 pub struct ExampleCtx<'a> {
     pub ui: UiFrame<'a>,
     pub texture_size: &'a dyn Fn(&str) -> Option<(u32, u32)>,
     pub item_resource_table: Option<&'a ItemResourceTable>,
+    pub grf_loaded: bool,
 }
 
 pub struct UiExampleApp<F> {
@@ -49,7 +50,7 @@ pub struct UiExampleApp<F> {
     gpu: Option<Gpu>,
     grf: Option<GrfArchive>,
     item_resource_table: Option<ItemResourceTable>,
-    has_grf_textures: bool,
+    grf_loaded: bool,
     ui_ctx: UiContext,
     state_cache: StateCache,
     start_time: Instant,
@@ -69,7 +70,7 @@ impl<F: FnMut(&mut ExampleCtx)> UiExampleApp<F> {
             gpu: None,
             grf: None,
             item_resource_table: None,
-            has_grf_textures: false,
+            grf_loaded: false,
             ui_ctx: UiContext::new(width as f32, height as f32),
             state_cache: StateCache::new(),
             start_time: Instant::now(),
@@ -152,7 +153,6 @@ impl<F: FnMut(&mut ExampleCtx)> UiExampleApp<F> {
             &gpu.font_atlas,
             &mut self.state_cache,
             elapsed,
-            self.has_grf_textures,
             None,
             &positions,
         );
@@ -163,6 +163,7 @@ impl<F: FnMut(&mut ExampleCtx)> UiExampleApp<F> {
             ui,
             texture_size: &texture_size,
             item_resource_table: self.item_resource_table.as_ref(),
+            grf_loaded: self.grf_loaded,
         };
         (self.build_fn)(&mut ctx);
 
@@ -306,7 +307,7 @@ impl<F: FnMut(&mut ExampleCtx)> ApplicationHandler for UiExampleApp<F> {
                             all_loaded = false;
                         }
                     }
-                    self.has_grf_textures = all_loaded;
+                    self.grf_loaded = all_loaded;
                     self.item_resource_table = Some(ItemResourceTable::load(&grf));
                     self.grf = Some(grf);
                 }

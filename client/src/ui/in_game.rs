@@ -14,7 +14,7 @@ use ragnarok_ui_component::game::hotkey_bar::HOTKEY_BAR_WINDOW_ID;
 use ragnarok_ui_component::game::inventory_window::INV_WINDOW_ID;
 use ragnarok_ui_component::game::levelup_notification_window::LevelUpClick;
 use ragnarok_ui_component::game::minimap_window::{MarkerType, MinimapMarker, quest_marker_color};
-use ragnarok_ui_component::{BuildCtx, InGameWindow, Window};
+use ragnarok_ui_component::{BuildCtx, InGameWindow};
 use std::collections::HashMap;
 
 pub fn build_in_game_ui(
@@ -241,9 +241,7 @@ pub fn build_in_game_ui(
                 .get_item(cancelled.item_index as u16)
             {
                 if item.count > 1 {
-                    let mut dialog = DropQuantityDialog::new(item.index, item.count, &item.name);
-                    dialog.set_has_grf_textures(windows.drop_dialog_has_grf_textures);
-                    if dialog.has_grf_textures() {}
+                    let dialog = DropQuantityDialog::new(item.index, item.count, &item.name);
                     windows.drop_quantity_dialog = Some(dialog);
                 } else {
                     events.push(GameEvent::RequestDropItem {
@@ -266,10 +264,6 @@ pub fn build_in_game_ui(
         game.combat.waiting_item_throw_ack = true;
     }
 
-    if let Some(dialog) = &mut windows.guild_expel_dialog {
-        dialog.set_has_grf_textures(windows.drop_dialog_has_grf_textures);
-        if dialog.has_grf_textures() {}
-    }
     run_transient_dialog(
         &mut windows.guild_expel_dialog,
         ui,
@@ -278,10 +272,6 @@ pub fn build_in_game_ui(
         |e| matches!(e, GameEvent::ConfirmedGuildExpel { .. }),
     );
 
-    if let Some(dialog) = &mut windows.skill_talkbox_dialog {
-        dialog.set_has_grf_textures(windows.drop_dialog_has_grf_textures);
-        if dialog.has_grf_textures() {}
-    }
     run_transient_dialog(
         &mut windows.skill_talkbox_dialog,
         ui,

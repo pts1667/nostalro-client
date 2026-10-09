@@ -20,7 +20,7 @@ fn no_positions() -> &'static HashMap<u32, [f32; 2]> {
 }
 
 pub fn test_frame<'a>(ctx: &'a mut UiContext, state: &'a mut StateCache) -> UiFrame<'a> {
-    UiFrame::new(ctx, atlas(), state, 0.0, false, None, no_positions())
+    UiFrame::new(ctx, atlas(), state, 0.0, None, no_positions())
 }
 
 pub struct TestFrame {
@@ -59,7 +59,6 @@ impl TestFrame {
             atlas(),
             state,
             self.elapsed,
-            false,
             self.focus,
             self.positions,
         )

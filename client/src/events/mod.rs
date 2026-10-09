@@ -26,7 +26,6 @@ use crate::App;
 use models::enums::EnumWithMaskValueU64;
 use models::enums::skill_enums::SkillEnum;
 use ragnarok_formats::act::SpriteActionType;
-use ragnarok_formats::grf::GrfArchive;
 use ragnarok_game::app_state::AppState;
 use ragnarok_game::autocounter;
 use ragnarok_game::chat_room::ChatRoom;
@@ -37,8 +36,6 @@ use ragnarok_game::show_digit::ShowDigitClock;
 use ragnarok_game::skill::teleport_lvl1_destination;
 use ragnarok_network::*;
 use ragnarok_profiling::profile_function;
-use ragnarok_renderer::Renderer;
-use ragnarok_ui_component::Window as UiWindow;
 use ragnarok_ui_component::account::char_create_window::CharCreateWindow;
 use ragnarok_ui_component::game::chat_room_member_window;
 use ragnarok_ui_component::game::guild_expel_dialog::GuildExpelDialog;
@@ -73,20 +70,6 @@ pub(crate) fn char_delete_confirm_error(result: u32) -> &'static str {
         4 => "The deletion delay has not elapsed yet.",
         5 => "The birthdate does not match.",
         _ => "Character deletion failed.",
-    }
-}
-
-pub(crate) fn preload_window<W: UiWindow>(
-    window: &mut W,
-    renderer: &mut Renderer,
-    grf: &GrfArchive,
-) {
-    if !window.has_grf_textures() {
-        let paths = W::grf_texture_paths();
-        let loaded = renderer.preload_textures(&paths, grf);
-        window.set_has_grf_textures(loaded);
-        if loaded {
-        }
     }
 }
 
@@ -1878,10 +1861,9 @@ impl App {
                     self.sound_queue
                         .ui(ragnarok_game::sound::tables::ui::BUTTON);
                     let with_stats = self.active_packetver < 20120307;
-                    let mut win = CharCreateWindow::new(slot, with_stats);
+                    let win = CharCreateWindow::new(slot, with_stats);
                     if let (Some(grf), Some(renderer)) = (&self.grf, &mut self.renderer) {
-                        let loaded = renderer.preload_textures(&win.layout_texture_paths(), grf);
-                        win.set_has_grf_textures(loaded);
+                        let _ = renderer.preload_textures(&win.layout_texture_paths(), grf);
                         if with_stats {
                             let _ = renderer.preload_textures(
                                 &CharCreateWindow::stat_arrow_texture_paths(),

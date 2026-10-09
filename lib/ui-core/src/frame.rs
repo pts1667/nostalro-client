@@ -20,7 +20,6 @@ pub struct UiFrame<'a> {
     pub atlas: &'a FontAtlas,
     pub state: &'a mut StateCache,
     pub elapsed_secs: f32,
-    pub has_grf_textures: bool,
     pub draw_calls: Vec<DrawCall>,
     pub tooltip_draw_calls: Vec<DrawCall>,
     pub any_hovered: bool,
@@ -251,7 +250,6 @@ impl<'a> UiFrame<'a> {
         atlas: &'a FontAtlas,
         state: &'a mut StateCache,
         elapsed_secs: f32,
-        has_grf_textures: bool,
         initial_focus: Option<WidgetId>,
         saved_positions: &'a HashMap<u32, [f32; 2]>,
     ) -> Self {
@@ -267,7 +265,6 @@ impl<'a> UiFrame<'a> {
             atlas,
             state,
             elapsed_secs,
-            has_grf_textures,
             draw_calls: Vec::new(),
             tooltip_draw_calls: Vec::new(),
             any_hovered: false,
