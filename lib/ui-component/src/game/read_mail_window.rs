@@ -1,4 +1,4 @@
-use crate::helper::window_chrome::text_color;
+use crate::helper::window_chrome::{draw_sys_button, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::item::Item;
@@ -244,11 +244,13 @@ impl InGameWindow for ReadMailWindow {
         }
 
         // Close.
-        let close_rect = Rect::new(x + WIN_W - 17.0, y + 3.0, 16.0, 11.0);
-        if ui
-            .button(READ_CLOSE_BTN_ID, close_rect, &rust_i18n::t!("read_mail.x"))
-            .clicked()
-        {
+        let close_rect = Rect::new(x + WIN_W - 15.0, y + 3.0, 11.0, 11.0);
+        let close_resp = ui.interact(READ_CLOSE_BTN_ID, close_rect);
+        if close_resp.hovered() {
+            ui.any_interactive_hovered = true;
+        }
+        draw_sys_button(ui, close_rect, (11.0, 11.0), close_resp.hovered(), Some('x'));
+        if close_resp.clicked() {
             character.mail.read_open = false;
             character.mail.opened = None;
         }

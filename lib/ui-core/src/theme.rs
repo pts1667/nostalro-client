@@ -31,6 +31,10 @@ impl FallbackPalette {
     pub const GLOSS_RIM: [f32; 4] = rgb(0x26, 0x42, 0x8E);
     pub const GLOSS_GLYPH: [f32; 4] = rgb(0xFF, 0xFF, 0xFF);
 
+    /// Text fields and dropdown boxes.
+    pub const FIELD_RIM: [f32; 4] = rgb(0x82, 0x96, 0xC0);
+    pub const FIELD_SHADE: [f32; 4] = rgb(0xE4, 0xEB, 0xF8);
+
     /// Labelled buttons use the same two tones, lightened so dark text stays
     /// readable across the step at half height.
     pub const BTN_UP_TOP: [f32; 4] = rgb(0xF2, 0xF7, 0xFF);
@@ -256,18 +260,19 @@ pub fn fallback_button(ui: &mut UiFrame, r: Rect, hovered: bool, pressed: bool, 
     }
 }
 
-/// Light rounded text field; border tints blue while focused.
+/// Recessed text field: a blue-grey rim around a white well that shades slightly
+/// at the top. The rim darkens to the gloss navy while focused.
 pub fn fallback_text_input(ui: &mut UiFrame, r: Rect, has_focus: bool) {
     let border = if has_focus {
-        FallbackPalette::TITLE_TOP
+        FallbackPalette::GLOSS_RIM
     } else {
-        FallbackPalette::WIN_BORDER
+        FallbackPalette::FIELD_RIM
     };
     fallback_panel(
         ui,
         r,
         CORNER_RADIUS,
-        FallbackPalette::SLOT_FILL,
+        FallbackPalette::FIELD_SHADE,
         FallbackPalette::SLOT_FILL,
         border,
     );

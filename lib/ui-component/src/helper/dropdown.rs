@@ -7,8 +7,8 @@ use ragnarok_ui::theme::FallbackPalette as P;
 pub const OPTION_H: f32 = 16.0;
 
 const BG: [f32; 4] = P::SLOT_FILL;
-const BORDER: [f32; 4] = P::WIN_BORDER;
-const SELECTION: [f32; 4] = P::BTN_HOVER_MID;
+const BORDER: [f32; 4] = P::FIELD_RIM;
+const SELECTION: [f32; 4] = [0.80, 0.86, 0.97, 1.0];
 const TEXT: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 #[derive(Default)]
@@ -45,12 +45,18 @@ impl Dropdown {
             ui.any_interactive_hovered = true;
         }
 
-        fill(ui, rect.x, rect.y, rect.w, rect.h, BG);
-        border(ui, rect);
+        ragnarok_ui::theme::fallback_text_input(ui, rect, self.open);
         ui.text(rect.x + 3.0, rect.y + 12.0, label, TEXT);
 
-        let caret = Rect::new(rect.x + rect.w - rect.h, rect.y, rect.h, rect.h);
-        down_arrow(ui, caret.x + caret.w / 2.0, caret.y + 6.0, TEXT);
+        // A small glossy button on the right edge carries the caret.
+        let caret = Rect::new(
+            rect.x + rect.w - rect.h + 1.0,
+            rect.y + 1.0,
+            rect.h - 2.0,
+            rect.h - 2.0,
+        );
+        ragnarok_ui::theme::fallback_button(ui, caret, resp.hovered(), false, "");
+        down_arrow(ui, caret.x + caret.w / 2.0, caret.y + caret.h / 2.0 - 2.0, P::GLOSS_RIM);
 
         let mut toggled = false;
         if resp.clicked() && !blocked {

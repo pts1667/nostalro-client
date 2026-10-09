@@ -1,7 +1,7 @@
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use super::inventory_window::INV_WINDOW_ID;
 use crate::helper::dialog_container::DialogContainer;
-use crate::helper::window_chrome::text_color;
+use crate::helper::window_chrome::{draw_sys_button, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::character::Character;
 use ragnarok_game::data_table::DataTable;
@@ -181,11 +181,13 @@ impl InGameWindow for MailboxWindow {
         ui.text(x + 25.0, y + TITLE_H - 4.0, title, tc);
 
         // Close button (top-right).
-        let close_rect = Rect::new(x + WIN_W - 17.0, y + 3.0, 16.0, 11.0);
-        if ui
-            .button(MAIL_CLOSE_BTN_ID, close_rect, &rust_i18n::t!("mailbox.x"))
-            .clicked()
-        {
+        let close_rect = Rect::new(x + WIN_W - 15.0, y + 3.0, 11.0, 11.0);
+        let close_resp = ui.interact(MAIL_CLOSE_BTN_ID, close_rect);
+        if close_resp.hovered() {
+            ui.any_interactive_hovered = true;
+        }
+        draw_sys_button(ui, close_rect, (11.0, 11.0), close_resp.hovered(), Some('x'));
+        if close_resp.clicked() {
             character.mail.window_open = false;
             character.mail.read_open = false;
             return events;
@@ -199,7 +201,7 @@ impl InGameWindow for MailboxWindow {
         if inbox_resp.hovered() || write_resp.hovered() {
             ui.any_interactive_hovered = true;
         }
-        crate::helper::fallback::cell(
+        crate::helper::fallback::tab(
             ui,
             inbox_zone.x,
             inbox_zone.y,
@@ -207,7 +209,7 @@ impl InGameWindow for MailboxWindow {
             inbox_zone.h,
             mode == MailboxMode::Inbox,
         );
-        crate::helper::fallback::cell(
+        crate::helper::fallback::tab(
             ui,
             write_zone.x,
             write_zone.y,

@@ -441,7 +441,7 @@ impl InGameWindow for InventoryWindow {
             }
 
             let active = character.inventory.active_tab == *tab;
-            crate::helper::fallback::cell(
+            crate::helper::fallback::tab(
                 ui,
                 tab_x,
                 ty,

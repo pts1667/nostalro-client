@@ -220,6 +220,11 @@ fn sys_glyph(ui: &mut UiFrame, ch: char, cx: f32, cy: f32, size: f32) {
     }
 }
 
+/// Tab button: the glossy button face, brighter while selected or hovered.
+pub fn tab(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, active: bool) {
+    ragnarok_ui::theme::fallback_button(ui, Rect::new(x, y, w, h), active, false, "");
+}
+
 /// Round glossy blue system button (close, minimise) with a white glyph. With no
 /// glyph it is the plain disc, as the title bar's menu button is.
 pub fn sys_button(ui: &mut UiFrame, x: f32, y: f32, size: f32, hovered: bool, glyph: Option<char>) {

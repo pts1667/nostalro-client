@@ -198,7 +198,7 @@ impl InGameWindow for StorageWindow {
                 ui.any_interactive_hovered = true;
             }
             let active = self.active_tab == *tab;
-            crate::helper::fallback::cell(
+            crate::helper::fallback::tab(
                 ui,
                 x,
                 ty,
