@@ -1,6 +1,6 @@
 use crate::Window;
+use crate::helper::window_chrome::{draw_container, draw_titlebar, label_color, text_color};
 use ragnarok_game::event::GameEvent;
-use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
@@ -46,8 +46,9 @@ const CONNECT_ID: WidgetId = WidgetId(2);
 const EXIT_ID: WidgetId = WidgetId(3);
 const KEEP_ID: WidgetId = WidgetId(4);
 
-const FALLBACK_KEEP_W: f32 = 34.0;
+const FALLBACK_KEEP_W: f32 = 10.0;
 const FALLBACK_KEEP_H: f32 = 10.0;
+const LABEL_X: f32 = 12.0;
 
 impl Default for LoginWindow {
     fn default() -> Self {
@@ -89,28 +90,21 @@ impl LoginWindow {
             }
         }
 
-        let (verts, indices) =
-            draw::quad_vertices(win.x, win.y, win.w, win.h, [0.08, 0.08, 0.12, 0.95]);
-        ui.draw_calls.push(DrawCall {
-            vertices: verts.to_vec(),
-            indices: indices.to_vec(),
-            texture: TextureRef::White,
-        });
-
-        let border_color = [0.4, 0.4, 0.5, 1.0];
-        let b = 1.0;
-        for (bx, by, bw, bh) in [
-            (win.x, win.y, win.w, b),
-            (win.x, win.y + win.h - b, win.w, b),
-            (win.x, win.y, b, win.h),
-            (win.x + win.w - b, win.y, b, win.h),
+        draw_titlebar(ui, win.x, win.y, win.w, TITLE_BAR_H);
+        draw_container(ui, win.x, win.y + TITLE_BAR_H, win.w, win.h - TITLE_BAR_H);
+        let title = rust_i18n::t!("login.title");
+        let title_w = ui.atlas.measure_text(&title);
+        ui.text(
+            win.x + (win.w - title_w) / 2.0,
+            win.y + (TITLE_BAR_H + ui.atlas.line_height) / 2.0 - 3.0,
+            &title,
+            text_color(),
+        );
+        for (label, y) in [
+            (rust_i18n::t!("login.account"), USERNAME_Y),
+            (rust_i18n::t!("login.password"), PASSWORD_Y),
         ] {
-            let (v, i) = draw::quad_vertices(bx, by, bw, bh, border_color);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
+            ui.text(win.x + LABEL_X, win.y + y + 13.0, &label, label_color());
         }
 
 let input_bg = TextInputBg::Default;
@@ -143,12 +137,18 @@ let input_bg = TextInputBg::Default;
 
         let (keep_w, keep_h) = (FALLBACK_KEEP_W, FALLBACK_KEEP_H);
         let keep_rect = Rect::new(
-            win.x + self.win_size.0 - keep_w - 20.0,
-            username_rect.y + (btn_h - keep_h) / 2.0,
+            win.x + FIELD_X,
+            btn_y + (btn_h - keep_h) / 2.0,
             keep_w,
             keep_h,
         );
         ui.checkbox(KEEP_ID, keep_rect, &mut self.keep_id);
+        ui.text(
+            keep_rect.x + keep_w + 6.0,
+            btn_y + 14.0,
+            &rust_i18n::t!("login.save_id"),
+            label_color(),
+        );
 
         let submit = ui.enter_pressed() || connect.clicked();
         if submit && !self.username.text.is_empty() && !self.password.text.is_empty() {
@@ -254,8 +254,9 @@ mod tests {
 
         let win_x = (800.0 - FALLBACK_WIN_W) / 2.0;
         let win_y = (600.0 - FALLBACK_WIN_H) / 2.0;
-        let keep_x = win_x + FALLBACK_WIN_W - FALLBACK_KEEP_W - 20.0;
-        let keep_y = win_y + USERNAME_Y + (FALLBACK_BTN_H - FALLBACK_KEEP_H) / 2.0;
+        let keep_x = win_x + FIELD_X;
+        let btn_y = win_y + FALLBACK_WIN_H - BTN_BOTTOM - FALLBACK_BTN_H;
+        let keep_y = btn_y + (FALLBACK_BTN_H - FALLBACK_KEEP_H) / 2.0;
 
         let mut ctx = make_ctx();
         ctx.mouse_x = keep_x + FALLBACK_KEEP_W / 2.0;

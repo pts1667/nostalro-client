@@ -1,19 +1,13 @@
 use crate::Window;
+use crate::account::server_list_panel::{self, PanelSpec, Row};
 use ragnarok_game::event::GameEvent;
-use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
-use ragnarok_ui::rect::Rect;
 
 
 
-const FALLBACK_WIN_W: f32 = 280.0;
-const FALLBACK_BTN_W: f32 = 42.0;
-const FALLBACK_BTN_H: f32 = 20.0;
 
-const ROW_H: f32 = 17.0;
 
 pub const LOGIN_SERVER_LIST_WINDOW_ID: WidgetId = WidgetId(4400);
-const FALLBACK_TITLE_BAR_H: f32 = 30.0;
 
 const OK_ID: WidgetId = WidgetId(4401);
 const CANCEL_ID: WidgetId = WidgetId(4402);
@@ -72,114 +66,31 @@ impl LoginServerListWindow {
     }
 
     fn build_fallback(&mut self, ui: &mut UiFrame, events: &mut Vec<GameEvent>) {
-        let btn_w = FALLBACK_BTN_W;
-        let btn_h = FALLBACK_BTN_H;
-        let win_w = FALLBACK_WIN_W;
-        let list_h = self.servers.len() as f32 * ROW_H;
-        let padding = 8.0;
-        let title_h = 30.0;
-        let win_h = title_h + list_h + padding + btn_h + padding;
-        let win = ui.window_account(
-            LOGIN_SERVER_LIST_WINDOW_ID,
-            win_w,
-            win_h,
-            FALLBACK_TITLE_BAR_H,
+        let rows: Vec<Row> = self
+            .servers
+            .iter()
+            .map(|entry| Row {
+                name: &entry.name,
+                detail: &entry.detail,
+            })
+            .collect();
+        let out = server_list_panel::build(
+            ui,
+            PanelSpec {
+                window: LOGIN_SERVER_LIST_WINDOW_ID,
+                ok: OK_ID,
+                cancel: CANCEL_ID,
+                title: &rust_i18n::t!("server_list.title"),
+            },
+            &rows,
+            &mut self.selected_index,
         );
-
-        let (v, i) = draw::quad_vertices(win.x, win.y, win.w, win_h, [0.08, 0.08, 0.12, 0.95]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::White,
-        });
-
-        let border_color = [0.4, 0.4, 0.5, 1.0];
-        let b = 1.0;
-        for (bx, by, bw, bh) in [
-            (win.x, win.y, win.w, b),
-            (win.x, win.y + win_h - b, win.w, b),
-            (win.x, win.y, b, win_h),
-            (win.x + win.w - b, win.y, b, win_h),
-        ] {
-            let (v, i) = draw::quad_vertices(bx, by, bw, bh, border_color);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
+        if out.ok
+            && let Some(index) = self.selected_index
+        {
+            events.push(GameEvent::SelectLoginServer { index });
         }
-
-        let title = "Select Server";
-        let title_w = ui.atlas.measure_text(title);
-        let title_x = win.x + (win.w - title_w) / 2.0;
-        let title_y = win.y + padding + ui.atlas.line_height;
-        ui.text(title_x, title_y, title, [1.0, 1.0, 1.0, 1.0]);
-
-        let list_y = win.y + title_h;
-        for (idx, server) in self.servers.iter().enumerate() {
-            let row_y = list_y + idx as f32 * ROW_H;
-            let row_rect = Rect::new(win.x + padding, row_y, win.w - padding * 2.0, ROW_H);
-            let row = ui.interact(
-                WidgetId(LOGIN_SERVER_LIST_WINDOW_ID.0 + 10 + idx as u32),
-                row_rect,
-            );
-            if row.hovered() {
-                ui.any_interactive_hovered = true;
-            }
-            if row.clicked() {
-                self.selected_index = Some(idx);
-            }
-
-            let bg_color = if self.selected_index == Some(idx) {
-                [0.2, 0.2, 0.4, 1.0]
-            } else if row.hovered() {
-                [0.15, 0.15, 0.25, 1.0]
-            } else {
-                [0.0, 0.0, 0.0, 0.0]
-            };
-            if bg_color[3] > 0.0 {
-                let (v, i) =
-                    draw::quad_vertices(row_rect.x, row_rect.y, row_rect.w, row_rect.h, bg_color);
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: TextureRef::White,
-                });
-            }
-
-            let text_y = row_y + (ROW_H + ui.atlas.line_height) / 2.0 - 2.0;
-            ui.text(
-                win.x + padding + 4.0,
-                text_y,
-                &server.name,
-                [1.0, 1.0, 1.0, 1.0],
-            );
-
-            let detail_w = ui.atlas.measure_text(&server.detail);
-            ui.text(
-                win.x + win.w - padding - 4.0 - detail_w,
-                text_y,
-                &server.detail,
-                [0.7, 0.7, 0.7, 1.0],
-            );
-        }
-
-        let btn_y = list_y + list_h + padding;
-        let btn_spacing = 8.0;
-        let total_btn_w = btn_w * 2.0 + btn_spacing;
-        let btn_start_x = win.x + (win.w - total_btn_w) / 2.0;
-
-        let ok_rect = Rect::new(btn_start_x, btn_y, btn_w, btn_h);
-        let cancel_rect = Rect::new(btn_start_x + btn_w + btn_spacing, btn_y, btn_w, btn_h);
-        let ok = ui.button(OK_ID, ok_rect, &rust_i18n::t!("common.ok"));
-        let cancel = ui.button(CANCEL_ID, cancel_rect, &rust_i18n::t!("common.cancel"));
-
-        if ok.clicked() && self.selected_index.is_some() {
-            events.push(GameEvent::SelectLoginServer {
-                index: self.selected_index.unwrap(),
-            });
-        }
-        if cancel.clicked() {
+        if out.cancel {
             events.push(GameEvent::Disconnected("User exit".to_string()));
         }
     }
@@ -187,12 +98,7 @@ impl LoginServerListWindow {
 
 impl Window for LoginServerListWindow {
     fn window_size(&self) -> (f32, f32) {
-        let win_h = FALLBACK_TITLE_BAR_H
-            + self.servers.len() as f32 * ROW_H
-            + 8.0
-            + FALLBACK_BTN_H
-            + 8.0;
-        (FALLBACK_WIN_W, win_h)
+        server_list_panel::size(self.servers.len())
     }
 
 
