@@ -31,29 +31,7 @@ pub fn draw_sys_button(
     crate::helper::fallback::sys_button(ui, rect.x, rect.y, size.0, hovered, fallback_char);
 }
 
-pub const TITLEBAR_TEX: &str = ragnarok_resources::ui::basic::TITLEBAR_MID;
-pub const ITEMWIN_MID_TEX: &str = ragnarok_resources::ui::basic::ITEMWIN_MID;
-pub const FOOTER_TEX: &str = ragnarok_resources::ui::basic::BTNBAR_MID2;
-pub const SYS_BASE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_BASE_OFF;
-pub const SYS_BASE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_BASE_ON;
 
-pub const GZE_RED_LEFT: &str = ragnarok_resources::ui::basic::GZERED_LEFT;
-pub const GZE_RED_MID: &str = ragnarok_resources::ui::basic::GZERED_MID;
-pub const GZE_RED_RIGHT: &str = ragnarok_resources::ui::basic::GZERED_RIGHT;
-pub const GZE_BLUE_LEFT: &str = ragnarok_resources::ui::basic::GZEBLUE_LEFT;
-pub const GZE_BLUE_MID: &str = ragnarok_resources::ui::basic::GZEBLUE_MID;
-pub const GZE_BLUE_RIGHT: &str = ragnarok_resources::ui::basic::GZEBLUE_RIGHT;
-
-pub fn gauge_texture_paths() -> Vec<&'static str> {
-    vec![
-        GZE_RED_LEFT,
-        GZE_RED_MID,
-        GZE_RED_RIGHT,
-        GZE_BLUE_LEFT,
-        GZE_BLUE_MID,
-        GZE_BLUE_RIGHT,
-    ]
-}
 
 /// HP/SP gauge: a rounded bar filled to `fill_pct`, red or blue.
 pub fn draw_gauge(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, fill_pct: f32, is_red: bool) {

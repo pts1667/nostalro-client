@@ -19,7 +19,6 @@ pub struct LoginWindow {
     pub password: TextInput,
     pub keep_id: bool,
     pub focus: LoginFocus,
-    win_size: (f32, f32),
 }
 
 const FALLBACK_WIN_W: f32 = 280.0;
@@ -63,7 +62,6 @@ impl LoginWindow {
             password: TextInput::new(23, true),
             keep_id: false,
             focus: LoginFocus::Username,
-            win_size: (FALLBACK_WIN_W, FALLBACK_WIN_H),
         }
     }
 

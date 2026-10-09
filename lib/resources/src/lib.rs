@@ -484,49 +484,24 @@ pub mod texture {
 /// The `유저인터페이스` tree — every window, button and icon texture.
 pub mod ui {
     crate::paths! {
-        BTN_CANCEL = "data/texture/유저인터페이스/btn_cancel.bmp";
-        BTN_CANCEL_A = "data/texture/유저인터페이스/btn_cancel_a.bmp";
-        BTN_CANCEL_B = "data/texture/유저인터페이스/btn_cancel_b.bmp";
         BTN_EXCHANGE_DIS = "data/texture/유저인터페이스/btn_exchange_dis.bmp";
-        BTN_MAKE = "data/texture/유저인터페이스/btn_make.bmp";
-        BTN_MAKE_A = "data/texture/유저인터페이스/btn_make_a.bmp";
-        BTN_MAKE_B = "data/texture/유저인터페이스/btn_make_b.bmp";
-        BTN_OK = "data/texture/유저인터페이스/btn_ok.bmp";
-        BTN_OK_A = "data/texture/유저인터페이스/btn_ok_a.bmp";
-        BTN_OK_B = "data/texture/유저인터페이스/btn_ok_b.bmp";
         BTN_OK_DIS = "data/texture/유저인터페이스/btn_ok_dis.bmp";
-        CHECKBOX_0 = "data/texture/유저인터페이스/checkbox_0.bmp";
-        CHECKBOX_1 = "data/texture/유저인터페이스/checkbox_1.bmp";
         RAG_TITLE = "data/texture/유저인터페이스/rag_title.bmp";
         RAG_TITLE2 = "data/texture/유저인터페이스/rag_title2.bmp";
         RAG_TITLE3 = "data/texture/유저인터페이스/rag_title3.bmp";
-        SCROLL0UP = "data/texture/유저인터페이스/scroll0up.bmp";
-        SCROLL1LEFT = "data/texture/유저인터페이스/scroll1left.bmp";
-        SCROLL1RIGHT = "data/texture/유저인터페이스/scroll1right.bmp";
         WORLDMAP = "data/texture/유저인터페이스/worldmap.bmp";
     }
 
     /// Shared window chrome and the in-game HUD.
     pub mod basic {
         crate::paths! {
-            BTNBAR_MID2 = "data/texture/유저인터페이스/basic_interface/btnbar_mid2.bmp";
             GRP_LEADER = "data/texture/유저인터페이스/basic_interface/grp_leader.bmp";
             GRP_ONLINE = "data/texture/유저인터페이스/basic_interface/grp_online.bmp";
-            GZEBLUE_LEFT = "data/texture/유저인터페이스/basic_interface/gzeblue_left.bmp";
-            GZEBLUE_MID = "data/texture/유저인터페이스/basic_interface/gzeblue_mid.bmp";
-            GZEBLUE_RIGHT = "data/texture/유저인터페이스/basic_interface/gzeblue_right.bmp";
-            GZERED_LEFT = "data/texture/유저인터페이스/basic_interface/gzered_left.bmp";
-            GZERED_MID = "data/texture/유저인터페이스/basic_interface/gzered_mid.bmp";
-            GZERED_RIGHT = "data/texture/유저인터페이스/basic_interface/gzered_right.bmp";
-            ITEMWIN_MID = "data/texture/유저인터페이스/basic_interface/itemwin_mid.bmp";
             MAILLIST1_BG = "data/texture/유저인터페이스/basic_interface/maillist1_bg.bmp";
             MAILLIST2_BG = "data/texture/유저인터페이스/basic_interface/maillist2_bg.bmp";
-            SYS_BASE_OFF = "data/texture/유저인터페이스/basic_interface/sys_base_off.bmp";
-            SYS_BASE_ON = "data/texture/유저인터페이스/basic_interface/sys_base_on.bmp";
             TAB_ITM_01 = "data/texture/유저인터페이스/basic_interface/tab_itm_01.bmp";
             TAB_ITM_02 = "data/texture/유저인터페이스/basic_interface/tab_itm_02.bmp";
             TAB_ITM_03 = "data/texture/유저인터페이스/basic_interface/tab_itm_03.bmp";
-            TITLEBAR_MID = "data/texture/유저인터페이스/basic_interface/titlebar_mid.bmp";
         }
 
         /// Party-recruitment board buttons.
@@ -629,21 +604,6 @@ pub mod ui {
     /// Login, server-select and character-create screens.
     pub mod login {
         crate::paths! {
-            ARW_AGI0 = "data/texture/유저인터페이스/login_interface/arw-agi0.bmp";
-            ARW_AGI1 = "data/texture/유저인터페이스/login_interface/arw-agi1.bmp";
-            ARW_DEX0 = "data/texture/유저인터페이스/login_interface/arw-dex0.bmp";
-            ARW_DEX1 = "data/texture/유저인터페이스/login_interface/arw-dex1.bmp";
-            ARW_INT0 = "data/texture/유저인터페이스/login_interface/arw-int0.bmp";
-            ARW_INT1 = "data/texture/유저인터페이스/login_interface/arw-int1.bmp";
-            ARW_LUK0 = "data/texture/유저인터페이스/login_interface/arw-luk0.bmp";
-            ARW_LUK1 = "data/texture/유저인터페이스/login_interface/arw-luk1.bmp";
-            ARW_STR0 = "data/texture/유저인터페이스/login_interface/arw-str0.bmp";
-            ARW_STR1 = "data/texture/유저인터페이스/login_interface/arw-str1.bmp";
-            ARW_VIT0 = "data/texture/유저인터페이스/login_interface/arw-vit0.bmp";
-            ARW_VIT1 = "data/texture/유저인터페이스/login_interface/arw-vit1.bmp";
-            NAME_EDIT = "data/texture/유저인터페이스/login_interface/name-edit.bmp";
-            WIN_MAKE = "data/texture/유저인터페이스/login_interface/win_make.bmp";
-            WIN_MAKE2 = "data/texture/유저인터페이스/login_interface/win_make2.bmp";
         }
     }
 

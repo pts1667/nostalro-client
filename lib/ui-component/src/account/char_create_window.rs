@@ -1,10 +1,9 @@
-use crate::helper::{ButtonTextures};
 use crate::Window;
 use crate::helper::fallback;
 use crate::helper::window_chrome;
 use ragnarok_game::event::GameEvent;
 use ragnarok_renderer::ui_renderer::UiVertex;
-use ragnarok_ui::draw::{self, DrawCall, TextureRef};
+use ragnarok_ui::draw::{DrawCall, TextureRef};
 use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
@@ -12,18 +11,6 @@ use ragnarok_ui::text_input::TextInput;
 // ---- v1 (stat-allocation) layout: login_interface/win_make.bmp, 576x342 ----
 
 
-
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-
-const MAKE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_MAKE,
-    hover: ragnarok_resources::ui::BTN_MAKE_A,
-    pressed: ragnarok_resources::ui::BTN_MAKE_B,
-};
 
 const WIN_W: f32 = 576.0;
 const WIN_H: f32 = 342.0;
@@ -114,45 +101,7 @@ const COLOR_R_ID: WidgetId = WidgetId(4507);
 const SKIN_TOGGLE_ID: WidgetId = WidgetId(4508);
 const STAT_ARROW_BASE: u32 = 4520;
 
-const WIN_TEXTURE: &str = ragnarok_resources::ui::login::WIN_MAKE;
-const WIN2_TEXTURE: &str = ragnarok_resources::ui::login::WIN_MAKE2;
-const NAME_EDIT_TEXTURE: &str = ragnarok_resources::ui::login::NAME_EDIT;
-const ARROW_L_TEXTURE: &str = ragnarok_resources::ui::SCROLL1LEFT;
-const ARROW_R_TEXTURE: &str = ragnarok_resources::ui::SCROLL1RIGHT;
-const ARROW_UP_TEXTURE: &str = ragnarok_resources::ui::SCROLL0UP;
 
-const STAT_ARROWS: [ButtonTextures; 6] = [
-    ButtonTextures {
-        normal: ragnarok_resources::ui::login::ARW_STR0,
-        hover: ragnarok_resources::ui::login::ARW_STR0,
-        pressed: ragnarok_resources::ui::login::ARW_STR1,
-    },
-    ButtonTextures {
-        normal: ragnarok_resources::ui::login::ARW_AGI0,
-        hover: ragnarok_resources::ui::login::ARW_AGI0,
-        pressed: ragnarok_resources::ui::login::ARW_AGI1,
-    },
-    ButtonTextures {
-        normal: ragnarok_resources::ui::login::ARW_VIT0,
-        hover: ragnarok_resources::ui::login::ARW_VIT0,
-        pressed: ragnarok_resources::ui::login::ARW_VIT1,
-    },
-    ButtonTextures {
-        normal: ragnarok_resources::ui::login::ARW_INT0,
-        hover: ragnarok_resources::ui::login::ARW_INT0,
-        pressed: ragnarok_resources::ui::login::ARW_INT1,
-    },
-    ButtonTextures {
-        normal: ragnarok_resources::ui::login::ARW_DEX0,
-        hover: ragnarok_resources::ui::login::ARW_DEX0,
-        pressed: ragnarok_resources::ui::login::ARW_DEX1,
-    },
-    ButtonTextures {
-        normal: ragnarok_resources::ui::login::ARW_LUK0,
-        hover: ragnarok_resources::ui::login::ARW_LUK0,
-        pressed: ragnarok_resources::ui::login::ARW_LUK1,
-    },
-];
 
 const TEXT_COLOR: [f32; 4] = [0.15, 0.16, 0.32, 1.0];
 const ERROR_COLOR: [f32; 4] = [0.8, 0.2, 0.2, 1.0];
@@ -200,45 +149,6 @@ impl CharCreateWindow {
             )
         };
         [self.win_origin.0 + px, self.win_origin.1 + py]
-    }
-
-    /// Textures for the active skin, so a GRF missing the other skin's background
-    /// doesn't force the whole window to fallback rendering.
-    pub fn layout_texture_paths(&self) -> Vec<&'static str> {
-        let mut paths = vec![
-            ARROW_L_TEXTURE,
-            ARROW_R_TEXTURE,
-            MAKE_BTN.normal,
-            MAKE_BTN.hover,
-            MAKE_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ];
-        if self.with_stats {
-            paths.extend([WIN_TEXTURE, ARROW_UP_TEXTURE]);
-        } else {
-            paths.extend([
-                WIN2_TEXTURE,
-                NAME_EDIT_TEXTURE,
-                window_chrome::TITLEBAR_TEX,
-                window_chrome::FOOTER_TEX,
-                window_chrome::SYS_BASE_OFF_TEX,
-                window_chrome::SYS_BASE_ON_TEX,
-            ]);
-        }
-        paths
-    }
-
-    /// Hexagon stat arrows are preloaded best-effort (kept out of the layout set so a
-    /// newer GRF lacking them doesn't drop the window to fallback).
-    pub fn stat_arrow_texture_paths() -> Vec<&'static str> {
-        let mut paths = Vec::with_capacity(12);
-        for arrow in &STAT_ARROWS {
-            paths.push(arrow.normal);
-            paths.push(arrow.pressed);
-        }
-        paths
     }
 
     fn cycle_head(&mut self, delta: i32) {
@@ -532,15 +442,6 @@ let name_bg = TextInputBg::Default;
             events.push(GameEvent::CancelCreateCharacter);
         }
     }
-}
-
-fn push_color_quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
-    let (v, i) = draw::quad_vertices(x, y, w, h, color);
-    ui.draw_calls.push(DrawCall {
-        vertices: v.to_vec(),
-        indices: i.to_vec(),
-        texture: TextureRef::White,
-    });
 }
 
 impl Window for CharCreateWindow {

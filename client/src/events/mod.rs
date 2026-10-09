@@ -1862,15 +1862,6 @@ impl App {
                         .ui(ragnarok_game::sound::tables::ui::BUTTON);
                     let with_stats = self.active_packetver < 20120307;
                     let win = CharCreateWindow::new(slot, with_stats);
-                    if let (Some(grf), Some(renderer)) = (&self.grf, &mut self.renderer) {
-                        let _ = renderer.preload_textures(&win.layout_texture_paths(), grf);
-                        if with_stats {
-                            let _ = renderer.preload_textures(
-                                &CharCreateWindow::stat_arrow_texture_paths(),
-                                grf,
-                            );
-                        }
-                    }
                     self.char_create_window = Some(win);
                     self.char_create_built_appearance = None;
                     self.game.session.app_state = AppState::CharacterCreate;
