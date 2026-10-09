@@ -1033,6 +1033,9 @@ fn create_single(name: &str) -> State {
             win.show_skin_toggle = true;
             State::CharCreate { win }
         }
+        "char_create_compact" => State::CharCreate {
+            win: CharCreateWindow::new(0, false),
+        },
         "item_info" => {
             let mut slot_entries = HashMap::new();
             slot_entries.insert(1701u16, 3u8);
@@ -2114,6 +2117,7 @@ pub const SCENE_NAMES: &[&str] = &[
     "system_menu",
     "char_select",
     "char_create",
+    "char_create_compact",
     "item_info",
     "book",
     "monster_info",

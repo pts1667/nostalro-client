@@ -123,6 +123,14 @@ pub struct CharCreateWindow {
     win_origin: (f32, f32),
 }
 
+/// Draws `label` centred in the gap between two arrow buttons on one row.
+fn label_between_arrows(ui: &mut UiFrame, left: &Rect, right: &Rect, label: &str) {
+    let label_w = ui.atlas.measure_text(label);
+    let centre_x = (left.x + left.w + right.x) / 2.0;
+    let text_y = left.y + (left.h + ui.atlas.line_height) / 2.0 - 2.0;
+    ui.text(centre_x - label_w / 2.0, text_y, label, window_chrome::text_color());
+}
+
 impl CharCreateWindow {
     pub fn new(slot: u8, with_stats: bool) -> Self {
         Self {
@@ -374,12 +382,20 @@ impl CharCreateWindow {
         window_chrome::draw_container(ui, ox, content_y, V2_W, V2_CONTENT_H);
         window_chrome::draw_footer(ui, ox, footer_y, V2_W, V2_FOOTER_H);
 
-let name_bg = TextInputBg::Default;
+        let name_bg = TextInputBg::Default;
         let name_rect = Rect::new(
             ox + V2_NAME_X,
             content_y + V2_NAME_Y - V2_NAME_H,
             V2_NAME_W,
             V2_NAME_H,
+        );
+        let name_label = rust_i18n::t!("char_create.name");
+        let name_label_w = ui.atlas.measure_text(&name_label);
+        ui.text(
+            name_rect.x + (name_rect.w - name_label_w) / 2.0,
+            name_rect.y - 4.0,
+            &name_label,
+            window_chrome::text_color(),
         );
         ui.text_input(NAME_ID, name_rect, &mut self.name, name_bg);
 
@@ -395,6 +411,7 @@ let name_bg = TextInputBg::Default;
             ARROW_W,
             ARROW_H,
         );
+        label_between_arrows(ui, &style_l, &style_r, &rust_i18n::t!("char_create.hair"));
         if ui.button(STYLE_L_ID, style_l, "<").clicked() {
             self.cycle_head(-1);
         }
@@ -413,6 +430,7 @@ let name_bg = TextInputBg::Default;
             ARROW_W,
             ARROW_H,
         );
+        label_between_arrows(ui, &color_l, &color_r, &rust_i18n::t!("char_create.color"));
         if ui.button(COLOR_L_ID, color_l, "<").clicked() {
             self.cycle_color(-1);
         }
