@@ -1,3 +1,4 @@
+use ragnarok_renderer::ui_renderer::UiVertex;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::UiFrame;
 use ragnarok_ui::rect::Rect;
@@ -28,18 +29,30 @@ fn rounded(
 }
 
 /// Glossy blue title bar with rounded top corners, a 1px black baseline, and the
-/// top-left system button.
+/// top-left system button. Two tones meet at half height: the upper half runs
+/// light blue to dark blue, the lower half starts mid blue and ends pale.
 pub fn titlebar(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
+    let body = h - 1.0;
+    let upper = (body * 0.5).floor();
     let (v, i) = draw::rounded_rect_corners_vgrad(
         x,
         y,
         w,
-        h,
+        upper,
         [CORNER_RADIUS, CORNER_RADIUS, 0.0, 0.0],
-        P::TITLE_TOP,
-        P::TITLE_BOT,
+        P::GLOSS_UP_TOP,
+        P::GLOSS_UP_BOT,
     );
     rounded(ui, v, i);
+    let (v, i) =
+        draw::quad_vertices_vgrad(x, y + upper, w, body - upper, P::GLOSS_LO_TOP, P::GLOSS_LO_BOT);
+    ui.draw_calls.push(DrawCall {
+        vertices: v.to_vec(),
+        indices: i.to_vec(),
+        texture: TextureRef::White,
+    });
+    // Bevel: a faint light line along the top edge inside the rounded corners.
+    fill(ui, x + CORNER_RADIUS, y + 1.0, w - 2.0 * CORNER_RADIUS, 1.0, [1.0, 1.0, 1.0, 0.45]);
     fill(ui, x, y + h - 1.0, w, 1.0, P::TITLE_BASELINE);
 
     let (bx, by, bs) = (x + 4.0, y + 3.0, 11.0);
@@ -172,28 +185,155 @@ pub fn cell(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, active: bool) {
     fill(ui, x + w - 1.0, y, 1.0, h, P::WIN_BORDER);
 }
 
-/// Small rounded blue system button (close/minimize) with a dark-navy glyph.
-pub fn sys_button(ui: &mut UiFrame, x: f32, y: f32, size: f32, hovered: bool, glyph: Option<char>) {
-    let color = if hovered {
-        P::SYS_BTN_HOVER
+fn mix(a: [f32; 4], b: [f32; 4], t: f32) -> [f32; 4] {
+    std::array::from_fn(|k| a[k] + (b[k] - a[k]) * t)
+}
+
+/// Brightens a colour for the hovered state.
+fn lift(c: [f32; 4], hovered: bool) -> [f32; 4] {
+    if hovered {
+        mix(c, [1.0, 1.0, 1.0, c[3]], 0.30)
     } else {
-        P::SYS_BTN
+        c
+    }
+}
+
+/// Half of a disc as a triangle fan, lerping `at_diameter` to `at_far` with the
+/// distance from the horizontal diameter. `upper` picks the half above it.
+fn half_disc(
+    cx: f32,
+    cy: f32,
+    r: f32,
+    upper: bool,
+    at_diameter: [f32; 4],
+    at_far: [f32; 4],
+) -> (Vec<UiVertex>, Vec<u32>) {
+    const SEGS: usize = 10;
+    let sign = if upper { -1.0 } else { 1.0 };
+    let vertex = |p: [f32; 2], color| UiVertex {
+        position: p,
+        tex_coord: [0.0, 0.0],
+        color,
     };
-    let (v, i) = draw::rounded_rect(x, y, size, size, 2.0, color);
+    let mut verts = vec![vertex([cx, cy], at_diameter)];
+    for k in 0..=SEGS {
+        let a = std::f32::consts::PI * k as f32 / SEGS as f32;
+        let (dx, dy) = (r * a.cos(), sign * r * a.sin());
+        let t = (dy.abs() / r).clamp(0.0, 1.0);
+        verts.push(vertex([cx + dx, cy + dy], mix(at_diameter, at_far, t)));
+    }
+    let mut indices = Vec::with_capacity(SEGS * 3);
+    for k in 0..SEGS as u32 {
+        indices.extend([0, 1 + k, 2 + k]);
+    }
+    (verts, indices)
+}
+
+/// Round glossy blue disc: a dark rim around the two-tone face, with a soft
+/// highlight on the upper half.
+fn gloss_disc(ui: &mut UiFrame, cx: f32, cy: f32, r: f32, hovered: bool) {
+    for upper in [true, false] {
+        let (v, i) = half_disc(cx, cy, r, upper, P::GLOSS_RIM, P::GLOSS_RIM);
+        rounded(ui, v, i);
+    }
+    let r = r - 1.0;
+    let (v, i) = half_disc(
+        cx,
+        cy,
+        r,
+        true,
+        lift(P::GLOSS_UP_BOT, hovered),
+        lift(P::GLOSS_UP_TOP, hovered),
+    );
     rounded(ui, v, i);
-    if let Some(ch) = glyph {
-        let s = ch.to_string();
-        let tw = ui.atlas.measure_text(&s);
-        let tx = x + (size - tw) / 2.0;
-        let ty = y + size - (ui.atlas.line_height / 2.0) + 1.0;
-        let (tv, ti) = draw::text_vertices(&s, tx, ty, P::SYS_GLYPH, ui.atlas);
-        if !tv.is_empty() {
-            ui.draw_calls.push(DrawCall {
-                vertices: tv,
-                indices: ti,
-                texture: TextureRef::FontAtlas,
-            });
+    let (v, i) = half_disc(
+        cx,
+        cy,
+        r,
+        false,
+        lift(P::GLOSS_LO_TOP, hovered),
+        lift(P::GLOSS_LO_BOT, hovered),
+    );
+    rounded(ui, v, i);
+    let (v, i) = draw::rounded_rect(
+        cx - r * 0.55,
+        cy - r * 0.85,
+        r * 1.1,
+        r * 0.45,
+        r * 0.22,
+        [1.0, 1.0, 1.0, 0.40],
+    );
+    rounded(ui, v, i);
+}
+
+/// Straight line segment of the given thickness, drawn as a rotated quad.
+fn line(ui: &mut UiFrame, a: (f32, f32), b: (f32, f32), thickness: f32, color: [f32; 4]) {
+    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+    let len = (dx * dx + dy * dy).sqrt();
+    if len <= 0.0 {
+        return;
+    }
+    let (nx, ny) = (-dy / len * thickness * 0.5, dx / len * thickness * 0.5);
+    let vertex = |x: f32, y: f32| UiVertex {
+        position: [x, y],
+        tex_coord: [0.0, 0.0],
+        color,
+    };
+    ui.draw_calls.push(DrawCall {
+        vertices: vec![
+            vertex(a.0 + nx, a.1 + ny),
+            vertex(a.0 - nx, a.1 - ny),
+            vertex(b.0 + nx, b.1 + ny),
+            vertex(b.0 - nx, b.1 - ny),
+        ],
+        indices: vec![0, 1, 2, 2, 1, 3],
+        texture: TextureRef::White,
+    });
+}
+
+/// White glyph with a dark outline, centred on `(cx, cy)`. `_`, `x` and `+` are
+/// drawn from lines; anything else falls back to text.
+fn sys_glyph(ui: &mut UiFrame, ch: char, cx: f32, cy: f32, size: f32) {
+    let k = size * 0.2;
+    let strokes: Vec<((f32, f32), (f32, f32))> = match ch {
+        '_' => vec![((cx - k * 1.3, cy + k * 0.9), (cx + k * 1.3, cy + k * 0.9))],
+        'x' => vec![
+            ((cx - k, cy - k), (cx + k, cy + k)),
+            ((cx - k, cy + k), (cx + k, cy - k)),
+        ],
+        '+' => vec![
+            ((cx - k * 1.3, cy), (cx + k * 1.3, cy)),
+            ((cx, cy - k * 1.3), (cx, cy + k * 1.3)),
+        ],
+        _ => {
+            let s = ch.to_string();
+            let tw = ui.atlas.measure_text(&s);
+            let ty = cy + ui.atlas.line_height / 4.0;
+            let (tv, ti) = draw::text_vertices(&s, cx - tw / 2.0, ty, P::GLOSS_GLYPH, ui.atlas);
+            if !tv.is_empty() {
+                ui.draw_calls.push(DrawCall {
+                    vertices: tv,
+                    indices: ti,
+                    texture: TextureRef::FontAtlas,
+                });
+            }
+            return;
         }
+    };
+    for (color, thickness) in [(P::GLOSS_RIM, 2.2), (P::GLOSS_GLYPH, 1.1)] {
+        for (a, b) in &strokes {
+            line(ui, *a, *b, thickness, color);
+        }
+    }
+}
+
+/// Round glossy blue system button (close, minimise) with a white glyph. With no
+/// glyph it is the plain disc, as the title bar's menu button is.
+pub fn sys_button(ui: &mut UiFrame, x: f32, y: f32, size: f32, hovered: bool, glyph: Option<char>) {
+    let (cx, cy) = (x + size / 2.0, y + size / 2.0);
+    gloss_disc(ui, cx, cy, size / 2.0, hovered);
+    if let Some(ch) = glyph {
+        sys_glyph(ui, ch, cx, cy, size);
     }
 }
 
@@ -223,59 +363,66 @@ pub fn gauge(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, fill_pct: f32, is
     rounded(ui, v, i);
 }
 
-/// Scrollbar arrow button: a raised rounded face with a small triangle drawn
-/// from quads, so it does not depend on a glyph being in the font.
+/// Scrollbar arrow button: a round glossy disc with a white triangle drawn from
+/// quads, so it does not depend on a glyph being in the font.
 pub fn scroll_button(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, up: bool, hovered: bool) {
-    let (top, mid) = if hovered {
-        (P::BTN_HOVER_TOP, P::BTN_HOVER_MID)
-    } else {
-        (P::BTN_FACE_TOP, P::BTN_FACE_MID)
-    };
-    let (v, i) = draw::rounded_rect_vgrad(x, y, w, h, 2.0, top, mid);
-    rounded(ui, v, i);
+    // Slightly under half so no vertex lands exactly on a pixel centre.
+    let r = w.min(h) / 2.0 - 0.7;
+    let (cx, cy) = (x + w / 2.0, y + h / 2.0);
+    gloss_disc(ui, cx, cy, r, hovered);
 
-    // Four rows, apex first, centred in the button.
-    let cx = x + w * 0.5;
-    let cy = y + h * 0.5 - 2.0;
-    for k in 0..4 {
-        let row_w = 1.0 + 2.0 * k as f32;
-        let row = if up { k } else { 3 - k };
-        fill(
-            ui,
-            cx - row_w * 0.5,
-            cy + row as f32,
-            row_w,
-            1.0,
-            P::TEXT_ON_LIGHT,
-        );
+    let (tip, base) = if up { (-2.5, 1.5) } else { (2.5, -1.5) };
+    for (color, grow) in [(P::GLOSS_RIM, 1.0), (P::GLOSS_GLYPH, 0.0)] {
+        let sign = if up { -1.0 } else { 1.0 };
+        let pts = [
+            (cx, cy + tip + sign * grow * 1.2),
+            (cx - 3.0 - grow, cy + base - sign * grow * 0.6),
+            (cx + 3.0 + grow, cy + base - sign * grow * 0.6),
+        ];
+        let (v, i) = draw::triangle_vertices(pts, color);
+        rounded(ui, v.to_vec(), i.to_vec());
     }
 }
 
-/// Recessed track behind a scrollbar thumb.
+/// Recessed track behind a scrollbar thumb: a narrow grey capsule.
 pub fn scroll_track(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
-    let (v, i) = draw::rounded_rect(x, y, w, h, 2.0, P::WIN_BORDER);
+    let (tx, tw) = (x + 3.0, w - 6.0);
+    let (v, i) = draw::rounded_rect(tx, y, tw, h, tw / 2.0, [0.60, 0.64, 0.72, 1.0]);
+    rounded(ui, v, i);
+    let (v, i) = draw::rounded_rect_vgrad(
+        tx + 1.0,
+        y + 1.0,
+        tw - 2.0,
+        h - 2.0,
+        (tw - 2.0) / 2.0,
+        [0.80, 0.83, 0.89, 1.0],
+        [0.93, 0.94, 0.97, 1.0],
+    );
+    rounded(ui, v, i);
+}
+
+/// Scrollbar thumb: a glossy blue capsule with a light streak down its left side.
+pub fn scroll_thumb(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, hovered: bool) {
+    let (v, i) = draw::rounded_rect(x, y, w, h, w / 2.0, P::GLOSS_RIM);
     rounded(ui, v, i);
     let (v, i) = draw::rounded_rect_vgrad(
         x + 1.0,
         y + 1.0,
         w - 2.0,
         h - 2.0,
-        1.5,
-        P::SLOT_INSET,
-        P::SLOT_FILL,
+        (w - 2.0) / 2.0,
+        lift(P::GLOSS_UP_TOP, hovered),
+        lift(P::GLOSS_UP_BOT, hovered),
     );
     rounded(ui, v, i);
-}
-
-/// Scrollbar thumb: a raised rounded grip that brightens under the pointer.
-pub fn scroll_thumb(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, hovered: bool) {
-    let (top, mid) = if hovered {
-        (P::BTN_HOVER_TOP, P::BTN_HOVER_MID)
-    } else {
-        (P::BTN_FACE_TOP, P::BTN_FACE_MID)
-    };
-    let (v, i) = draw::rounded_rect(x, y, w, h, 2.0, P::BTN_BORDER_ACTIVE);
-    rounded(ui, v, i);
-    let (v, i) = draw::rounded_rect_vgrad(x + 1.0, y + 1.0, w - 2.0, h - 2.0, 1.5, top, mid);
+    let streak = (w * 0.28).max(1.5);
+    let (v, i) = draw::rounded_rect(
+        x + 2.0,
+        y + 3.0,
+        streak,
+        (h - 6.0).max(1.0),
+        streak / 2.0,
+        [1.0, 1.0, 1.0, 0.40],
+    );
     rounded(ui, v, i);
 }

@@ -21,6 +21,16 @@ impl FallbackPalette {
     pub const TITLE_BOT: [f32; 4] = rgb(0xD2, 0xEA, 0xFC);
     pub const TITLE_BASELINE: [f32; 4] = rgb(0x00, 0x00, 0x00);
 
+    /// Two-tone gloss shared by the title bar, round system buttons and the
+    /// scrollbar. Read bottom to top: pale blue darkens towards the middle, steps
+    /// sharply to the darkest blue at 50% height, then lightens to the top edge.
+    pub const GLOSS_UP_TOP: [f32; 4] = rgb(0xA4, 0xBF, 0xF2);
+    pub const GLOSS_UP_BOT: [f32; 4] = rgb(0x4A, 0x6A, 0xBC);
+    pub const GLOSS_LO_TOP: [f32; 4] = rgb(0x78, 0x9B, 0xE4);
+    pub const GLOSS_LO_BOT: [f32; 4] = rgb(0xC8, 0xE0, 0xFB);
+    pub const GLOSS_RIM: [f32; 4] = rgb(0x26, 0x42, 0x8E);
+    pub const GLOSS_GLYPH: [f32; 4] = rgb(0xFF, 0xFF, 0xFF);
+
     pub const SLOT_FILL: [f32; 4] = rgb(0xFF, 0xFF, 0xFF);
     pub const SLOT_INSET: [f32; 4] = rgb(0xCF, 0xD6, 0xE5);
 
