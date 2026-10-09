@@ -1,11 +1,9 @@
-use crate::helper::{ButtonTextures};
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use super::item_info_window::ITEM_INFO_WINDOW_ID;
-use crate::helper::CHECKBOX;
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::format::format_thousands;
 use crate::helper::window_chrome::{
-    FOOTER_TEX, ITEMWIN_MID_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container,
+    draw_container,
     draw_footer, draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -15,17 +13,7 @@ use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
 
-const CANCEL_BTN_TEX: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
 
 pub const INPUT_WIN_ID: WidgetId = WidgetId(701);
 pub const OUTPUT_WIN_ID: WidgetId = WidgetId(702);
@@ -77,7 +65,6 @@ enum QtyTarget {
 }
 
 pub struct NpcShop {
-    pub has_grf_textures: bool,
     pub shop: NpcShopData,
     qty_popup: Option<(QtyTarget, InputDialog)>,
     btn_size: (f32, f32),
@@ -98,7 +85,6 @@ impl Default for NpcShop {
 impl NpcShop {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             shop: NpcShopData::new(),
             qty_popup: None,
             btn_size: (FALLBACK_BTN_W, FALLBACK_BTN_H),
@@ -121,42 +107,7 @@ impl NpcShop {
 }
 
 impl Window for NpcShop {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
 
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-        self.container.has_grf_textures = true;
-        self.container.set_texture_sizes(size_fn);
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = DialogContainer::grf_texture_paths();
-        paths.extend_from_slice(&[
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN_TEX.normal,
-            CANCEL_BTN_TEX.hover,
-            CANCEL_BTN_TEX.pressed,
-            TITLEBAR_TEX,
-            ITEMWIN_MID_TEX,
-            FOOTER_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            ragnarok_resources::ui::BTN_RESIZE,
-            CHECKBOX.off,
-            CHECKBOX.on,
-        ]);
-        paths.extend(scrollbar::grf_texture_paths());
-        paths
-    }
 }
 
 impl InGameWindow for NpcShop {
@@ -194,8 +145,6 @@ impl InGameWindow for NpcShop {
 
         let mut events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
 
         let input_default_x = 100.0;
         let input_default_y = 100.0;
@@ -238,7 +187,6 @@ impl InGameWindow for NpcShop {
             self.build_quantity_popup(ui);
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -308,7 +256,6 @@ impl NpcShop {
         let win = ui.window_at(INPUT_WIN_ID, win_w, win_h, title_h, default_x, default_y);
         ui.interact(INPUT_WIN_ID, Rect::new(win.x, win.y, win_w, win_h));
 
-        let grf = self.has_grf_textures;
         let text_color = text_color();
 
         draw_titlebar(ui, win.x, win.y, win_w, title_h);
@@ -342,22 +289,6 @@ impl NpcShop {
             let widget_id = WidgetId(ITEM_BASE_ID + i as u32);
             let response = ui.interact(widget_id, row_rect);
 
-            if grf {
-                let shadow_x = win.x + pad_left + (ICON_OFFSET_X);
-                let shadow_y = ry + (ICON_OFFSET_Y);
-                let (v, idx) = draw::quad_vertices(
-                    shadow_x,
-                    shadow_y,
-                    icon_size,
-                    icon_size,
-                    [1.0, 1.0, 1.0, 1.0],
-                );
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: idx.to_vec(),
-                    texture: TextureRef::Named(ITEMWIN_MID_TEX.to_string()),
-                });
-            }
 
             if let Some(icon_path) = self.shop.item_icon_path(item_idx) {
                 let ix = win.x + pad_left + (ICON_OFFSET_X);
@@ -527,7 +458,6 @@ impl NpcShop {
         let win = ui.window_at(OUTPUT_WIN_ID, win_w, win_h, title_h, default_x, default_y);
         ui.interact(OUTPUT_WIN_ID, Rect::new(win.x, win.y, win_w, win_h));
 
-        let grf = self.has_grf_textures;
         let text_color = text_color();
 
         draw_titlebar(ui, win.x, win.y, win_w, title_h);
@@ -568,22 +498,6 @@ impl NpcShop {
                 ui.any_interactive_hovered = true;
             }
 
-            if grf {
-                let shadow_x = win.x + pad_left + (ICON_OFFSET_X);
-                let shadow_y = ry + (ICON_OFFSET_Y);
-                let (v, idx) = draw::quad_vertices(
-                    shadow_x,
-                    shadow_y,
-                    icon_size,
-                    icon_size,
-                    [1.0, 1.0, 1.0, 1.0],
-                );
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: idx.to_vec(),
-                    texture: TextureRef::Named(ITEMWIN_MID_TEX.to_string()),
-                });
-            }
 
             if let Some(icon_path) = self.shop.item_icon_path(basket_item.source_index) {
                 let ix = win.x + pad_left + (ICON_OFFSET_X);

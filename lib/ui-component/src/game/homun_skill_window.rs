@@ -1,7 +1,6 @@
-use crate::helper::{ButtonTextures};
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::window_chrome::{
-    FOOTER_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button, draw_titlebar,
+    draw_container, draw_footer, draw_sys_button, draw_titlebar,
     text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -14,30 +13,13 @@ use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
-const CLOSE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_CLOSE,
-    hover: ragnarok_resources::ui::basic::BTN_CLOSE_A,
-    pressed: ragnarok_resources::ui::basic::BTN_CLOSE_B,
-};
 
-const LEVELUP_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::SKILL_UP_A,
-    hover: ragnarok_resources::ui::basic::SKILL_UP_B,
-    pressed: ragnarok_resources::ui::basic::SKILL_UP_C,
-};
 
-const USE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_USE,
-    hover: ragnarok_resources::ui::BTN_USE_A,
-    pressed: ragnarok_resources::ui::BTN_USE_B,
-};
 
 pub const HOMUN_SKILL_WINDOW_ID: WidgetId = WidgetId(2910);
 const CLOSE_BTN_ID: WidgetId = WidgetId(2911);
 const USE_BTN_ID: WidgetId = WidgetId(2912);
 const FOOTER_CLOSE_BTN_ID: WidgetId = WidgetId(2913);
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
 const SKILL_ROW_BASE_ID: u32 = 2920;
 const SKILL_LEVELUP_BASE_ID: u32 = 2930;
@@ -52,7 +34,6 @@ const PAD: f32 = 8.0;
 const WIN_H: f32 = TITLE_H + ROW_H * VISIBLE_ROWS as f32 + FOOTER_H;
 
 pub struct HomunSkillWindow {
-    pub has_grf_textures: bool,
     visible: bool,
     selected: usize,
     use_size: (f32, f32),
@@ -70,7 +51,6 @@ impl Default for HomunSkillWindow {
 impl HomunSkillWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             visible: false,
             selected: 0,
             use_size: (42.0, 20.0),
@@ -102,9 +82,6 @@ impl HomunSkillWindow {
         let Some(homun) = homun else {
             return Vec::new();
         };
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
         let mut events = Vec::new();
         let tc = text_color();
 
@@ -148,11 +125,7 @@ impl HomunSkillWindow {
                 self.selected = idx;
             }
             if self.selected == idx || row_resp.hovered() {
-                let hl = if grf {
-                    [0.85, 0.85, 0.8, 0.4]
-                } else {
-                    [0.3, 0.3, 0.4, 0.4]
-                };
+                let hl = [0.3, 0.3, 0.4, 0.4];
                 let (v, i) = draw::quad_vertices(x, row_y, WIN_W, ROW_H, hl);
                 ui.draw_calls.push(DrawCall {
                     vertices: v.to_vec(),
@@ -252,7 +225,6 @@ impl HomunSkillWindow {
             self.visible = false;
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -273,44 +245,6 @@ impl InGameWindow for HomunSkillWindow {
 }
 
 impl Window for HomunSkillWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-        self.tooltip_container.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(USE_BTN.normal) {
-            self.use_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(CLOSE_BTN.normal) {
-            self.close_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(LEVELUP_BTN.normal) {
-            self.levelup_btn_size = (w as f32, h as f32);
-        }
-        self.tooltip_container.set_texture_sizes(size_fn);
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            FOOTER_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            USE_BTN.normal,
-            USE_BTN.hover,
-            USE_BTN.pressed,
-            CLOSE_BTN.normal,
-            CLOSE_BTN.hover,
-            CLOSE_BTN.pressed,
-            LEVELUP_BTN.normal,
-            LEVELUP_BTN.hover,
-            LEVELUP_BTN.pressed,
-        ];
-        paths.extend(DialogContainer::grf_texture_paths());
-        paths
-    }
 }
 
 /// Renders a companion skill's tooltip (name, type, level, SP cost, description)

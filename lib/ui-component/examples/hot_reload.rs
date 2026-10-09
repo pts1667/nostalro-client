@@ -37,7 +37,6 @@ use ragnarok_ui_component::game::system_menu::SystemMenu;
 use ragnarok_ui_component::game::vending_setup_window::VendingSetupWindow;
 use ragnarok_ui_component::game::vending_shop_window::VendingShopWindow;
 use ragnarok_ui_component::game::world_map_window::{WORLD_MAP_TEX, WorldMapWindow};
-use ragnarok_ui_component::helper::dialog_container::DialogContainer;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
@@ -184,7 +183,7 @@ fn grf_texture_paths_single(name: &str) -> Vec<&'static str> {
         "system_menu" => SystemMenu::grf_texture_paths(),
         "char_select" => CharSelectWindow::grf_texture_paths(),
         "char_create" => CharCreateWindow::grf_texture_paths(),
-        "dialog_container" => DialogContainer::grf_texture_paths(),
+        "dialog_container" => vec![],
         "item_info" => ItemInfoWindow::grf_texture_paths(),
         "skill_tree" => SkillTreeWindow::grf_texture_paths(),
         "storage_password" => StoragePasswordWindow::grf_texture_paths(),

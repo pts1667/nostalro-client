@@ -22,9 +22,7 @@ pub fn label_max_width() -> f32 {
 
 /// Container art (frame) plus whatever icons a board type needs.
 pub fn grf_texture_paths(icons: &[&'static str]) -> Vec<&'static str> {
-    let mut paths = DialogContainer::grf_texture_paths();
-    paths.extend_from_slice(icons);
-    paths
+    icons.to_vec()
 }
 
 /// Draw a labeled board above a head: frame + a left icon (only when
@@ -45,16 +43,14 @@ pub fn draw_board(
 
     container.draw(draw_calls, box_x, box_y, box_w, box_h, [1.0; 4]);
 
-    if container.has_grf_textures {
-        let icon_x = box_x + PAD;
-        let icon_y = box_y + (box_h - ICON) / 2.0;
-        let (v, i) = draw::quad_vertices(icon_x, icon_y, ICON, ICON, [1.0; 4]);
-        draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::Named(icon_tex.to_string()),
-        });
-    }
+    let icon_x = box_x + PAD;
+    let icon_y = box_y + (box_h - ICON) / 2.0;
+    let (v, i) = draw::quad_vertices(icon_x, icon_y, ICON, ICON, [1.0; 4]);
+    draw_calls.push(DrawCall {
+        vertices: v.to_vec(),
+        indices: i.to_vec(),
+        texture: TextureRef::Named(icon_tex.to_string()),
+    });
 
     let text_x = box_x + PAD + ICON + PAD;
     let text_y = box_y + (box_h + atlas.line_height) / 2.0;

@@ -2,8 +2,7 @@ use super::equipment_window::EQ_WINDOW_ID;
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::window_chrome::{
-    FOOTER_TEX, ITEMWIN_MID_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container,
-    draw_footer, draw_sys_button, draw_titlebar, text_color,
+    draw_container, draw_footer, draw_sys_button, draw_titlebar, text_color,
 };
 use ragnarok_game::display_name::format_equipment_display_name;
 use ragnarok_game::event::GameEvent;
@@ -47,13 +46,8 @@ const DEFAULT_ROWS: usize = 2;
 pub const TAB_USABLE_TEX: &str = ragnarok_resources::ui::basic::TAB_ITM_01;
 pub const TAB_EQUIP_TEX: &str = ragnarok_resources::ui::basic::TAB_ITM_02;
 pub const TAB_ETC_TEX: &str = ragnarok_resources::ui::basic::TAB_ITM_03;
-const MINI_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_MINI_OFF;
-const MINI_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_MINI_ON;
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
 pub struct InventoryWindow {
-    pub has_grf_textures: bool,
     scroll_offset: usize,
     tab_size: (f32, f32),
     grid_cols: usize,
@@ -73,7 +67,6 @@ impl Default for InventoryWindow {
 impl InventoryWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             scroll_offset: 0,
             tab_size: (0.0, 0.0),
             grid_cols: DEFAULT_COLS,
@@ -129,45 +122,9 @@ impl InventoryWindow {
 }
 
 impl Window for InventoryWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-        self.container.has_grf_textures = value;
-    }
-
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(TAB_USABLE_TEX) {
-            self.tab_size = (w as f32, h as f32);
-        }
-        self.container.set_texture_sizes(size_fn);
-    }
-
     fn window_size(&self) -> (f32, f32) {
         let (w, h, _) = self.compute_dimensions();
         (w, h)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            ITEMWIN_MID_TEX,
-            FOOTER_TEX,
-            TAB_USABLE_TEX,
-            TAB_EQUIP_TEX,
-            TAB_ETC_TEX,
-            MINI_OFF_TEX,
-            MINI_ON_TEX,
-            ragnarok_resources::ui::BTN_RESIZE,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths.extend(InputDialog::grf_texture_paths());
-        paths
     }
 }
 
@@ -203,10 +160,7 @@ impl InGameWindow for InventoryWindow {
         let mut events = Vec::new();
 
         let scrollbar_w = SCROLLBAR_W;
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
 
-        let grf = self.has_grf_textures;
         let text_color = text_color();
 
         let (win_w, full_h, tab_strip_w) = self.compute_dimensions();
@@ -269,12 +223,10 @@ impl InGameWindow for InventoryWindow {
         );
         if close_resp.clicked() {
             character.inventory.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
         if self.minimized {
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -311,17 +263,7 @@ impl InGameWindow for InventoryWindow {
                 let widget_id = WidgetId(INV_ITEM_BASE_ID + slot as u32);
                 let response = ui.interact(widget_id, cell_rect);
 
-                if grf {
-                    let (v, idx) =
-                        draw::quad_vertices(cx + pad, cy + pad, icon, icon, [1.0, 1.0, 1.0, 1.0]);
-                    ui.draw_calls.push(DrawCall {
-                        vertices: v.to_vec(),
-                        indices: idx.to_vec(),
-                        texture: TextureRef::Named(ITEMWIN_MID_TEX.to_string()),
-                    });
-                } else {
-                    crate::helper::fallback::slot_cell(ui, cx + pad, cy + pad, icon, icon);
-                }
+                crate::helper::fallback::slot_cell(ui, cx + pad, cy + pad, icon, icon);
 
                 if item_idx >= filtered.len() {
                     continue;
@@ -488,25 +430,11 @@ impl InGameWindow for InventoryWindow {
             texture: TextureRef::White,
         });
 
-        let tab_tex = match character.inventory.active_tab {
+        let _tab_tex = match character.inventory.active_tab {
             InventoryTab::Usable => TAB_USABLE_TEX,
             InventoryTab::Equip => TAB_EQUIP_TEX,
             InventoryTab::Etc => TAB_ETC_TEX,
         };
-        if grf {
-            let (v, idx) = draw::quad_vertices(
-                tab_x,
-                container_y,
-                tab_img_w,
-                tab_img_h,
-                [1.0, 1.0, 1.0, 1.0],
-            );
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: idx.to_vec(),
-                texture: TextureRef::Named(tab_tex.to_string()),
-            });
-        }
 
         let tab_btn_h = tab_img_h / 3.0;
         let tab_defs = [
@@ -522,24 +450,22 @@ impl InGameWindow for InventoryWindow {
                 ui.any_interactive_hovered = true;
             }
 
-            if !grf {
-                let active = character.inventory.active_tab == *tab;
-                crate::helper::fallback::cell(
-                    ui,
-                    tab_x,
-                    ty,
-                    tab_img_w,
-                    tab_btn_h,
-                    active || resp.hovered(),
-                );
-                let tw = ui.atlas.measure_text(label);
-                ui.text(
-                    tab_x + (tab_img_w - tw) / 2.0,
-                    ty + tab_btn_h / 2.0 + (4.0),
-                    label,
-                    text_color,
-                );
-            }
+            let active = character.inventory.active_tab == *tab;
+            crate::helper::fallback::cell(
+                ui,
+                tab_x,
+                ty,
+                tab_img_w,
+                tab_btn_h,
+                active || resp.hovered(),
+            );
+            let tw = ui.atlas.measure_text(label);
+            ui.text(
+                tab_x + (tab_img_w - tw) / 2.0,
+                ty + tab_btn_h / 2.0 + (4.0),
+                label,
+                text_color,
+            );
 
             if resp.clicked() && character.inventory.active_tab != *tab {
                 character.inventory.active_tab = *tab;
@@ -594,7 +520,6 @@ impl InGameWindow for InventoryWindow {
             }
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

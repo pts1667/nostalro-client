@@ -1,22 +1,15 @@
-use crate::helper::{ButtonTextures};
 use crate::helper::colors;
-use crate::helper::dropdown::{self, Dropdown};
+use crate::helper::dropdown::Dropdown;
 use crate::helper::window_chrome::{
-    TITLEBAR_TEX, draw_container, draw_sys_button, draw_titlebar, label_color, text_color,
+    draw_container, draw_sys_button, draw_titlebar, label_color, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::pet::PetState;
-use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
 
-const RENAME_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_REWRITE,
-    hover: ragnarok_resources::ui::BTN_REWRITE_A,
-    pressed: ragnarok_resources::ui::BTN_REWRITE_B,
-};
 
 pub const PET_WINDOW_ID: WidgetId = WidgetId(4000);
 const CLOSE_BTN_ID: WidgetId = WidgetId(4001);
@@ -25,8 +18,6 @@ const RENAME_BTN_ID: WidgetId = WidgetId(4003);
 const COMMAND_DROPDOWN_ID: WidgetId = WidgetId(4004);
 const COMMAND_OPTION_BASE: u32 = 4010;
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
 const WIN_W: f32 = 280.0;
 const WIN_H: f32 = 160.0;
@@ -34,7 +25,6 @@ const TITLE_H: f32 = 17.0;
 const PANEL_H: f32 = WIN_H - TITLE_H;
 const PAD: f32 = 6.0;
 const ILLUST_W: f32 = 100.0;
-const ILLUST_H: f32 = 110.0;
 const ROW_H: f32 = 18.0;
 const BASELINE: f32 = 12.0;
 
@@ -47,7 +37,6 @@ const COMMANDS: [(&str, i8); 4] = [
 ];
 
 pub struct PetWindow {
-    pub has_grf_textures: bool,
     visible: bool,
     name_input: TextInput,
     command: Dropdown,
@@ -63,7 +52,6 @@ impl Default for PetWindow {
 impl PetWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             visible: false,
             name_input: TextInput::new(23, false),
             command: Dropdown::default(),
@@ -85,9 +73,6 @@ impl PetWindow {
         if !self.visible {
             return Vec::new();
         }
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
         let mut events = Vec::new();
         let tc = text_color();
         let lc = label_color();
@@ -122,17 +107,8 @@ impl PetWindow {
         draw_container(ui, x, y + TITLE_H, WIN_W, PANEL_H);
 
         // Illustration (left column).
-        let ill_x = x + PAD;
-        let ill_y = y + TITLE_H + PAD;
-        if grf {
-            let (v, i) =
-                draw::quad_vertices(ill_x, ill_y, ILLUST_W, ILLUST_H, [1.0, 1.0, 1.0, 1.0]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(pet.illust_path().to_string()),
-            });
-        }
+        let _ill_x = x + PAD;
+        let _ill_y = y + TITLE_H + PAD;
 
         // Right column.
         let rx = x + ILLUST_W + PAD * 2.0;
@@ -148,11 +124,7 @@ impl PetWindow {
             let (bw, bh) = self.rename_size;
             let input_w = (right_edge - rx - bw - 4.0).max(40.0);
             let input_rect = Rect::new(rx, ry, input_w, 14.0);
-            let bg = if grf {
-                TextInputBg::Gray
-            } else {
-                TextInputBg::Default
-            };
+            let bg = TextInputBg::Default;
             ui.text_input(NAME_INPUT_ID, input_rect, &mut self.name_input, bg);
             let btn_rect = Rect::new(rx + input_w + 4.0, ry, bw, bh.min(16.0));
             if ui
@@ -214,7 +186,6 @@ impl PetWindow {
             }
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -235,30 +206,7 @@ impl InGameWindow for PetWindow {
 }
 
 impl Window for PetWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(RENAME_BTN.normal) {
-            self.rename_size = (w as f32, h as f32);
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, WIN_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            RENAME_BTN.normal,
-            RENAME_BTN.hover,
-            RENAME_BTN.pressed,
-        ];
-        paths.extend(dropdown::grf_texture_paths());
-        paths
     }
 }

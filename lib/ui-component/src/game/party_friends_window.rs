@@ -1,6 +1,5 @@
-use crate::helper::{ButtonTextures};
 use crate::helper::window_chrome::{
-    FOOTER_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer,
+    draw_container, draw_footer,
     draw_sys_button, draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -25,27 +24,9 @@ const NAV_LEADER_ID: WidgetId = WidgetId(2016);
 const NAV_ADD_ID: WidgetId = WidgetId(2017);
 const ROW_BASE_ID: u32 = 2030;
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 const GRP_ONLINE_TEX: &str = ragnarok_resources::ui::basic::GRP_ONLINE;
 const GRP_LEADER_TEX: &str = ragnarok_resources::ui::basic::GRP_LEADER;
-const RADIO_ON_TEX: &str = ragnarok_resources::ui::RADIOBTN_ON;
-const RADIO_OFF_TEX: &str = ragnarok_resources::ui::RADIOBTN_OFF;
 
-const MESBTN_CHAT: ButtonTextures = nav_tex_const(ragnarok_resources::ui::basic::MESBTN_02);
-const MESBTN_SETUP: ButtonTextures = nav_tex_const(ragnarok_resources::ui::basic::MESBTN_04);
-const MESBTN_REMOVE: ButtonTextures = nav_tex_const(ragnarok_resources::ui::basic::MESBTN_05);
-const MESBTN_CREATE: ButtonTextures = nav_tex_const(ragnarok_resources::ui::basic::MESBTN_08);
-const MESBTN_LEAVE: ButtonTextures = nav_tex_const(ragnarok_resources::ui::basic::MESBTN_09);
-const MESBTN_INVITE: ButtonTextures = nav_tex_const(ragnarok_resources::ui::basic::MESBTN_010);
-
-const fn nav_tex_const(base: &'static str) -> ButtonTextures {
-    ButtonTextures {
-        normal: base,
-        hover: base,
-        pressed: base,
-    }
-}
 
 const WIN_W: f32 = 240.0;
 const TITLE_H: f32 = 17.0;
@@ -54,7 +35,6 @@ const NAV_H: f32 = 20.0;
 const FOOTER_H: f32 = 21.0;
 const CLOSE_BTN_SIZE: f32 = 11.0;
 const ROW_H: f32 = 24.0;
-const ICON_SIZE: f32 = 16.0;
 const HP_BAR_W: f32 = 60.0;
 const HP_BAR_H: f32 = 5.0;
 const NAV_BTN_W: f32 = 26.0;
@@ -67,7 +47,6 @@ const OFFLINE_COLOR: [f32; 4] = [0.5, 0.5, 0.5, 1.0];
 
 pub struct PartyFriendsWindow {
     pub open: bool,
-    pub has_grf_textures: bool,
     friend_tab: bool,
     selected: Option<usize>,
 }
@@ -82,7 +61,6 @@ impl PartyFriendsWindow {
     pub fn new() -> Self {
         Self {
             open: false,
-            has_grf_textures: false,
             friend_tab: false,
             selected: None,
         }
@@ -119,15 +97,7 @@ impl PartyFriendsWindow {
             .unwrap_or(false)
     }
 
-    fn draw_icon(ui: &mut UiFrame, x: f32, y: f32, tex: &str, grf: bool) {
-        if grf {
-            let (v, i) = draw::quad_vertices(x, y, ICON_SIZE, ICON_SIZE, [1.0; 4]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(tex.to_string()),
-            });
-        }
+    fn draw_icon(_ui: &mut UiFrame, _x: f32, _y: f32, _tex: &str) {
     }
 
     fn fill(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
@@ -158,35 +128,8 @@ impl PartyFriendsWindow {
 }
 
 impl Window for PartyFriendsWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, TITLE_H + CONTENT_H + NAV_H + FOOTER_H)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            TITLEBAR_TEX,
-            FOOTER_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            GRP_ONLINE_TEX,
-            GRP_LEADER_TEX,
-            RADIO_ON_TEX,
-            RADIO_OFF_TEX,
-            MESBTN_CHAT.normal,
-            MESBTN_SETUP.normal,
-            MESBTN_REMOVE.normal,
-            MESBTN_CREATE.normal,
-            MESBTN_LEAVE.normal,
-            MESBTN_INVITE.normal,
-        ]
     }
 }
 
@@ -208,8 +151,6 @@ impl InGameWindow for PartyFriendsWindow {
         let friends = &ctx.friends.friends;
         let local_aid = ctx.local_aid;
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
         let tc = text_color();
         let mut events = Vec::new();
 
@@ -250,7 +191,6 @@ impl InGameWindow for PartyFriendsWindow {
         );
         if close_resp.clicked() {
             self.open = false;
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -274,7 +214,6 @@ impl InGameWindow for PartyFriendsWindow {
         draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         self.build_tab_switch(ui, x, footer_y, tc);
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -293,7 +232,6 @@ impl PartyFriendsWindow {
             ui.text(x + 8.0, content_y + 18.0, "Not in a party", OFFLINE_COLOR);
             return;
         }
-        let grf = self.has_grf_textures;
         for (idx, m) in members.iter().enumerate() {
             let row_y = content_y + 4.0 + idx as f32 * ROW_H;
             if row_y + ROW_H > content_y + CONTENT_H {
@@ -321,7 +259,7 @@ impl PartyFriendsWindow {
                 GRP_ONLINE_TEX
             };
             if m.online {
-                Self::draw_icon(ui, x + 3.0, row_y, icon, grf);
+                Self::draw_icon(ui, x + 3.0, row_y, icon);
             }
 
             let name_color = if !m.online {
@@ -377,7 +315,6 @@ impl PartyFriendsWindow {
             ui.text(x + 8.0, content_y + 18.0, "No friends", OFFLINE_COLOR);
             return;
         }
-        let grf = self.has_grf_textures;
         for (idx, f) in friends.iter().enumerate() {
             let row_y = content_y + 4.0 + idx as f32 * 18.0;
             if row_y + 18.0 > content_y + CONTENT_H {
@@ -399,7 +336,7 @@ impl PartyFriendsWindow {
                 );
             }
             if f.online {
-                Self::draw_icon(ui, x + 3.0, row_y, GRP_ONLINE_TEX, grf);
+                Self::draw_icon(ui, x + 3.0, row_y, GRP_ONLINE_TEX);
             }
             let color = if f.online {
                 FRIEND_COLOR
@@ -495,11 +432,10 @@ impl PartyFriendsWindow {
     }
 
     fn build_tab_switch(&mut self, ui: &mut UiFrame, x: f32, footer_y: f32, tc: [f32; 4]) {
-        let grf = self.has_grf_textures;
         let by = footer_y + 3.0;
         // Friends radio
         let friend_rect = Rect::new(x + 6.0, by, 60.0, 15.0);
-        Self::draw_radio(ui, friend_rect.x, friend_rect.y, self.friend_tab, grf);
+        Self::draw_radio(ui, friend_rect.x, friend_rect.y, self.friend_tab);
         ui.text(friend_rect.x + 16.0, by + 11.0, "Friends", tc);
         let fresp = ui.interact(TAB_FRIEND_BTN_ID, friend_rect);
         if fresp.hovered() {
@@ -511,7 +447,7 @@ impl PartyFriendsWindow {
         }
         // Party radio
         let party_rect = Rect::new(x + 76.0, by, 60.0, 15.0);
-        Self::draw_radio(ui, party_rect.x, party_rect.y, !self.friend_tab, grf);
+        Self::draw_radio(ui, party_rect.x, party_rect.y, !self.friend_tab);
         ui.text(party_rect.x + 16.0, by + 11.0, "Party", tc);
         let presp = ui.interact(TAB_PARTY_BTN_ID, party_rect);
         if presp.hovered() {
@@ -523,23 +459,13 @@ impl PartyFriendsWindow {
         }
     }
 
-    fn draw_radio(ui: &mut UiFrame, x: f32, y: f32, on: bool, grf: bool) {
-        if grf {
-            let tex = if on { RADIO_ON_TEX } else { RADIO_OFF_TEX };
-            let (v, i) = draw::quad_vertices(x, y, 12.0, 12.0, [1.0; 4]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(tex.to_string()),
-            });
+    fn draw_radio(ui: &mut UiFrame, x: f32, y: f32, on: bool) {
+        let c = if on {
+            [0.3, 0.6, 0.9, 1.0]
         } else {
-            let c = if on {
-                [0.3, 0.6, 0.9, 1.0]
-            } else {
-                [0.3, 0.3, 0.35, 1.0]
-            };
-            Self::fill(ui, x, y + 2.0, 10.0, 10.0, c);
-        }
+            [0.3, 0.3, 0.35, 1.0]
+        };
+        Self::fill(ui, x, y + 2.0, 10.0, 10.0, c);
     }
 
     fn selected_member<'p>(&self, party: Option<&'p Party>) -> Option<&'p PartyMember> {

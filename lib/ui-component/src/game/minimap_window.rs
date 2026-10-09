@@ -11,10 +11,6 @@ const ZOOM_IN_BTN_ID: WidgetId = WidgetId(1601);
 const ZOOM_OUT_BTN_ID: WidgetId = WidgetId(1602);
 
 const MAP_ARROW_TEX: &str = ragnarok_resources::ui::minimap::MAP_ARROW;
-const MAP_PLUS_OFF: &str = ragnarok_resources::ui::minimap::MAP_PLUS0;
-const MAP_PLUS_ON: &str = ragnarok_resources::ui::minimap::MAP_PLUS1;
-const MAP_MINUS_OFF: &str = ragnarok_resources::ui::minimap::MAP_MINUS0;
-const MAP_MINUS_ON: &str = ragnarok_resources::ui::minimap::MAP_MINUS1;
 
 const MAP_AREA_SIZE: f32 = 128.0;
 const ZOOM_BTN_SIZE: f32 = 12.0;
@@ -71,7 +67,6 @@ pub struct MinimapMarker {
 }
 
 pub struct MinimapWindow {
-    pub has_grf_textures: bool,
     pub visibility: MinimapVisibility,
     zoom_level: usize,
     pub map_name: Option<String>,
@@ -92,7 +87,6 @@ impl Default for MinimapWindow {
 impl MinimapWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             visibility: MinimapVisibility::Visible,
             zoom_level: 0,
             map_name: None,
@@ -233,23 +227,7 @@ impl MinimapWindow {
 }
 
 impl Window for MinimapWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
 
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            MAP_ARROW_TEX,
-            MAP_PLUS_OFF,
-            MAP_PLUS_ON,
-            MAP_MINUS_OFF,
-            MAP_MINUS_ON,
-        ]
-    }
 }
 
 impl InGameWindow for MinimapWindow {

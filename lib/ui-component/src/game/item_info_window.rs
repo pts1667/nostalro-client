@@ -1,4 +1,3 @@
-use crate::helper::{ButtonTextures};
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::scrollbar::{self, ScrollbarIds};
 use crate::helper::window_chrome::{draw_sys_button, draw_titlebar, text_color};
@@ -14,11 +13,6 @@ use ragnarok_ui::draw::{self, DrawCall, TextureRef, strip_color_codes, word_wrap
 use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
 
-const VIEW_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_VIEW,
-    hover: ragnarok_resources::ui::BTN_VIEW_B,
-    pressed: ragnarok_resources::ui::BTN_VIEW_A,
-};
 
 pub const ITEM_INFO_WINDOW_ID: WidgetId = WidgetId(1000);
 const CLOSE_BTN_ID: WidgetId = WidgetId(1001);
@@ -55,11 +49,6 @@ const FALLBACK_WIN_H: f32 = 120.0;
 
 const TITLE_H_ILLUS: f32 = 17.0;
 
-const COLLECTION_BG_TEX: &str = ragnarok_resources::ui::basic::COLLECTION_BG;
-const EMPTY_SLOT_TEX: &str = ragnarok_resources::ui::EMPTY_CARD_SLOT;
-const DISABLED_SLOT_TEX: &str = ragnarok_resources::ui::basic::COPARISON_DISABLE_CARD_SLOT;
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
 const VIEW_BTN_W: f32 = 42.0;
 const VIEW_BTN_H: f32 = 20.0;
@@ -94,7 +83,6 @@ struct CardIllustration {
 }
 
 pub struct ItemInfoWindow {
-    pub has_grf_textures: bool,
     /// Deviation, opt-in: the original game draws the name on one line and lets
     /// it run past the right edge of the window.
     pub wrap_title: bool,
@@ -118,7 +106,6 @@ impl Default for ItemInfoWindow {
 impl ItemInfoWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             wrap_title: false,
             item: None,
             wrapped_lines: Vec::new(),
@@ -348,48 +335,15 @@ impl ItemInfoWindow {
 }
 
 impl Window for ItemInfoWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(COLLECTION_BG_TEX) {
-            self.bg_size = (w as f32, h as f32);
-        }
-        self.card_section_container.set_texture_sizes(size_fn);
-    }
 
     fn window_size(&self) -> (f32, f32) {
-        let (w, h) = if self.has_grf_textures && self.bg_size.0 > 0.0 {
-            self.bg_size
-        } else {
-            (FALLBACK_WIN_W, FALLBACK_WIN_H)
-        };
+        let (w, h) = (FALLBACK_WIN_W, FALLBACK_WIN_H);
         let extra = match &self.item {
             Some(item) if item.is_equipment => CARD_SECTION_H,
             Some(item) if item.is_card => VIEW_SECTION_H,
             _ => 0.0,
         };
         (w, h + extra)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            COLLECTION_BG_TEX,
-            EMPTY_SLOT_TEX,
-            DISABLED_SLOT_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            VIEW_BTN.normal,
-            VIEW_BTN.hover,
-            VIEW_BTN.pressed,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths.extend(DialogContainer::grf_texture_paths());
-        paths
     }
 }
 
@@ -410,9 +364,6 @@ impl InGameWindow for ItemInfoWindow {
             return Vec::new();
         }
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
         let bg_size = self.bg_size;
         let mut events = Vec::new();
 
@@ -424,7 +375,7 @@ impl InGameWindow for ItemInfoWindow {
                 source,
                 data,
                 &character.char_names,
-                name_color(info.is_damaged, grf),
+                name_color(info.is_damaged),
             );
         }
 
@@ -461,7 +412,6 @@ impl InGameWindow for ItemInfoWindow {
                 &self.wrapped_lines,
                 self.scroll_offset,
                 &ids,
-                grf,
                 bg_size,
                 extra_h,
                 self.wrap_title,
@@ -471,11 +421,7 @@ impl InGameWindow for ItemInfoWindow {
             if result.closed {
                 self.close();
             } else if self.item.as_ref().unwrap().is_book {
-                let (_cw, ch) = if grf {
-                    bg_size
-                } else {
-                    (FALLBACK_WIN_W, FALLBACK_WIN_H)
-                };
+                let (_cw, ch) = (FALLBACK_WIN_W, FALLBACK_WIN_H);
                 let item_id = self.item.as_ref().unwrap().item_id;
                 let bx = result.win_x + COLLECTION_X;
                 let by = result.win_y + ch - VIEW_BTN_H - 6.0;
@@ -486,16 +432,11 @@ impl InGameWindow for ItemInfoWindow {
                 Self::view_card_illustration_button(ui, &mut events, result, card_data);
             } else if self.item.as_ref().unwrap().is_equipment {
                 let item_data = self.item.as_ref().unwrap();
-                let (container_w, container_h) = if grf {
-                    bg_size
-                } else {
-                    (FALLBACK_WIN_W, FALLBACK_WIN_H)
-                };
+                let (container_w, container_h) = (FALLBACK_WIN_W, FALLBACK_WIN_H);
                 let win_w = container_w;
 
                 let section_y = result.win_y + container_h;
 
-                self.card_section_container.has_grf_textures = grf;
                 self.card_section_container.draw(
                     &mut ui.draw_calls,
                     result.win_x,
@@ -517,11 +458,7 @@ impl InGameWindow for ItemInfoWindow {
                                 .as_ref()
                                 .map(|p| TextureRef::Named(p.clone()))
                                 .unwrap_or_else(|| {
-                                    if grf {
-                                        TextureRef::Named(EMPTY_SLOT_TEX.to_string())
-                                    } else {
-                                        TextureRef::White
-                                    }
+                                    TextureRef::White
                                 });
                             let (v, idx) = draw::quad_vertices(
                                 icon_x,
@@ -550,33 +487,7 @@ impl InGameWindow for ItemInfoWindow {
                             if slot_resp.right_clicked() {
                                 events.push(GameEvent::ShowCardInfo { item_id: card_id });
                             }
-                        } else if grf {
-                            let (v, idx) = draw::quad_vertices(
-                                icon_x,
-                                icon_y,
-                                CARD_ICON_SIZE,
-                                CARD_ICON_SIZE,
-                                [1.0, 1.0, 1.0, 1.0],
-                            );
-                            ui.draw_calls.push(DrawCall {
-                                vertices: v.to_vec(),
-                                indices: idx.to_vec(),
-                                texture: TextureRef::Named(EMPTY_SLOT_TEX.to_string()),
-                            });
                         }
-                    } else if grf {
-                        let (v, idx) = draw::quad_vertices(
-                            icon_x,
-                            icon_y,
-                            CARD_ICON_SIZE,
-                            CARD_ICON_SIZE,
-                            [1.0, 1.0, 1.0, 1.0],
-                        );
-                        ui.draw_calls.push(DrawCall {
-                            vertices: v.to_vec(),
-                            indices: idx.to_vec(),
-                            texture: TextureRef::Named(DISABLED_SLOT_TEX.to_string()),
-                        });
                     }
 
                     icon_x += CARD_ICON_SIZE + 2.0;
@@ -614,7 +525,6 @@ impl InGameWindow for ItemInfoWindow {
                 &self.card_wrapped_lines,
                 self.card_scroll_offset,
                 &ids,
-                grf,
                 bg_size,
                 VIEW_SECTION_H,
                 self.wrap_title,
@@ -646,18 +556,13 @@ impl InGameWindow for ItemInfoWindow {
                 &illust.name,
                 text_color,
             );
-            if grf {
-                let (_v, _i) =
-                    draw::quad_vertices(win.x, win.y, illust_w, total_h, [1.0, 1.0, 1.0, 1.0]);
-            } else {
-                crate::helper::fallback::window_body(
-                    ui,
-                    win.x,
-                    win.y + TITLE_H_ILLUS,
-                    illust_w,
-                    illust_h,
-                );
-            }
+            crate::helper::fallback::window_body(
+                ui,
+                win.x,
+                win.y + TITLE_H_ILLUS,
+                illust_w,
+                illust_h,
+            );
 
             let close_rect = Rect::new(
                 win.x + illust_w - CLOSE_SIZE - 3.0,
@@ -692,7 +597,6 @@ impl InGameWindow for ItemInfoWindow {
             }
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -705,11 +609,9 @@ struct InfoWindowIds {
     scroll_thumb: WidgetId,
 }
 
-fn name_color(is_damaged: bool, grf: bool) -> [f32; 4] {
+fn name_color(is_damaged: bool) -> [f32; 4] {
     if is_damaged {
         [1.0, 0.0, 0.0, 1.0]
-    } else if grf {
-        [0.0, 0.0, 0.0, 1.0]
     } else {
         [1.0, 1.0, 1.0, 1.0]
     }
@@ -747,16 +649,11 @@ fn build_info_window(
     wrapped_lines: &[String],
     scroll_offset: usize,
     ids: &InfoWindowIds,
-    grf: bool,
-    bg_size: (f32, f32),
+    _bg_size: (f32, f32),
     extra_height: f32,
     wrap_title: bool,
 ) -> InfoWindowResult {
-    let (container_w, container_h) = if grf {
-        bg_size
-    } else {
-        (FALLBACK_WIN_W, FALLBACK_WIN_H)
-    };
+    let (container_w, container_h) = (FALLBACK_WIN_W, FALLBACK_WIN_H);
     let win_w = container_w;
     let win_h = container_h + extra_height;
 
@@ -783,35 +680,25 @@ fn build_info_window(
     let win_rect = Rect::new(win.x, win.y, win_w, win_h);
     ui.interact(ids.window, win_rect);
 
-    if grf {
-        let (v, i) =
-            draw::quad_vertices(win.x, win.y, container_w, container_h, [1.0, 1.0, 1.0, 1.0]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::Named(COLLECTION_BG_TEX.to_string()),
-        });
-    } else {
-        let (v, i) = draw::quad_vertices(win.x, win.y, win_w, win_h, [0.15, 0.15, 0.20, 0.95]);
+    let (v, i) = draw::quad_vertices(win.x, win.y, win_w, win_h, [0.15, 0.15, 0.20, 0.95]);
+    ui.draw_calls.push(DrawCall {
+        vertices: v.to_vec(),
+        indices: i.to_vec(),
+        texture: TextureRef::White,
+    });
+    let bc = [0.5, 0.5, 0.6, 1.0];
+    for (bx, by, bw, bh) in [
+        (win.x, win.y, win_w, 1.0),
+        (win.x, win.y + win_h - 1.0, win_w, 1.0),
+        (win.x, win.y, 1.0, win_h),
+        (win.x + win_w - 1.0, win.y, 1.0, win_h),
+    ] {
+        let (v, i) = draw::quad_vertices(bx, by, bw, bh, bc);
         ui.draw_calls.push(DrawCall {
             vertices: v.to_vec(),
             indices: i.to_vec(),
             texture: TextureRef::White,
         });
-        let bc = [0.5, 0.5, 0.6, 1.0];
-        for (bx, by, bw, bh) in [
-            (win.x, win.y, win_w, 1.0),
-            (win.x, win.y + win_h - 1.0, win_w, 1.0),
-            (win.x, win.y, 1.0, win_h),
-            (win.x + win_w - 1.0, win.y, 1.0, win_h),
-        ] {
-            let (v, i) = draw::quad_vertices(bx, by, bw, bh, bc);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
-        }
     }
 
     if let Some(path) = &item_data.collection_path {
@@ -856,7 +743,7 @@ fn build_info_window(
         };
     }
 
-    let title_color = name_color(item_data.is_damaged, grf);
+    let title_color = name_color(item_data.is_damaged);
     let mut title_y = win.y + TITLE_Y + ui.atlas.line_height;
     if title_lines.is_empty() {
         ui.colored_text(win.x + TITLE_X, title_y, &item_data.name, title_color);
@@ -867,11 +754,7 @@ fn build_info_window(
         }
     }
 
-    let text_color = if grf {
-        [0.0, 0.0, 0.0, 1.0]
-    } else {
-        [0.9, 0.9, 0.9, 1.0]
-    };
+    let text_color = [0.9, 0.9, 0.9, 1.0];
     let desc_x = win.x + DESC_X;
     let desc_top = win.y + DESC_Y + title_overflow;
     let start = scroll_offset;

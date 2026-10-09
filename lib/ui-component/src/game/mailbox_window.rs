@@ -1,4 +1,3 @@
-use crate::helper::{ButtonTextures};
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use super::inventory_window::INV_WINDOW_ID;
 use crate::helper::dialog_container::DialogContainer;
@@ -40,23 +39,8 @@ fn set_input(input: &mut TextInput, text: String) {
 
 const BG_INBOX_TEX: &str = ragnarok_resources::ui::basic::MAILLIST1_BG;
 const BG_COMPOSE_TEX: &str = ragnarok_resources::ui::basic::MAILLIST2_BG;
-const ENVELOPE_TEX: &str = ragnarok_resources::ui::basic::ENVELOP;
 
-macro_rules! btn {
-    ($normal:expr, $active:expr) => {
-        ButtonTextures {
-            normal: $normal,
-            hover: $active,
-            pressed: $active,
-        }
-    };
-}
 
-use ragnarok_resources::ui::basic as basic_tex;
-
-const CLOSE_BTN: ButtonTextures = btn!(basic_tex::BTN_CLOSE2, basic_tex::BTN_CLOSE2_A);
-const SEND_BTN: ButtonTextures = btn!(basic_tex::BTN_SEND, basic_tex::BTN_SEND_A);
-const CANCEL_BTN: ButtonTextures = btn!(basic_tex::BTN_CANCEL2, basic_tex::BTN_CANCEL2_A);
 
 const WIN_W: f32 = 300.0;
 const WIN_H: f32 = 400.0;
@@ -67,7 +51,6 @@ const LIST_X_OFF: f32 = BTN_COL_W + 4.0;
 const LIST_TOP_OFF: f32 = TITLE_H + 6.0;
 const ROW_H: f32 = 50.5;
 const ENVELOPE_W: f32 = 16.0;
-const ENVELOPE_H: f32 = 11.0;
 const PAGER_H: f32 = 18.0;
 
 const SENDER_MAX_CHARS: usize = 15;
@@ -96,7 +79,6 @@ fn draw_tex(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, tex: &str) {
 }
 
 pub struct MailboxWindow {
-    pub has_grf_textures: bool,
     to_input: TextInput,
     title_input: TextInput,
     body_input: TextInput,
@@ -115,7 +97,6 @@ impl Default for MailboxWindow {
 impl MailboxWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             to_input: TextInput::new(MAIL_TO_MAX, false),
             title_input: TextInput::new(MAIL_TITLE_MAX, false),
             body_input: TextInput::new(MAIL_BODY_MAX, false),
@@ -136,33 +117,8 @@ impl MailboxWindow {
 }
 
 impl Window for MailboxWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-        self.container.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        self.container.set_texture_sizes(size_fn);
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, WIN_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            BG_INBOX_TEX,
-            BG_COMPOSE_TEX,
-            ENVELOPE_TEX,
-            CLOSE_BTN.normal,
-            CLOSE_BTN.hover,
-            SEND_BTN.normal,
-            SEND_BTN.hover,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-        ];
-        paths.extend(InputDialog::grf_texture_paths());
-        paths
     }
 }
 
@@ -194,9 +150,6 @@ impl InGameWindow for MailboxWindow {
         }
         let mut events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
         let tc = text_color();
 
         let mode = character.mail.mode;
@@ -220,17 +173,13 @@ impl InGameWindow for MailboxWindow {
         let (x, y) = (win.x, win.y);
         ui.interact(MAILBOX_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
 
-        let bg = if mode == MailboxMode::Inbox {
+        let _bg = if mode == MailboxMode::Inbox {
             BG_INBOX_TEX
         } else {
             BG_COMPOSE_TEX
         };
-        if grf {
-            draw_tex(ui, x, y, WIN_W, WIN_H, bg);
-        } else {
-            crate::helper::fallback::window_body(ui, x, y, WIN_W, WIN_H);
-            crate::helper::fallback::titlebar(ui, x, y, WIN_W, TITLE_H);
-        }
+        crate::helper::fallback::window_body(ui, x, y, WIN_W, WIN_H);
+        crate::helper::fallback::titlebar(ui, x, y, WIN_W, TITLE_H);
         let title = if mode == MailboxMode::Inbox {
             "Mail"
         } else {
@@ -246,7 +195,6 @@ impl InGameWindow for MailboxWindow {
         {
             character.mail.window_open = false;
             character.mail.read_open = false;
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -258,26 +206,24 @@ impl InGameWindow for MailboxWindow {
         if inbox_resp.hovered() || write_resp.hovered() {
             ui.any_interactive_hovered = true;
         }
-        if !grf {
-            crate::helper::fallback::cell(
-                ui,
-                inbox_zone.x,
-                inbox_zone.y,
-                inbox_zone.w,
-                inbox_zone.h,
-                mode == MailboxMode::Inbox,
-            );
-            crate::helper::fallback::cell(
-                ui,
-                write_zone.x,
-                write_zone.y,
-                write_zone.w,
-                write_zone.h,
-                mode == MailboxMode::Compose,
-            );
-            ui.text(inbox_zone.x + 3.0, inbox_zone.y + 30.0, "In", tc);
-            ui.text(write_zone.x + 3.0, write_zone.y + 30.0, "Wr", tc);
-        }
+        crate::helper::fallback::cell(
+            ui,
+            inbox_zone.x,
+            inbox_zone.y,
+            inbox_zone.w,
+            inbox_zone.h,
+            mode == MailboxMode::Inbox,
+        );
+        crate::helper::fallback::cell(
+            ui,
+            write_zone.x,
+            write_zone.y,
+            write_zone.w,
+            write_zone.h,
+            mode == MailboxMode::Compose,
+        );
+        ui.text(inbox_zone.x + 3.0, inbox_zone.y + 30.0, "In", tc);
+        ui.text(write_zone.x + 3.0, write_zone.y + 30.0, "Wr", tc);
         if inbox_resp.clicked() && mode != MailboxMode::Inbox {
             character.mail.switch_to_inbox();
             self.clear_compose_inputs();
@@ -290,10 +236,9 @@ impl InGameWindow for MailboxWindow {
         if mode == MailboxMode::Inbox {
             events.extend(self.build_inbox(ui, character, x, y, tc));
         } else {
-            events.extend(self.build_compose(ui, character, data, x, y, grf));
+            events.extend(self.build_compose(ui, character, data, x, y));
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -325,16 +270,6 @@ impl MailboxWindow {
             };
             let ry = list_y + row as f32 * ROW_H;
 
-            if !entry.read && self.has_grf_textures {
-                draw_tex(
-                    ui,
-                    list_x + 2.0,
-                    ry + (ROW_H - ENVELOPE_H) / 2.0,
-                    ENVELOPE_W,
-                    ENVELOPE_H,
-                    ENVELOPE_TEX,
-                );
-            }
 
             let row_color = if entry.read { READ_COLOR } else { tc };
             let text_x = list_x + ENVELOPE_W + 6.0;
@@ -415,7 +350,6 @@ impl MailboxWindow {
         data: &DataTable,
         x: f32,
         y: f32,
-        grf: bool,
     ) -> Vec<GameEvent> {
         let mut events = Vec::new();
 
@@ -455,15 +389,13 @@ impl MailboxWindow {
 
         // Item attach slot.
         let slot_rect = Rect::new(x + 247.0, y + 333.0, 24.0, 24.0);
-        if !grf {
-            crate::helper::fallback::slot_cell(
-                ui,
-                slot_rect.x,
-                slot_rect.y,
-                slot_rect.w,
-                slot_rect.h,
-            );
-        }
+        crate::helper::fallback::slot_cell(
+            ui,
+            slot_rect.x,
+            slot_rect.y,
+            slot_rect.w,
+            slot_rect.h,
+        );
         let slot_resp = ui.interact(ITEM_SLOT_ID, slot_rect);
         if slot_resp.hovered() {
             ui.any_interactive_hovered = true;

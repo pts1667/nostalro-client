@@ -16,7 +16,6 @@ const BTN_H: f32 = 26.0;
 const BTN_SPACING: f32 = 8.0;
 
 pub struct MapMissingWindow {
-    pub has_grf_textures: bool,
     open: bool,
     map_name: String,
 }
@@ -24,7 +23,6 @@ pub struct MapMissingWindow {
 impl MapMissingWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             open: false,
             map_name: String::new(),
         }
@@ -51,8 +49,6 @@ impl MapMissingWindow {
 
         // Rendered entirely with fallback (untextured) chrome so it works even
         // when the GRF is unusable.
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = false;
 
         let sw = ui.ctx.screen_width;
         let sh = ui.ctx.screen_height;
@@ -97,7 +93,6 @@ impl MapMissingWindow {
             self.hide();
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -109,15 +104,6 @@ impl Default for MapMissingWindow {
 }
 
 impl Window for MapMissingWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![]
-    }
 }
 
 fn push_color_quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {

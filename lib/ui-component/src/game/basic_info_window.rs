@@ -1,4 +1,3 @@
-use crate::helper::{ButtonTextures};
 use crate::helper::window_chrome::{draw_sys_button, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::character::{Character, job_class_name};
@@ -7,53 +6,13 @@ use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
-const BTN_CHAT: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_DIALOG_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_DIALOG_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_DIALOG_ON,
-};
 
-const BTN_PARTY: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_FRIEND_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_FRIEND_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_FRIEND_ON,
-};
 
-const BTN_SKILL: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_SKILL_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_SKILL_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_SKILL_ON,
-};
 
-const BTN_MAP: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_MAP_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_MAP_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_MAP_ON,
-};
 
-const BTN_ITEM: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_ITEMS_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_ITEMS_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_ITEMS_ON,
-};
 
-const BTN_EQUIP: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_EQUIP_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_EQUIP_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_EQUIP_ON,
-};
 
-const BTN_STATUS: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_STATUS_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_STATUS_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_STATUS_ON,
-};
 
-const BTN_OPTION: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_OPTION_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_OPTION_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_OPTION_ON,
-};
 
 pub const BASIC_INFO_WINDOW_ID: WidgetId = WidgetId(1400);
 const MINI_BTN_ID: WidgetId = WidgetId(1401);
@@ -67,20 +26,8 @@ const BTN_SKILL_ID: WidgetId = WidgetId(1415);
 const BTN_PARTY_ID: WidgetId = WidgetId(1416);
 const BTN_CHAT_ID: WidgetId = WidgetId(1417);
 
-const BG_TEX: &str = ragnarok_resources::ui::basic::BASEWIN_BG;
-const BG_MINI_TEX: &str = ragnarok_resources::ui::basic::BASEWIN_MINI;
 
-const BAR_RED_LEFT: &str = ragnarok_resources::ui::basic::GZERED_LEFT;
-const BAR_RED_MID: &str = ragnarok_resources::ui::basic::GZERED_MID;
-const BAR_RED_RIGHT: &str = ragnarok_resources::ui::basic::GZERED_RIGHT;
-const BAR_BLUE_LEFT: &str = ragnarok_resources::ui::basic::GZEBLUE_LEFT;
-const BAR_BLUE_MID: &str = ragnarok_resources::ui::basic::GZEBLUE_MID;
-const BAR_BLUE_RIGHT: &str = ragnarok_resources::ui::basic::GZEBLUE_RIGHT;
 
-const SYS_BASE_OFF: &str = ragnarok_resources::ui::basic::SYS_BASE_OFF;
-const SYS_BASE_ON: &str = ragnarok_resources::ui::basic::SYS_BASE_ON;
-const SYS_MINI_OFF: &str = ragnarok_resources::ui::basic::SYS_MINI_OFF;
-const SYS_MINI_ON: &str = ragnarok_resources::ui::basic::SYS_MINI_ON;
 
 const WIN_W: f32 = 280.0;
 const WIN_H_LARGE: f32 = 120.0;
@@ -92,13 +39,10 @@ const HP_BAR_Y: f32 = 22.0;
 const SP_BAR_Y: f32 = 43.0;
 const BAR_W: f32 = 85.0;
 const BAR_H: f32 = 8.0;
-const BAR_CAP_W: f32 = 4.0;
-const BAR_MID_MAX: f32 = 77.0; // 85 - 4 - 4
-
-const EXP_BAR_X: f32 = 84.0;
 const EXP_BAR_Y: f32 = 77.0;
 const JEXP_BAR_Y: f32 = 88.0;
 const EXP_BAR_W: f32 = 100.0;
+const EXP_BAR_X: f32 = 84.0;
 const EXP_BAR_H: f32 = 4.0;
 
 const BUTTONS_RIGHT: f32 = 8.0;
@@ -110,15 +54,13 @@ const MENU_BTN_SPACING_Y: f32 = 4.0;
 
 const SHADOW_DRAIN_SPEED: f32 = 3.0;
 
+
+
 pub struct BasicInfoWindow {
-    pub has_grf_textures: bool,
     hidden: bool,
     minimized: bool,
     hp_shadow: f32,
     sp_shadow: f32,
-    bg_size: (f32, f32),
-    bg_mini_size: (f32, f32),
-    bar_cap_size: (f32, f32),
     menu_btn_size: (f32, f32),
     sys_btn_size: (f32, f32),
 }
@@ -132,14 +74,10 @@ impl Default for BasicInfoWindow {
 impl BasicInfoWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             hidden: false,
             minimized: false,
             hp_shadow: 1.0,
             sp_shadow: 1.0,
-            bg_size: (0.0, 0.0),
-            bg_mini_size: (0.0, 0.0),
-            bar_cap_size: (BAR_CAP_W, BAR_H),
             menu_btn_size: (MENU_BTN_W, MENU_BTN_H),
             sys_btn_size: (11.0, 11.0),
         }
@@ -158,54 +96,6 @@ impl BasicInfoWindow {
         } else {
             *shadow = current;
         }
-    }
-
-    fn draw_bar_grf(
-        ui: &mut UiFrame,
-        x: f32,
-        y: f32,
-        fill_pct: f32,
-        is_red: bool,
-        bar_cap_size: (f32, f32),
-    ) {
-        if fill_pct <= 0.0 {
-            return;
-        }
-        let pct = fill_pct.clamp(0.0, 1.0);
-        let mid_w = (pct * BAR_MID_MAX).floor();
-        let cap_w = bar_cap_size.0;
-        let cap_h = bar_cap_size.1;
-
-        let (left_tex, mid_tex, right_tex) = if is_red {
-            (BAR_RED_LEFT, BAR_RED_MID, BAR_RED_RIGHT)
-        } else {
-            (BAR_BLUE_LEFT, BAR_BLUE_MID, BAR_BLUE_RIGHT)
-        };
-
-        let white = [1.0, 1.0, 1.0, 1.0];
-
-        let (v, i) = draw::quad_vertices(x, y, cap_w, cap_h, white);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::Named(left_tex.to_string()),
-        });
-
-        if mid_w > 0.0 {
-            let (v, i) = draw::quad_vertices(x + cap_w, y, mid_w, cap_h, white);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(mid_tex.to_string()),
-            });
-        }
-
-        let (v, i) = draw::quad_vertices(x + cap_w + mid_w, y, cap_w, cap_h, white);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::Named(right_tex.to_string()),
-        });
     }
 
     fn draw_bar_fallback(
@@ -260,22 +150,12 @@ impl BasicInfoWindow {
         win: Rect,
     ) -> Vec<GameEvent> {
         let mut events = Vec::new();
-        let grf = self.has_grf_textures;
         let tc = text_color();
         let x = win.x;
         let y = win.y;
         let delta = ui.elapsed_secs;
 
-        if grf && self.bg_size.0 > 0.0 {
-            let (v, i) = draw::quad_vertices(x, y, self.bg_size.0, self.bg_size.1, [1.0; 4]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(BG_TEX.to_string()),
-            });
-        } else {
-            crate::helper::fallback::panel(ui, x, y, WIN_W, WIN_H_LARGE);
-        }
+        crate::helper::fallback::panel(ui, x, y, WIN_W, WIN_H_LARGE);
 
         let close_rect = Rect::new(x + 4.0, y + 3.0, self.sys_btn_size.0, self.sys_btn_size.1);
         let close_resp = ui.interact(CLOSE_BTN_ID, close_rect);
@@ -328,33 +208,22 @@ impl BasicInfoWindow {
         let is_red = hp_pct < 0.25;
 
         ui.text(x + 90.0, y + 39.0, "HP", tc);
-        if grf {
-            Self::draw_bar_grf(
-                ui,
-                x + HP_BAR_X,
-                y + HP_BAR_Y,
-                hp_pct,
-                is_red,
-                self.bar_cap_size,
-            );
+        let hp_fill = if is_red {
+            [0.8, 0.2, 0.2, 1.0]
         } else {
-            let hp_fill = if is_red {
-                [0.8, 0.2, 0.2, 1.0]
-            } else {
-                [0.2, 0.4, 0.8, 1.0]
-            };
-            Self::draw_bar_fallback(
-                ui,
-                x + HP_BAR_X,
-                y + HP_BAR_Y,
-                BAR_W,
-                BAR_H,
-                hp_pct,
-                self.hp_shadow,
-                hp_fill,
-                [0.4, 0.4, 0.6, 0.7],
-            );
-        }
+            [0.2, 0.4, 0.8, 1.0]
+        };
+        Self::draw_bar_fallback(
+            ui,
+            x + HP_BAR_X,
+            y + HP_BAR_Y,
+            BAR_W,
+            BAR_H,
+            hp_pct,
+            self.hp_shadow,
+            hp_fill,
+            [0.4, 0.4, 0.6, 0.7],
+        );
         let hp_text = format!("{} / {}", character.hp, character.max_hp);
         ui.text_centered(
             x + HP_BAR_X,
@@ -377,29 +246,18 @@ impl BasicInfoWindow {
         Self::update_shadow(&mut self.sp_shadow, sp_pct, delta);
 
         ui.text(x + 90.0, y + 59.0, "SP", tc);
-        if grf {
-            Self::draw_bar_grf(
-                ui,
-                x + HP_BAR_X,
-                y + SP_BAR_Y,
-                sp_pct,
-                false,
-                self.bar_cap_size,
-            );
-        } else {
-            let sp_fill = [0.2, 0.7, 0.3, 1.0];
-            Self::draw_bar_fallback(
-                ui,
-                x + HP_BAR_X,
-                y + SP_BAR_Y,
-                BAR_W,
-                BAR_H,
-                sp_pct,
-                self.sp_shadow,
-                sp_fill,
-                [0.3, 0.5, 0.3, 0.7],
-            );
-        }
+        let sp_fill = [0.2, 0.7, 0.3, 1.0];
+        Self::draw_bar_fallback(
+            ui,
+            x + HP_BAR_X,
+            y + SP_BAR_Y,
+            BAR_W,
+            BAR_H,
+            sp_pct,
+            self.sp_shadow,
+            sp_fill,
+            [0.3, 0.5, 0.3, 0.7],
+        );
         let sp_text = format!("{} / {}", character.sp, character.max_sp);
         ui.text_centered(
             x + HP_BAR_X,
@@ -529,22 +387,11 @@ impl BasicInfoWindow {
         job_class: u16,
         win: Rect,
     ) -> Vec<GameEvent> {
-        let grf = self.has_grf_textures;
         let tc = text_color();
         let x = win.x;
         let y = win.y;
 
-        if grf && self.bg_mini_size.0 > 0.0 {
-            let (v, i) =
-                draw::quad_vertices(x, y, self.bg_mini_size.0, self.bg_mini_size.1, [1.0; 4]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(BG_MINI_TEX.to_string()),
-            });
-        } else {
-            crate::helper::fallback::panel(ui, x, y, WIN_W, WIN_H_SMALL);
-        }
+        crate::helper::fallback::panel(ui, x, y, WIN_W, WIN_H_SMALL);
 
         let name = if character.name.is_empty() {
             "Unknown"
@@ -593,66 +440,9 @@ impl BasicInfoWindow {
 }
 
 impl Window for BasicInfoWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(BG_TEX) {
-            self.bg_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(BG_MINI_TEX) {
-            self.bg_mini_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(BAR_BLUE_LEFT) {
-            self.bar_cap_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(BTN_EQUIP.normal) {
-            self.menu_btn_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(SYS_MINI_OFF) {
-            self.sys_btn_size = (w as f32, h as f32);
-        }
-    }
 
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, WIN_H_LARGE)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            BG_TEX,
-            BG_MINI_TEX,
-            BAR_RED_LEFT,
-            BAR_RED_MID,
-            BAR_RED_RIGHT,
-            BAR_BLUE_LEFT,
-            BAR_BLUE_MID,
-            BAR_BLUE_RIGHT,
-            SYS_BASE_OFF,
-            SYS_BASE_ON,
-            SYS_MINI_OFF,
-            SYS_MINI_ON,
-            BTN_OPTION.normal,
-            BTN_OPTION.hover,
-            BTN_STATUS.normal,
-            BTN_STATUS.hover,
-            BTN_EQUIP.normal,
-            BTN_EQUIP.hover,
-            BTN_ITEM.normal,
-            BTN_ITEM.hover,
-            BTN_MAP.normal,
-            BTN_MAP.hover,
-            BTN_SKILL.normal,
-            BTN_SKILL.hover,
-            BTN_PARTY.normal,
-            BTN_PARTY.hover,
-            BTN_CHAT.normal,
-            BTN_CHAT.hover,
-        ]
     }
 }
 
@@ -664,8 +454,6 @@ impl InGameWindow for BasicInfoWindow {
         if self.hidden {
             return Vec::new();
         }
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
 
         let win_h = if self.minimized {
             WIN_H_SMALL
@@ -683,7 +471,6 @@ impl InGameWindow for BasicInfoWindow {
             self.build_large(ui, character, job_class, win)
         };
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

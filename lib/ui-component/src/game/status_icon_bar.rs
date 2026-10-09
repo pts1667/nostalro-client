@@ -18,15 +18,11 @@ const WEDGE_NORMAL: [f32; 4] = [1.0, 1.0, 1.0, 0.65];
 const WEDGE_FINAL: [f32; 4] = [1.0, 0.59, 0.20, 0.65];
 
 #[derive(Default)]
-pub struct StatusIconBarWindow {
-    pub has_grf_textures: bool,
-}
+pub struct StatusIconBarWindow {}
 
 impl StatusIconBarWindow {
     pub fn new() -> Self {
-        Self {
-            has_grf_textures: true,
-        }
+        Self {}
     }
 }
 
@@ -38,17 +34,7 @@ fn category_color(cat: StatusCategory) -> [f32; 4] {
     }
 }
 
-impl Window for StatusIconBarWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        Vec::new()
-    }
-}
+impl Window for StatusIconBarWindow {}
 
 impl InGameWindow for StatusIconBarWindow {
     fn build(&mut self, ui: &mut UiFrame, ctx: &mut BuildCtx) -> Vec<GameEvent> {

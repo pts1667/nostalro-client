@@ -21,7 +21,7 @@ pub fn build_in_game_ui(
     game: &mut GameState,
     windows: &mut Windows,
     ui: &mut UiFrame,
-    texture_size_fn: &dyn Fn(&str) -> Option<(u32, u32)>,
+    _texture_size_fn: &dyn Fn(&str) -> Option<(u32, u32)>,
     _render_list: &[RenderEntry],
 ) -> Vec<GameEvent> {
     let mut events = Vec::new();
@@ -242,10 +242,8 @@ pub fn build_in_game_ui(
             {
                 if item.count > 1 {
                     let mut dialog = DropQuantityDialog::new(item.index, item.count, &item.name);
-                    dialog.has_grf_textures = windows.drop_dialog_has_grf_textures;
-                    if dialog.has_grf_textures {
-                        dialog.set_texture_sizes(texture_size_fn);
-                    }
+                    dialog.set_has_grf_textures(windows.drop_dialog_has_grf_textures);
+                    if dialog.has_grf_textures() {}
                     windows.drop_quantity_dialog = Some(dialog);
                 } else {
                     events.push(GameEvent::RequestDropItem {
@@ -269,10 +267,8 @@ pub fn build_in_game_ui(
     }
 
     if let Some(dialog) = &mut windows.guild_expel_dialog {
-        dialog.has_grf_textures = windows.drop_dialog_has_grf_textures;
-        if dialog.has_grf_textures {
-            dialog.set_texture_sizes(texture_size_fn);
-        }
+        dialog.set_has_grf_textures(windows.drop_dialog_has_grf_textures);
+        if dialog.has_grf_textures() {}
     }
     run_transient_dialog(
         &mut windows.guild_expel_dialog,
@@ -283,10 +279,8 @@ pub fn build_in_game_ui(
     );
 
     if let Some(dialog) = &mut windows.skill_talkbox_dialog {
-        dialog.has_grf_textures = windows.drop_dialog_has_grf_textures;
-        if dialog.has_grf_textures {
-            dialog.set_texture_sizes(texture_size_fn);
-        }
+        dialog.set_has_grf_textures(windows.drop_dialog_has_grf_textures);
+        if dialog.has_grf_textures() {}
     }
     run_transient_dialog(
         &mut windows.skill_talkbox_dialog,

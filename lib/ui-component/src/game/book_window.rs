@@ -1,6 +1,5 @@
-use crate::helper::{ButtonTextures};
 use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_sys_button, draw_titlebar, text_color,
+    draw_sys_button, draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::book::BookContent;
@@ -9,25 +8,13 @@ use ragnarok_ui::draw::{self, DrawCall, TextureRef, strip_color_codes, word_wrap
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
-const NEXT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_NEXT,
-    hover: ragnarok_resources::ui::BTN_NEXT_A,
-    pressed: ragnarok_resources::ui::BTN_NEXT_B,
-};
 
-const PREV_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_BACK,
-    hover: ragnarok_resources::ui::BTN_BACK_A,
-    pressed: ragnarok_resources::ui::BTN_BACK_B,
-};
 
 pub const BOOK_WINDOW_ID: WidgetId = WidgetId(2500);
 const PREV_BTN_ID: WidgetId = WidgetId(2501);
 const NEXT_BTN_ID: WidgetId = WidgetId(2502);
 const CLOSE_BTN_ID: WidgetId = WidgetId(2503);
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
 const WIN_W: f32 = 555.0;
 const WIN_H: f32 = 455.0;
@@ -42,7 +29,6 @@ const NAV_BTN_W: f32 = 42.0;
 const NAV_BTN_H: f32 = 20.0;
 
 pub struct BookWindow {
-    pub has_grf_textures: bool,
     content: Option<BookContent>,
     wrapped_lines: Vec<String>,
     page: usize,
@@ -57,7 +43,6 @@ impl Default for BookWindow {
 impl BookWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             content: None,
             wrapped_lines: Vec::new(),
             page: 0,
@@ -82,30 +67,8 @@ impl BookWindow {
 }
 
 impl Window for BookWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, WIN_H)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            PREV_BTN.normal,
-            PREV_BTN.hover,
-            PREV_BTN.pressed,
-            NEXT_BTN.normal,
-            NEXT_BTN.hover,
-            NEXT_BTN.pressed,
-        ]
     }
 }
 
@@ -126,8 +89,6 @@ impl InGameWindow for BookWindow {
             return Vec::new();
         }
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
 
         let bg = self.content.as_ref().unwrap().bg_color;
         if self.wrapped_lines.is_empty() {
@@ -202,7 +163,6 @@ impl InGameWindow for BookWindow {
         );
         if close_resp.clicked() {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return Vec::new();
         }
 
@@ -231,7 +191,6 @@ impl InGameWindow for BookWindow {
             }
         }
 
-        ui.has_grf_textures = prev_grf;
         Vec::new()
     }
 }

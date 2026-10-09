@@ -1,7 +1,6 @@
-use crate::helper::{ButtonTextures};
-use crate::helper::dropdown::{self, Dropdown};
+use crate::helper::dropdown::Dropdown;
 use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button,
+    draw_container, draw_footer, draw_sys_button,
     draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -11,17 +10,7 @@ use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
 
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
 
 pub const CHAT_ROOM_CREATE_WINDOW_ID: WidgetId = WidgetId(1710);
 const CLOSE_BTN_ID: WidgetId = WidgetId(1711);
@@ -39,10 +28,6 @@ const TYPE_OPTION_BASE: u32 = 1730;
 const LIMIT_OPTIONS: [i16; 5] = [20, 12, 8, 4, 2];
 const TYPE_OPTIONS: [&str; 1] = ["Chat Room"];
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const RADIO_ON_TEX: &str = ragnarok_resources::ui::RADIOBTN_ON;
-const RADIO_OFF_TEX: &str = ragnarok_resources::ui::RADIOBTN_OFF;
 const WIN_W: f32 = 330.0;
 const TITLE_H: f32 = 17.0;
 const FOOTER_H: f32 = 30.0;
@@ -55,7 +40,6 @@ const FALLBACK_BTN_H: f32 = 20.0;
 const BODY_ROWS: f32 = 3.0;
 
 pub struct ChatRoomCreateWindow {
-    has_grf_textures: bool,
     open: bool,
     title: TextInput,
     limit: i16,
@@ -76,7 +60,6 @@ impl Default for ChatRoomCreateWindow {
 impl ChatRoomCreateWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             open: false,
             title: TextInput::new(60, false),
             limit: 20,
@@ -130,64 +113,24 @@ impl ChatRoomCreateWindow {
         self.open = false;
     }
 
-    fn draw_radio(ui: &mut UiFrame, x: f32, y: f32, on: bool, grf: bool) {
-        if grf {
-            let tex = if on { RADIO_ON_TEX } else { RADIO_OFF_TEX };
-            let (v, i) = draw::quad_vertices(x, y, 12.0, 12.0, [1.0; 4]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(tex.to_string()),
-            });
+    fn draw_radio(ui: &mut UiFrame, x: f32, y: f32, on: bool) {
+        let c = if on {
+            [0.3, 0.6, 0.9, 1.0]
         } else {
-            let c = if on {
-                [0.3, 0.6, 0.9, 1.0]
-            } else {
-                [0.3, 0.3, 0.35, 1.0]
-            };
-            let (v, i) = draw::quad_vertices(x, y + 2.0, 10.0, 10.0, c);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
-        }
+            [0.3, 0.3, 0.35, 1.0]
+        };
+        let (v, i) = draw::quad_vertices(x, y + 2.0, 10.0, 10.0, c);
+        ui.draw_calls.push(DrawCall {
+            vertices: v.to_vec(),
+            indices: i.to_vec(),
+            texture: TextureRef::White,
+        });
     }
 }
 
 impl Window for ChatRoomCreateWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, TITLE_H + (PAD + ROW_H * BODY_ROWS + PAD) + FOOTER_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            RADIO_ON_TEX,
-            RADIO_OFF_TEX,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ];
-        paths.extend(dropdown::grf_texture_paths());
-        paths
     }
 }
 
@@ -211,15 +154,8 @@ impl InGameWindow for ChatRoomCreateWindow {
         self.limit_dropdown.begin_frame();
         self.type_dropdown.begin_frame();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
         let tc = text_color();
-        let bg = if grf {
-            TextInputBg::Gray
-        } else {
-            TextInputBg::Default
-        };
+        let bg = TextInputBg::Default;
 
         let body_h = PAD + ROW_H * BODY_ROWS + PAD;
         let win_h = TITLE_H + body_h + FOOTER_H;
@@ -261,7 +197,6 @@ impl InGameWindow for ChatRoomCreateWindow {
         );
         if close_resp.clicked() {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -319,14 +254,14 @@ impl InGameWindow for ChatRoomCreateWindow {
 
         // Public / Private
         ui.text(x + PAD, row_y + 12.0, "Public :", tc);
-        Self::draw_radio(ui, field_x, row_y + 2.0, self.public, grf);
+        Self::draw_radio(ui, field_x, row_y + 2.0, self.public);
         ui.text(field_x + 16.0, row_y + 12.0, "Public", tc);
         let pub_rect = Rect::new(field_x, row_y, 48.0, ROW_H);
         if !overlay_hit && ui.interact(RADIO_PUBLIC_ID, pub_rect).clicked() {
             self.public = true;
         }
         let priv_x = field_x + 50.0;
-        Self::draw_radio(ui, priv_x, row_y + 2.0, !self.public, grf);
+        Self::draw_radio(ui, priv_x, row_y + 2.0, !self.public);
         ui.text(priv_x + 16.0, row_y + 12.0, "Private", tc);
         let priv_rect = Rect::new(priv_x, row_y, right_label_x - priv_x, ROW_H);
         if !overlay_hit && ui.interact(RADIO_PRIVATE_ID, priv_rect).clicked() {
@@ -400,7 +335,6 @@ impl InGameWindow for ChatRoomCreateWindow {
             self.close();
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

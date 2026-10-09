@@ -1,6 +1,5 @@
-use crate::helper::{ButtonTextures};
 use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button,
+    draw_container, draw_footer, draw_sys_button,
     draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -9,17 +8,7 @@ use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
 
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
 
 pub const STORAGE_PASSWORD_WINDOW_ID: WidgetId = WidgetId(5000);
 const CLOSE_BTN_ID: WidgetId = WidgetId(5001);
@@ -29,8 +18,6 @@ const CONFIRM_INPUT_ID: WidgetId = WidgetId(5004);
 const OK_ID: WidgetId = WidgetId(5005);
 const CANCEL_ID: WidgetId = WidgetId(5006);
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 const WIN_W: f32 = 240.0;
 const TITLE_H: f32 = 17.0;
 const FOOTER_H: f32 = 30.0;
@@ -59,7 +46,6 @@ pub enum StoragePasswordMode {
 }
 
 pub struct StoragePasswordWindow {
-    pub has_grf_textures: bool,
     open: bool,
     mode: StoragePasswordMode,
     password: TextInput,
@@ -79,7 +65,6 @@ impl Default for StoragePasswordWindow {
 impl StoragePasswordWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             open: false,
             mode: StoragePasswordMode::Enter,
             password: TextInput::new(MAX_LEN, true),
@@ -210,34 +195,8 @@ impl StoragePasswordWindow {
 }
 
 impl Window for StoragePasswordWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, TITLE_H + self.body_h() + FOOTER_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ]
     }
 }
 
@@ -261,15 +220,8 @@ impl InGameWindow for StoragePasswordWindow {
         }
         let mut events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
         let tc = text_color();
-        let bg = if grf {
-            TextInputBg::Gray
-        } else {
-            TextInputBg::Default
-        };
+        let bg = TextInputBg::Default;
 
         let body_h = self.body_h();
         let win_h = TITLE_H + body_h + FOOTER_H;
@@ -306,7 +258,6 @@ impl InGameWindow for StoragePasswordWindow {
         );
         if close_resp.clicked() {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -378,7 +329,6 @@ impl InGameWindow for StoragePasswordWindow {
             self.submit(&mut events);
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

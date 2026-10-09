@@ -1,4 +1,3 @@
-use crate::helper::{ButtonTextures};
 use super::cart_window::CART_WINDOW_ID;
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use super::inventory_window::INV_WINDOW_ID;
@@ -6,7 +5,7 @@ use super::inventory_window::{TAB_EQUIP_TEX, TAB_ETC_TEX, TAB_USABLE_TEX};
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    FOOTER_TEX, ITEMWIN_MID_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_titlebar,
+    draw_container, draw_footer, draw_titlebar,
     text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -18,11 +17,6 @@ use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
-const CLOSE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_CLOSE,
-    hover: ragnarok_resources::ui::basic::BTN_CLOSE_A,
-    pressed: ragnarok_resources::ui::basic::BTN_CLOSE_B,
-};
 
 pub const STORAGE_WINDOW_ID: WidgetId = WidgetId(3800);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3801);
@@ -65,7 +59,6 @@ enum PendingMove {
 }
 
 pub struct StorageWindow {
-    pub has_grf_textures: bool,
     active_tab: InventoryTab,
     scroll_offset: usize,
     rows: usize,
@@ -85,7 +78,6 @@ impl Default for StorageWindow {
 impl StorageWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             active_tab: InventoryTab::Usable,
             scroll_offset: 0,
             rows: DEFAULT_ROWS,
@@ -137,41 +129,8 @@ impl StorageWindow {
 }
 
 impl Window for StorageWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-        self.container.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(TAB_USABLE_TEX) {
-            self.tab_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(CLOSE_BTN.normal) {
-            self.close_size = (w as f32, h as f32);
-        }
-        self.container.set_texture_sizes(size_fn);
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, self.win_h())
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            ITEMWIN_MID_TEX,
-            FOOTER_TEX,
-            ragnarok_resources::ui::BTN_RESIZE,
-            CLOSE_BTN.normal,
-            CLOSE_BTN.hover,
-            CLOSE_BTN.pressed,
-            TAB_USABLE_TEX,
-            TAB_EQUIP_TEX,
-            TAB_ETC_TEX,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths.extend(InputDialog::grf_texture_paths());
-        paths
     }
 }
 
@@ -205,9 +164,6 @@ impl InGameWindow for StorageWindow {
         let card_name_table = data.card_name.as_ref();
         let producers = &character.char_names;
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
         let tc = text_color();
 
         if let Some((_, dialog)) = &self.qty_dialog {
@@ -228,20 +184,11 @@ impl InGameWindow for StorageWindow {
 
         // --- Tab column (left), reusing the inventory 3-tab strip ---
         let (tab_w, tab_img_h) = self.tab_size;
-        let active_tex = match self.active_tab {
+        let _active_tex = match self.active_tab {
             InventoryTab::Usable => TAB_USABLE_TEX,
             InventoryTab::Equip => TAB_EQUIP_TEX,
             InventoryTab::Etc => TAB_ETC_TEX,
         };
-        if grf {
-            let (v, i) =
-                draw::quad_vertices(x, container_y, tab_w, tab_img_h, [1.0, 1.0, 1.0, 1.0]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(active_tex.to_string()),
-            });
-        }
         let tab_btn_h = tab_img_h / 3.0;
         for (i, (tab, _, label)) in TAB_DEFS.iter().enumerate() {
             let ty = container_y + i as f32 * tab_btn_h;
@@ -250,24 +197,22 @@ impl InGameWindow for StorageWindow {
             if resp.hovered() {
                 ui.any_interactive_hovered = true;
             }
-            if !grf {
-                let active = self.active_tab == *tab;
-                crate::helper::fallback::cell(
-                    ui,
-                    x,
-                    ty,
-                    tab_w,
-                    tab_btn_h,
-                    active || resp.hovered(),
-                );
-                let tw = ui.atlas.measure_text(label);
-                ui.text(
-                    x + (tab_w - tw) / 2.0,
-                    ty + tab_btn_h / 2.0 + 4.0,
-                    label,
-                    tc,
-                );
-            }
+            let active = self.active_tab == *tab;
+            crate::helper::fallback::cell(
+                ui,
+                x,
+                ty,
+                tab_w,
+                tab_btn_h,
+                active || resp.hovered(),
+            );
+            let tw = ui.atlas.measure_text(label);
+            ui.text(
+                x + (tab_w - tw) / 2.0,
+                ty + tab_btn_h / 2.0 + 4.0,
+                label,
+                tc,
+            );
             if resp.clicked() && self.active_tab != *tab {
                 self.active_tab = *tab;
                 self.scroll_offset = 0;
@@ -297,16 +242,7 @@ impl InGameWindow for StorageWindow {
             let ry = container_y + row as f32 * ROW_H;
             let icon_y = ry + (ROW_H - ICON) / 2.0;
 
-            if grf {
-                let (v, i) = draw::quad_vertices(list_x + 2.0, icon_y, ICON, ICON, [1.0; 4]);
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: TextureRef::Named(ITEMWIN_MID_TEX.to_string()),
-                });
-            } else {
-                crate::helper::fallback::slot_cell(ui, list_x + 2.0, icon_y, ICON, ICON);
-            }
+            crate::helper::fallback::slot_cell(ui, list_x + 2.0, icon_y, ICON, ICON);
 
             let Some(item) = filtered.get(item_idx) else {
                 continue;
@@ -504,7 +440,6 @@ impl InGameWindow for StorageWindow {
             character.storage.clear();
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

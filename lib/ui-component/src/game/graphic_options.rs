@@ -1,8 +1,5 @@
-use crate::helper::CHECKBOX;
 use crate::helper::dropdown::Dropdown;
-use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_sys_button, draw_titlebar, text_color,
-};
+use crate::helper::window_chrome::{draw_sys_button, draw_titlebar, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::cursor::MouseSnapPrefs;
 use ragnarok_game::display::DisplayOptions;
@@ -36,9 +33,6 @@ const UI_SCALE_OPTION_BASE: u32 = 4230;
 
 const UI_SCALE_OPTIONS: [u32; 6] = [75, 100, 125, 150, 175, 200];
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-
 const WIN_W: f32 = 280.0;
 const TITLE_H: f32 = 20.0;
 const CLOSE_SIZE: f32 = 11.0;
@@ -51,7 +45,6 @@ const CB_SIZE: f32 = 11.0;
 #[derive(Default)]
 pub struct GraphicOptionsWindow {
     pub open: bool,
-    pub has_grf_textures: bool,
     selected_ui_scale: usize,
     fullscreen: bool,
     fog: bool,
@@ -142,27 +135,8 @@ impl GraphicOptionsWindow {
 }
 
 impl Window for GraphicOptionsWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, WIN_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            CHECKBOX.off,
-            CHECKBOX.on,
-        ];
-        paths.extend(crate::helper::dropdown::grf_texture_paths());
-        paths
     }
 }
 
@@ -184,8 +158,6 @@ impl InGameWindow for GraphicOptionsWindow {
             return Vec::new();
         }
         let mut events = Vec::new();
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
 
         let default_x = (ui.ctx.screen_width - WIN_W) / 2.0;
         let default_y = (ui.ctx.screen_height - WIN_H) / 2.0;
@@ -232,7 +204,6 @@ impl InGameWindow for GraphicOptionsWindow {
         if close_resp.clicked() {
             self.open = false;
             self.dropdown.open = false;
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -452,7 +423,6 @@ impl InGameWindow for GraphicOptionsWindow {
             events.push(self.changed_event());
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

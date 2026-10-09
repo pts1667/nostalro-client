@@ -1,10 +1,8 @@
-use crate::helper::{ButtonTextures};
-use crate::helper::CHECKBOX;
 use crate::helper::colors;
-use crate::helper::dropdown::{self, Dropdown};
+use crate::helper::dropdown::Dropdown;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    TITLEBAR_TEX, draw_container, draw_sys_button, draw_titlebar, text_color,
+    draw_container, draw_sys_button, draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_ai::config::{CompanionAiConfig, HomunConfig, MercConfig};
@@ -18,47 +16,12 @@ use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
-const MINUS_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::minimap::MAP_MINUS0,
-    hover: ragnarok_resources::ui::minimap::MAP_MINUS1,
-    pressed: ragnarok_resources::ui::minimap::MAP_MINUS1,
-};
 
-const PLUS_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::minimap::MAP_PLUS0,
-    hover: ragnarok_resources::ui::minimap::MAP_PLUS1,
-    pressed: ragnarok_resources::ui::minimap::MAP_PLUS1,
-};
 
-const NEXT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::ARW_RIGHT,
-    hover: ragnarok_resources::ui::basic::ARW_RIGHT_ON,
-    pressed: ragnarok_resources::ui::basic::ARW_RIGHT_ON,
-};
 
-const PREV_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::ARW_LEFT,
-    hover: ragnarok_resources::ui::basic::ARW_LEFT,
-    pressed: ragnarok_resources::ui::basic::ARW_LEFT,
-};
 
-const DEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_DEL,
-    hover: ragnarok_resources::ui::BTN_DEL_A,
-    pressed: ragnarok_resources::ui::BTN_DEL_B,
-};
 
-const ADD_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_ADD,
-    hover: ragnarok_resources::ui::BTN_ADD_A,
-    pressed: ragnarok_resources::ui::BTN_ADD_B,
-};
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
 
 pub const COMPANION_AI_CONFIG_WINDOW_ID: WidgetId = WidgetId(3200);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3201);
@@ -242,8 +205,6 @@ fn tactic_cols() -> Vec<FieldSpec<Tactic>> {
     ]
 }
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
 const WIN_W: f32 = 384.0;
 const WIN_H: f32 = 340.0;
@@ -1179,7 +1140,6 @@ fn build_rows<'a, C>(specs: &'a [FieldSpec<C>]) -> Vec<Row<'a>> {
 }
 
 pub struct CompanionAiConfigWindow {
-    pub has_grf_textures: bool,
     visible: bool,
     tab: usize,
     scroll_offset: usize,
@@ -1199,7 +1159,6 @@ impl Default for CompanionAiConfigWindow {
 impl CompanionAiConfigWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             visible: false,
             tab: 0,
             scroll_offset: 0,
@@ -1232,9 +1191,6 @@ impl CompanionAiConfigWindow {
         if !self.visible {
             return Vec::new();
         }
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
         let mut events = Vec::new();
         let tc = text_color();
         self.enum_dd.begin_frame();
@@ -1290,8 +1246,6 @@ impl CompanionAiConfigWindow {
             }
             let bg = if i == self.tab {
                 [0.72, 0.79, 0.93, 1.0]
-            } else if grf {
-                [0.70, 0.70, 0.74, 1.0]
             } else {
                 [0.95, 0.95, 0.96, 1.0]
             };
@@ -1314,7 +1268,6 @@ impl CompanionAiConfigWindow {
                     content_y,
                     content_h,
                     tc,
-                    grf,
                 );
             }
             1 => {
@@ -1327,7 +1280,6 @@ impl CompanionAiConfigWindow {
                     content_y,
                     content_h,
                     tc,
-                    grf,
                 );
             }
             2 => {
@@ -1338,7 +1290,6 @@ impl CompanionAiConfigWindow {
                     content_y,
                     content_h,
                     tc,
-                    grf,
                 );
             }
             3 => {
@@ -1349,7 +1300,6 @@ impl CompanionAiConfigWindow {
                     content_y,
                     content_h,
                     tc,
-                    grf,
                 );
             }
             _ => {
@@ -1394,7 +1344,6 @@ impl CompanionAiConfigWindow {
             events.push(GameEvent::ResetCompanionAiConfig);
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 
@@ -1408,7 +1357,6 @@ impl CompanionAiConfigWindow {
         y: f32,
         h: f32,
         tc: [f32; 4],
-        grf: bool,
     ) {
         let rows = build_rows(specs);
         let visible_rows = (h / ROW_H) as usize;
@@ -1463,7 +1411,7 @@ impl CompanionAiConfigWindow {
                     let wrect = Rect::new(widget_x, ry + 1.0, widget_w, ROW_H - 3.0);
                     let cur = (s.get)(cfg);
                     let (new, is_open) =
-                        self.render_widget(ui, slot, s, cur, wrect, content_rect, tc, grf);
+                        self.render_widget(ui, slot, s, cur, wrect, content_rect, tc);
                     if new != cur {
                         (s.set)(cfg, new);
                     }
@@ -1500,7 +1448,6 @@ impl CompanionAiConfigWindow {
         y: f32,
         h: f32,
         tc: [f32; 4],
-        grf: bool,
     ) {
         if rows.is_empty() {
             rows.push(Tactic::default_row());
@@ -1575,7 +1522,7 @@ impl CompanionAiConfigWindow {
             let wrect = Rect::new(widget_x, ry + 1.0, 130.0, ROW_H - 3.0);
             let cur = (spec.get)(sel);
             let (new, is_open) =
-                self.render_widget(ui, slot, spec, cur, wrect, content_bounds, tc, grf);
+                self.render_widget(ui, slot, spec, cur, wrect, content_bounds, tc);
             if new != cur {
                 (spec.set)(sel, new);
             }
@@ -1607,9 +1554,7 @@ impl CompanionAiConfigWindow {
         rect: Rect,
         content_bounds: Rect,
         tc: [f32; 4],
-        grf: bool,
     ) -> (i32, bool) {
-        let _ = grf;
         let base = ROW_WIDGET_BASE + slot as u32 * 3;
         match spec.widget {
             Widget::Bool => {
@@ -1717,43 +1662,8 @@ impl InGameWindow for CompanionAiConfigWindow {
 }
 
 impl Window for CompanionAiConfigWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, WIN_H)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            CHECKBOX.off,
-            CHECKBOX.on,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            ADD_BTN.normal,
-            ADD_BTN.hover,
-            ADD_BTN.pressed,
-            DEL_BTN.normal,
-            DEL_BTN.hover,
-            DEL_BTN.pressed,
-            PREV_BTN.normal,
-            NEXT_BTN.normal,
-            NEXT_BTN.hover,
-            PLUS_BTN.normal,
-            PLUS_BTN.hover,
-            MINUS_BTN.normal,
-            MINUS_BTN.hover,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths.extend(dropdown::grf_texture_paths());
-        paths
     }
 }
 

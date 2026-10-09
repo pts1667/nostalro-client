@@ -1,35 +1,16 @@
 use crate::Window;
-use crate::helper::{ButtonTextures};
 use ragnarok_game::event::{GameEvent, ServerInfo};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
 
 const FALLBACK_WIN_W: f32 = 280.0;
 const FALLBACK_BTN_W: f32 = 42.0;
 const FALLBACK_BTN_H: f32 = 20.0;
 
-const HEADER_H: f32 = 22.0;
-const LIST_X: f32 = 12.0;
-const LIST_BOTTOM: f32 = 32.0;
 const ROW_H: f32 = 17.0;
-const ROW_PAD_LEFT: f32 = 5.0;
-const ROW_PAD_TOP: f32 = 2.0;
-const OK_BTN_RIGHT: f32 = 50.0;
-const CANCEL_BTN_RIGHT: f32 = 5.0;
-const BTN_BOTTOM: f32 = 4.0;
 
 pub const SERVER_LIST_WINDOW_ID: WidgetId = WidgetId(110);
 const FALLBACK_TITLE_BAR_H: f32 = 30.0;
@@ -37,18 +18,13 @@ const FALLBACK_TITLE_BAR_H: f32 = 30.0;
 const OK_ID: WidgetId = WidgetId(100);
 const CANCEL_ID: WidgetId = WidgetId(101);
 
-const WIN_TEXTURE: &str = ragnarok_resources::ui::login::WIN_SERVICE;
 
-const SELECTED_COLOR: [f32; 4] = [0.804, 0.878, 1.0, 1.0];
-const LIST_BG_COLOR: [f32; 4] = [0.969, 0.969, 0.969, 1.0];
-const LIST_BORDER_COLOR: [f32; 4] = [0.78, 0.78, 0.78, 1.0];
+
+
 
 pub struct ServerListWindow {
     pub servers: Vec<ServerInfo>,
     pub selected_index: Option<usize>,
-    pub has_grf_textures: bool,
-    win_size: (f32, f32),
-    btn_size: (f32, f32),
 }
 
 impl ServerListWindow {
@@ -57,9 +33,6 @@ impl ServerListWindow {
         Self {
             servers,
             selected_index,
-            has_grf_textures: false,
-            win_size: (FALLBACK_WIN_W, FALLBACK_WIN_W),
-            btn_size: (FALLBACK_BTN_W, FALLBACK_BTN_H),
         }
     }
 
@@ -79,11 +52,7 @@ impl ServerListWindow {
             self.selected_index = Some(idx - 1);
         }
 
-        if self.has_grf_textures {
-            self.build_grf(ui, &mut events);
-        } else {
-            self.build_fallback(ui, &mut events);
-        }
+        self.build_fallback(ui, &mut events);
 
         if ui.ctx.key_enter && self.selected_index.is_some() {
             events.push(GameEvent::RequestSelectServer {
@@ -95,124 +64,6 @@ impl ServerListWindow {
         }
 
         events
-    }
-
-    fn build_grf(&mut self, ui: &mut UiFrame, events: &mut Vec<GameEvent>) {
-        let (win_w, win_h) = self.win_size;
-        let (btn_w, btn_h) = self.btn_size;
-        let header_h = HEADER_H;
-        let list_x = LIST_X;
-        let row_h = ROW_H;
-        let win = ui.window_account(SERVER_LIST_WINDOW_ID, win_w, win_h, header_h);
-
-        let (v, i) = draw::quad_vertices(win.x, win.y, win_w, win_h, [1.0, 1.0, 1.0, 1.0]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::Named(WIN_TEXTURE.to_string()),
-        });
-
-        let list_w = win_w - list_x * 2.0;
-        let list_h = win_h - header_h - (LIST_BOTTOM);
-        let list_rect = Rect::new(win.x + list_x, win.y + header_h, list_w, list_h);
-        let (v, i) = draw::quad_vertices(
-            list_rect.x,
-            list_rect.y,
-            list_rect.w,
-            list_rect.h,
-            LIST_BG_COLOR,
-        );
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::White,
-        });
-
-        let b = 1.0;
-        for (bx, by, bw, bh) in [
-            (list_rect.x, list_rect.y, list_rect.w, b),
-            (list_rect.x, list_rect.y + list_rect.h - b, list_rect.w, b),
-            (list_rect.x, list_rect.y, b, list_rect.h),
-            (list_rect.x + list_rect.w - b, list_rect.y, b, list_rect.h),
-        ] {
-            let (v, i) = draw::quad_vertices(bx, by, bw, bh, LIST_BORDER_COLOR);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
-        }
-
-        let text_color = [0.0, 0.0, 0.0, 1.0];
-        for (idx, server) in self.servers.iter().enumerate() {
-            let row_y = list_rect.y + (ROW_PAD_TOP) + idx as f32 * row_h;
-            if row_y + row_h > list_rect.y + list_rect.h {
-                break;
-            }
-            let row_rect = Rect::new(list_rect.x + 1.0, row_y, list_w - 2.0, row_h);
-            let row = ui.interact(
-                WidgetId(SERVER_LIST_WINDOW_ID.0 + 10 + idx as u32),
-                row_rect,
-            );
-            if row.hovered() {
-                ui.any_interactive_hovered = true;
-            }
-            if row.clicked() {
-                self.selected_index = Some(idx);
-            }
-
-            if self.selected_index == Some(idx) {
-                let (v, i) = draw::quad_vertices(
-                    row_rect.x,
-                    row_rect.y,
-                    row_rect.w,
-                    row_rect.h,
-                    SELECTED_COLOR,
-                );
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: TextureRef::White,
-                });
-            }
-
-            let text_y = row_y + row_h - (3.0);
-            ui.text(
-                list_rect.x + (ROW_PAD_LEFT),
-                text_y,
-                &server.name,
-                text_color,
-            );
-
-            let count = format!("{}", server.user_count);
-            let count_w = ui.atlas.measure_text(&count);
-            ui.text(
-                list_rect.x + list_w - (ROW_PAD_LEFT) - count_w - (2.0),
-                text_y,
-                &count,
-                text_color,
-            );
-        }
-
-        let btn_y = win.y + win_h - (BTN_BOTTOM) - btn_h;
-        let ok_rect = Rect::new(win.x + win_w - (OK_BTN_RIGHT) - btn_w, btn_y, btn_w, btn_h);
-        let cancel_rect = Rect::new(
-            win.x + win_w - (CANCEL_BTN_RIGHT) - btn_w,
-            btn_y,
-            btn_w,
-            btn_h,
-        );
-        let ok = ui.button(OK_ID, ok_rect, "OK");
-        let cancel = ui.button(CANCEL_ID, cancel_rect, "Cancel");
-
-        if ok.clicked() && self.selected_index.is_some() {
-            events.push(GameEvent::RequestSelectServer {
-                index: self.selected_index.unwrap(),
-            });
-        }
-        if cancel.clicked() {
-            events.push(GameEvent::BackToLogin);
-        }
     }
 
     fn build_fallback(&mut self, ui: &mut UiFrame, events: &mut Vec<GameEvent>) {
@@ -327,46 +178,16 @@ impl ServerListWindow {
 }
 
 impl Window for ServerListWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
     fn window_size(&self) -> (f32, f32) {
-        if self.has_grf_textures {
-            self.win_size
-        } else {
-            let win_h = FALLBACK_TITLE_BAR_H
-                + self.servers.len() as f32 * ROW_H
-                + 8.0
-                + FALLBACK_BTN_H
-                + 8.0;
-            (FALLBACK_WIN_W, win_h)
-        }
+        let win_h = FALLBACK_TITLE_BAR_H
+            + self.servers.len() as f32 * ROW_H
+            + 8.0
+            + FALLBACK_BTN_H
+            + 8.0;
+        (FALLBACK_WIN_W, win_h)
     }
 
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(WIN_TEXTURE) {
-            self.win_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-    }
 
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-            WIN_TEXTURE,
-        ]
-    }
 }
 
 #[cfg(test)]

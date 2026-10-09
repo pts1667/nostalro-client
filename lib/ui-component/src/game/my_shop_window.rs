@@ -1,8 +1,7 @@
-use crate::helper::{ButtonTextures};
 use crate::helper::format::format_thousands;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_titlebar,
+    draw_container, draw_footer, draw_titlebar,
     text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -11,11 +10,6 @@ use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
-const CLOSE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 pub const MY_SHOP_WINDOW_ID: WidgetId = WidgetId(2600);
 const CLOSE_ID: WidgetId = WidgetId(2601);
@@ -43,7 +37,6 @@ struct MyShopRow {
 
 #[derive(Default)]
 pub struct MyShopWindow {
-    has_grf_textures: bool,
     open: bool,
     shop_name: String,
     rows: Vec<MyShopRow>,
@@ -90,34 +83,10 @@ impl MyShopWindow {
 }
 
 impl Window for MyShopWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(CLOSE_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         let visible_rows = self.rows.len().min(VISIBLE_ROWS).max(1);
         let list_h = visible_rows as f32 * ROW_H;
         (WIN_W, TITLE_H + PAD + list_h + PAD + FOOTER_H)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_BTN.normal,
-            CLOSE_BTN.hover,
-            CLOSE_BTN.pressed,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths
     }
 }
 
@@ -138,8 +107,6 @@ impl InGameWindow for MyShopWindow {
         }
         let mut events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
         let tc = text_color();
         let (btn_w, btn_h) = self.btn_size;
 
@@ -237,7 +204,6 @@ impl InGameWindow for MyShopWindow {
             events.push(GameEvent::RequestCloseStore);
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

@@ -1,8 +1,7 @@
-use crate::helper::{ButtonTextures};
-use crate::helper::dropdown::{self, Dropdown};
+use crate::helper::dropdown::Dropdown;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    FOOTER_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_footer, draw_sys_button,
+    draw_footer, draw_sys_button,
     draw_titlebar,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -17,35 +16,10 @@ use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
 
-const SKILL_UP_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::SKILL_UP_A,
-    hover: ragnarok_resources::ui::basic::SKILL_UP_B,
-    pressed: ragnarok_resources::ui::basic::SKILL_UP_C,
-};
 
-const RESET_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_RESET,
-    hover: ragnarok_resources::ui::BTN_RESET_A,
-    pressed: ragnarok_resources::ui::BTN_RESET_B,
-};
 
-const APPLY_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_APPLY,
-    hover: ragnarok_resources::ui::BTN_APPLY_A,
-    pressed: ragnarok_resources::ui::BTN_APPLY_B,
-};
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
 
-const EDIT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_EDIT,
-    hover: ragnarok_resources::ui::BTN_EDIT_A,
-    pressed: ragnarok_resources::ui::BTN_EDIT_B,
-};
 
 pub const GUILD_WINDOW_ID: WidgetId = WidgetId(3400);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3401);
@@ -81,9 +55,6 @@ const SKILL_UP_BASE: u32 = 5500;
 const MEMBER_POS_DROPDOWN_BASE: u32 = 5600;
 const MEMBER_POS_OPTION_BASE: u32 = 5700;
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const GRP_ONLINE_TEX: &str = ragnarok_resources::ui::basic::GRP_ONLINE;
 
 const WIN_W: f32 = 500.0;
 const TITLE_H: f32 = 17.0;
@@ -168,7 +139,6 @@ struct PosEdit {
 
 pub struct GuildWindow {
     pub open: bool,
-    pub has_grf_textures: bool,
     just_opened: bool,
     tab: GuildTab,
     members_scroll: usize,
@@ -198,7 +168,6 @@ impl GuildWindow {
     pub fn new() -> Self {
         Self {
             open: false,
-            has_grf_textures: false,
             just_opened: false,
             tab: GuildTab::Info,
             members_scroll: 0,
@@ -341,43 +310,8 @@ impl GuildWindow {
 }
 
 impl Window for GuildWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, TITLE_H + TAB_H + CONTENT_H + FOOTER_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            FOOTER_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            GRP_ONLINE_TEX,
-            EDIT_BTN.normal,
-            EDIT_BTN.hover,
-            EDIT_BTN.pressed,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            APPLY_BTN.normal,
-            APPLY_BTN.hover,
-            APPLY_BTN.pressed,
-            RESET_BTN.normal,
-            RESET_BTN.hover,
-            RESET_BTN.pressed,
-            SKILL_UP_BTN.normal,
-            SKILL_UP_BTN.hover,
-            SKILL_UP_BTN.pressed,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths.extend(dropdown::grf_texture_paths());
-        paths
     }
 }
 
@@ -401,8 +335,6 @@ impl InGameWindow for GuildWindow {
         let is_master = self.is_master(guild, local_gid, &ctx.character.name);
         self.seed_from_guild(guild);
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
         let mut events = Vec::new();
         self.member_head_slots.clear();
         self.head_insert_index = None;
@@ -440,7 +372,6 @@ impl InGameWindow for GuildWindow {
         );
         if close_resp.clicked() {
             self.open = false;
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -479,7 +410,6 @@ impl InGameWindow for GuildWindow {
         self.head_insert_index = Some(ui.draw_calls.len());
         events.extend(self.render_member_pos_overlay(ui));
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -573,7 +503,6 @@ impl GuildWindow {
             ui.text(x + 10.0, cy + 20.0, "Not in a guild.", OFFLINE_COLOR);
             return events;
         };
-        let grf = ui.has_grf_textures;
         let lx = x + 9.0;
         let online = g.members.iter().filter(|m| m.online).count();
 
@@ -588,14 +517,6 @@ impl GuildWindow {
         let members_text = format!("Members : {} / {}", g.member_num, g.max_member_num);
         ui.text(lx, cy + 68.0, &members_text, TEXT);
         let online_icon_x = lx + ui.atlas.measure_text(&members_text) + 6.0;
-        if grf {
-            let (v, i) = draw::quad_vertices(online_icon_x, cy + 57.0, 15.0, 15.0, [1.0; 4]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(GRP_ONLINE_TEX.to_string()),
-            });
-        }
         ui.text(online_icon_x + 18.0, cy + 68.0, &online.to_string(), TEXT);
         ui.text(
             lx,

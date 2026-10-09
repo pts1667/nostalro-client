@@ -1,7 +1,4 @@
-use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_sys_button,
-    draw_titlebar, text_color,
-};
+use crate::helper::window_chrome::{draw_container, draw_sys_button, draw_titlebar, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::emotion::EMOTION_TABLE;
 use ragnarok_game::event::GameEvent;
@@ -12,9 +9,6 @@ use ragnarok_ui::rect::Rect;
 pub const EMOTION_WINDOW_ID: WidgetId = WidgetId(3500);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3501);
 const CELL_BASE_ID: u32 = 3510;
-
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
 const COLS: usize = 6;
 const CELL: f32 = 32.0;
@@ -34,7 +28,6 @@ fn win_h() -> f32 {
 }
 
 pub struct EmotionWindow {
-    has_grf_textures: bool,
     open: bool,
     icon_sizes: Vec<Option<(f32, f32)>>,
 }
@@ -48,7 +41,6 @@ impl Default for EmotionWindow {
 impl EmotionWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             open: false,
             icon_sizes: vec![None; EMOTION_TABLE.len()],
         }
@@ -68,31 +60,8 @@ impl EmotionWindow {
 }
 
 impl Window for EmotionWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        for (i, entry) in EMOTION_TABLE.iter().enumerate() {
-            self.icon_sizes[i] = size_fn(&format!("{EMOTION_ICON_PREFIX}{}", entry.sprite_action))
-                .map(|(w, h)| (w as f32, h as f32));
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         (win_w(), win_h())
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            // Sentinel: loading it registers every @emo/<action> icon at once.
-            "@emo/0",
-        ]
     }
 }
 
@@ -114,8 +83,6 @@ impl InGameWindow for EmotionWindow {
         }
         let mut events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
         let tc = text_color();
 
         let (w, h) = (win_w(), win_h());
@@ -145,7 +112,6 @@ impl InGameWindow for EmotionWindow {
         );
         if close_resp.clicked() {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -197,7 +163,6 @@ impl InGameWindow for EmotionWindow {
             }
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

@@ -1,4 +1,3 @@
-use crate::helper::{ButtonTextures};
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::scrollbar::{self, ScrollbarIds};
@@ -10,41 +9,11 @@ use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
 
-const SELL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_SELL,
-    hover: ragnarok_resources::ui::BTN_SELL_A,
-    pressed: ragnarok_resources::ui::BTN_SELL_B,
-};
 
-const BUY_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_BUY,
-    hover: ragnarok_resources::ui::BTN_BUY_A,
-    pressed: ragnarok_resources::ui::BTN_BUY_B,
-};
 
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
 
-const CLOSE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CLOSE,
-    hover: ragnarok_resources::ui::BTN_CLOSE_A,
-    pressed: ragnarok_resources::ui::BTN_CLOSE_B,
-};
 
-const NEXT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_NEXT,
-    hover: ragnarok_resources::ui::BTN_NEXT_A,
-    pressed: ragnarok_resources::ui::BTN_NEXT_B,
-};
 
 const OVERLAY_ID: WidgetId = WidgetId(600);
 pub const NPC_DIALOG_WINDOW_ID: WidgetId = WidgetId(610);
@@ -79,7 +48,6 @@ const MENU_VISIBLE_ROWS: usize = 4;
 const FALLBACK_BTN_W: f32 = 42.0;
 const FALLBACK_BTN_H: f32 = 20.0;
 
-const WIN_TEXTURE: &str = ragnarok_resources::ui::WIN_MSGBOX;
 const BTN_BOTTOM: f32 = 4.0;
 const BTN_FIRST_RIGHT: f32 = 5.0;
 const BTN_SPACING: f32 = 3.0;
@@ -95,7 +63,6 @@ fn cancel_drag_on_press(ui: &mut UiFrame, window: WidgetId, rects: &[Rect]) {
 }
 
 pub struct NpcDialog {
-    pub has_grf_textures: bool,
     pub dialog: NpcDialogData,
     pub string_input: TextInput,
     number_input_dialog: Option<InputDialog>,
@@ -113,7 +80,6 @@ impl Default for NpcDialog {
 impl NpcDialog {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             dialog: NpcDialogData::new(),
             string_input: TextInput::new(70, false),
             number_input_dialog: None,
@@ -125,52 +91,9 @@ impl NpcDialog {
 }
 
 impl Window for NpcDialog {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(NEXT_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-        self.container.set_texture_sizes(size_fn);
-        if let Some((w, h)) = size_fn(WIN_TEXTURE) {
-            self.win_size = (w as f32, h as f32);
-        }
-    }
 
     fn window_size(&self) -> (f32, f32) {
         (DIALOG_W, DIALOG_H)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = DialogContainer::grf_texture_paths();
-        paths.extend_from_slice(&[
-            WIN_TEXTURE,
-            NEXT_BTN.normal,
-            NEXT_BTN.hover,
-            NEXT_BTN.pressed,
-            CLOSE_BTN.normal,
-            CLOSE_BTN.hover,
-            CLOSE_BTN.pressed,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-            BUY_BTN.normal,
-            BUY_BTN.hover,
-            BUY_BTN.pressed,
-            SELL_BTN.normal,
-            SELL_BTN.hover,
-            SELL_BTN.pressed,
-        ]);
-        paths.extend_from_slice(&scrollbar::grf_texture_paths());
-        paths
     }
 }
 
@@ -283,16 +206,12 @@ impl InGameWindow for NpcDialog {
             _ => {}
         }
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        self.container.has_grf_textures = self.has_grf_textures;
 
         let screen = Rect::new(0.0, 0.0, ui.ctx.screen_width, ui.ctx.screen_height);
         ui.interact(OVERLAY_ID, screen);
 
         if state == NpcDialogState::WaitingForDealType {
             let result = self.build_deal_type_popup(ui);
-            ui.has_grf_textures = prev_grf;
             return result;
         }
 
@@ -380,7 +299,6 @@ impl InGameWindow for NpcDialog {
                     self.string_input.text.clear();
                     self.string_input.cursor_pos = 0;
                     self.dialog.close();
-                    ui.has_grf_textures = prev_grf;
                     return events;
                 }
             }
@@ -465,7 +383,6 @@ impl InGameWindow for NpcDialog {
             self.number_input_dialog = None;
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -629,34 +546,25 @@ impl NpcDialog {
         let win = ui.window_fixed(NPC_DEAL_WINDOW_ID, dialog_w, dialog_h, dx, dy);
         ui.interact(NPC_DEAL_WINDOW_ID, win);
 
-        if self.has_grf_textures {
-            let (v, i) = draw::quad_vertices(dx, dy, dialog_w, dialog_h, [1.0, 1.0, 1.0, 1.0]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(WIN_TEXTURE.to_string()),
-            });
-        } else {
-            let (v, i) = draw::quad_vertices(dx, dy, dialog_w, dialog_h, [0.2, 0.2, 0.28, 1.0]);
+        let (v, i) = draw::quad_vertices(dx, dy, dialog_w, dialog_h, [0.2, 0.2, 0.28, 1.0]);
+        ui.draw_calls.push(DrawCall {
+            vertices: v.to_vec(),
+            indices: i.to_vec(),
+            texture: TextureRef::White,
+        });
+        let border_color = [0.5, 0.5, 0.6, 1.0];
+        for (bx, by, bw, bh) in [
+            (dx, dy, dialog_w, 1.0),
+            (dx, dy + dialog_h - 1.0, dialog_w, 1.0),
+            (dx, dy, 1.0, dialog_h),
+            (dx + dialog_w - 1.0, dy, 1.0, dialog_h),
+        ] {
+            let (v, i) = draw::quad_vertices(bx, by, bw, bh, border_color);
             ui.draw_calls.push(DrawCall {
                 vertices: v.to_vec(),
                 indices: i.to_vec(),
                 texture: TextureRef::White,
             });
-            let border_color = [0.5, 0.5, 0.6, 1.0];
-            for (bx, by, bw, bh) in [
-                (dx, dy, dialog_w, 1.0),
-                (dx, dy + dialog_h - 1.0, dialog_w, 1.0),
-                (dx, dy, 1.0, dialog_h),
-                (dx + dialog_w - 1.0, dy, 1.0, dialog_h),
-            ] {
-                let (v, i) = draw::quad_vertices(bx, by, bw, bh, border_color);
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: TextureRef::White,
-                });
-            }
         }
 
         let container = Rect::new(dx, dy, dialog_w, dialog_h);
@@ -672,11 +580,7 @@ impl NpcDialog {
         let message = "Please select a Deal type";
         let (text_y, text_x) =
             container.text_dialog_alignment(PADDING, btns[0].y, ui.atlas.line_height);
-        let text_color = if self.has_grf_textures {
-            [0.0, 0.0, 0.0, 1.0]
-        } else {
-            [1.0, 1.0, 1.0, 1.0]
-        };
+        let text_color = [1.0, 1.0, 1.0, 1.0];
         ui.text(text_x, text_y, message, text_color);
 
         let cancel = ui.button(DEAL_CANCEL_BTN_ID, btns[0], "Cancel");

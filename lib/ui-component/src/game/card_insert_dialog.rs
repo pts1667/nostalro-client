@@ -1,7 +1,6 @@
-use crate::helper::{ButtonTextures};
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    FOOTER_TEX, ITEMWIN_MID_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_titlebar,
+    draw_container, draw_footer, draw_titlebar,
     text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -10,17 +9,7 @@ use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
 
 pub const CARD_INSERT_WINDOW_ID: WidgetId = WidgetId(1101);
 const OK_BTN_ID: WidgetId = WidgetId(1102);
@@ -53,7 +42,6 @@ pub struct EligibleItem {
 }
 
 pub struct CardInsertDialog {
-    pub has_grf_textures: bool,
     card_index: u16,
     card_name: String,
     eligible_items: Vec<EligibleItem>,
@@ -72,7 +60,6 @@ impl Default for CardInsertDialog {
 impl CardInsertDialog {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             card_index: 0,
             card_name: String::new(),
             eligible_items: Vec::new(),
@@ -118,34 +105,7 @@ impl CardInsertDialog {
 }
 
 impl Window for CardInsertDialog {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
 
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            ITEMWIN_MID_TEX,
-            FOOTER_TEX,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths
-    }
 }
 
 impl InGameWindow for CardInsertDialog {

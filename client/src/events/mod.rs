@@ -86,7 +86,6 @@ pub(crate) fn preload_window<W: UiWindow>(
         let loaded = renderer.preload_textures(&paths, grf);
         window.set_has_grf_textures(loaded);
         if loaded {
-            window.set_texture_sizes(&|name| renderer.texture_cache.texture_size(name));
         }
     }
 }

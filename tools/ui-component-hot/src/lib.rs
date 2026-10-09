@@ -2213,29 +2213,25 @@ fn grf_init_single(
             if let Some(table) = table {
                 character.inventory.resolve_resource_names(table);
             }
-            inv.has_grf_textures = true;
-            inv.set_texture_sizes(size_fn);
+            inv.set_has_grf_textures(true);
         }
         State::Cart { win, character, .. } => {
             if let Some(table) = table {
                 character.cart.resolve_resource_names(table);
             }
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::Storage { win, character, .. } => {
             if let Some(table) = table {
                 character.storage.resolve_resource_names(table);
             }
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::Trade { win, character, .. } => {
             if let Some(table) = table {
                 character.inventory.resolve_resource_names(table);
             }
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::Mailbox {
             win,
@@ -2252,7 +2248,6 @@ fn grf_init_single(
                 }
             }
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::ReadMail {
             win,
@@ -2271,22 +2266,18 @@ fn grf_init_single(
                 data.item_resource = Some(item_resource_from_ids(nameid, table));
             }
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::CartSelect { win, .. } => {
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::StoragePassword { win, .. } => {
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::VendingSetup { win, character, .. } => {
             if let Some(table) = table {
                 character.cart.resolve_resource_names(table);
             }
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::MyShop {
             win,
@@ -2295,14 +2286,12 @@ fn grf_init_single(
             ..
         } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
             if let Some(table) = table {
                 win.open(shop_name.clone(), resolve_stock_icons(src, table));
             }
         }
         State::VendingBuy { win, src, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
             if let Some(table) = table {
                 win.open(
                     2000101,
@@ -2312,13 +2301,9 @@ fn grf_init_single(
                 );
             }
         }
-        State::VendingBoard { container, .. } => {
-            container.has_grf_textures = true;
-            container.set_texture_sizes(size_fn);
+        State::VendingBoard { container: _, .. } => {
         }
-        State::ChatRoomBoard { container, .. } => {
-            container.has_grf_textures = true;
-            container.set_texture_sizes(size_fn);
+        State::ChatRoomBoard { container: _, .. } => {
         }
         State::NpcShop {
             shop,
@@ -2335,31 +2320,25 @@ fn grf_init_single(
                     item.item.resolve_resource_name(table);
                 }
             }
-            shop.has_grf_textures = true;
-            shop.set_texture_sizes(size_fn);
+            shop.set_has_grf_textures(true);
         }
         State::Login { login } => {
-            login.has_grf_textures = true;
-            login.set_texture_sizes(size_fn);
+            login.set_has_grf_textures(true);
         }
         State::Chat { chat, .. } => {
-            chat.has_grf_textures = true;
+            chat.set_has_grf_textures(true);
         }
         State::NpcDialog { npc, .. } => {
-            npc.has_grf_textures = true;
-            npc.set_texture_sizes(size_fn);
+            npc.set_has_grf_textures(true);
         }
         State::ConfirmDialog { dialog, .. } => {
-            dialog.has_grf_textures = true;
-            dialog.set_texture_sizes(size_fn);
+            dialog.set_has_grf_textures(true);
         }
         State::NumberInput { dialog } => {
-            dialog.has_grf_textures = true;
-            dialog.set_texture_sizes(size_fn);
+            dialog.set_has_grf_textures(true);
         }
         State::ServerList { win } => {
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::Equipment {
             equip, character, ..
@@ -2367,20 +2346,16 @@ fn grf_init_single(
             if let Some(table) = table {
                 character.inventory.resolve_resource_names(table);
             }
-            equip.has_grf_textures = true;
-            equip.set_texture_sizes(size_fn);
+            equip.set_has_grf_textures(true);
         }
         State::SystemMenu { menu, .. } => {
-            menu.has_grf_textures = true;
-            menu.set_texture_sizes(size_fn);
+            menu.set_has_grf_textures(true);
         }
         State::CharSelect { win } => {
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::CharCreate { win } => {
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::ItemInfo {
             win, data, item, ..
@@ -2404,70 +2379,53 @@ fn grf_init_single(
                 win.close();
                 win.show(item, data, &CharNameCache::default(), false);
             }
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::SkillTree { win, .. } => {
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::Book { win, .. } => {
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::MonsterInfo { win, .. } => {
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::ChatRoomCreate { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::Emotion { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::ShortcutList { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::GraphicOptions { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::HotkeyConfig { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::Quest { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::QuestDetail { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::ChatRoomMember { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::Minimap { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::WorldMap { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
             win.texture_loaded(WORLD_MAP_TEX, true);
             win.texture_loaded(&WorldMapWindow::minimap_texture_path("prontera"), true);
         }
         State::CardInsert { dialog, .. } => {
-            dialog.has_grf_textures = true;
-            dialog.set_texture_sizes(size_fn);
+            dialog.set_has_grf_textures(true);
         }
-        State::DialogContainerDemo { notification } => {
-            notification.container.has_grf_textures = true;
-            notification.set_texture_sizes(size_fn);
+        State::DialogContainerDemo { notification: _ } => {
         }
         State::HotkeyBarDemo {
             hotkey_win,
@@ -2487,43 +2445,34 @@ fn grf_init_single(
                         Some(ItemResourceTable::from_entries(entries, HashMap::new()));
                 }
             }
-            hotkey_win.has_grf_textures = true;
-            hotkey_win.set_texture_sizes(size_fn);
+            hotkey_win.set_has_grf_textures(true);
         }
         State::BasicInfoDemo { win, .. } => {
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::StatusDemo { win, .. } => {
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::PartyDemo { win, .. } => {
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::GuildDemo { win, .. } => {
-            win.has_grf_textures = true;
-            win.set_texture_sizes(size_fn);
+            win.set_has_grf_textures(true);
         }
         State::Mercenary { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::MercenarySkill { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::Pet { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::Homun { win, .. } => {
             win.set_has_grf_textures(true);
-            win.set_texture_sizes(size_fn);
         }
         State::CompanionAiConfig { win, .. } => {
-            win.has_grf_textures = true;
+            win.set_has_grf_textures(true);
         }
         State::FallbackGallery { .. } => {}
         State::Category { components } => {
@@ -2926,7 +2875,13 @@ mod tests {
 
     /// Scenes whose fallback still draws chrome as a GRF texture. Each entry must
     /// still leak, so a fixed scene has to leave this list (the gate says so).
-    const PENDING_CHROME_LEAKS: &[&str] = &["minimap", "world_map"];
+    const PENDING_CHROME_LEAKS: &[&str] = &[
+        "minimap",
+        "world_map",
+        // Head-board icons (shop.bmp, chat_open.bmp) until they become procedural glyphs.
+        "vending_board",
+        "chat_room_board",
+    ];
 
     /// Game content that a window may draw with no data loaded. The renderer
     /// skips these quads and logs an error. Chrome must not come through here.

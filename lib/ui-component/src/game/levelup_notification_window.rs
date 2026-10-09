@@ -22,7 +22,6 @@ pub enum LevelUpClick {
 }
 
 pub struct LevelUpNotificationWindow {
-    pub has_grf_textures: bool,
     show_base: bool,
     show_job: bool,
     icon_size: (f32, f32),
@@ -37,7 +36,6 @@ impl Default for LevelUpNotificationWindow {
 impl LevelUpNotificationWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             show_base: false,
             show_job: false,
             icon_size: DEFAULT_SIZE,
@@ -100,22 +98,7 @@ impl LevelUpNotificationWindow {
     }
 }
 
-impl Window for LevelUpNotificationWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(LV_UP_OFF) {
-            self.icon_size = (w as f32, h as f32);
-        }
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![LV_UP_OFF, LV_UP_ON]
-    }
-}
+impl Window for LevelUpNotificationWindow {}
 
 #[cfg(test)]
 mod tests {

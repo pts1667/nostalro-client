@@ -1,8 +1,7 @@
-use crate::helper::{ButtonTextures};
 use crate::game::inventory_window::INV_WINDOW_ID;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    ITEMWIN_MID_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer,
+    draw_container, draw_footer,
     draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -13,23 +12,8 @@ use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
 
-const MAKE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_MAKE,
-    hover: ragnarok_resources::ui::BTN_MAKE_A,
-    pressed: ragnarok_resources::ui::BTN_MAKE_B,
-};
 
 pub const MAKE_ITEM_WINDOW_ID: WidgetId = WidgetId(2200);
 const MAKE_ID: WidgetId = WidgetId(2201);
@@ -41,7 +25,6 @@ const SCROLL_THUMB_ID: WidgetId = WidgetId(2206);
 const SLOT_BASE_ID: u32 = 2220;
 const ROW_BASE_ID: u32 = 2230;
 
-const SLOT_BG_TEX: &str = ITEMWIN_MID_TEX;
 
 const LIST_TITLE: &str = "Item list you can craft";
 const WIN_W: f32 = 240.0;
@@ -88,7 +71,6 @@ struct MaterialSlot {
 
 #[derive(Default)]
 pub struct MakeItemWindow {
-    has_grf_textures: bool,
     open: bool,
     phase: Phase,
     rows: Vec<ProducibleRow>,
@@ -276,7 +258,6 @@ impl MakeItemWindow {
         character: &mut Character,
         events: &mut Vec<GameEvent>,
     ) {
-        let grf = self.has_grf_textures;
         let tc = text_color();
         let (btn_w, btn_h) = self.btn_size;
 
@@ -330,28 +311,18 @@ impl MakeItemWindow {
             for s in 0..3 {
                 let slot_x = hx + s as f32 * (SLOT_SIZE + PAD);
                 let slot_rect = Rect::new(slot_x, slots_y, SLOT_SIZE, SLOT_SIZE);
-                if grf {
-                    let (v, i) =
-                        draw::quad_vertices(slot_x, slots_y, SLOT_SIZE, SLOT_SIZE, [1.0; 4]);
-                    ui.draw_calls.push(DrawCall {
-                        vertices: v.to_vec(),
-                        indices: i.to_vec(),
-                        texture: TextureRef::Named(SLOT_BG_TEX.to_string()),
-                    });
-                } else {
-                    let (v, i) = draw::quad_vertices(
-                        slot_x,
-                        slots_y,
-                        SLOT_SIZE,
-                        SLOT_SIZE,
-                        [0.1, 0.1, 0.15, 0.9],
-                    );
-                    ui.draw_calls.push(DrawCall {
-                        vertices: v.to_vec(),
-                        indices: i.to_vec(),
-                        texture: TextureRef::White,
-                    });
-                }
+                let (v, i) = draw::quad_vertices(
+                    slot_x,
+                    slots_y,
+                    SLOT_SIZE,
+                    SLOT_SIZE,
+                    [0.1, 0.1, 0.15, 0.9],
+                );
+                ui.draw_calls.push(DrawCall {
+                    vertices: v.to_vec(),
+                    indices: i.to_vec(),
+                    texture: TextureRef::White,
+                });
                 let resp = ui.interact(WidgetId(SLOT_BASE_ID + s as u32), slot_rect);
                 if resp.hovered() {
                     ui.any_interactive_hovered = true;
@@ -448,36 +419,6 @@ impl MakeItemWindow {
 }
 
 impl Window for MakeItemWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(MAKE_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            SLOT_BG_TEX,
-            MAKE_BTN.normal,
-            MAKE_BTN.hover,
-            MAKE_BTN.pressed,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths
-    }
 }
 
 impl InGameWindow for MakeItemWindow {
@@ -506,15 +447,12 @@ impl InGameWindow for MakeItemWindow {
         }
         let mut events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
 
         match self.phase {
             Phase::List => self.build_list(ui, &mut events),
             Phase::Process => self.build_process(ui, character, &mut events),
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

@@ -1,8 +1,7 @@
-use crate::helper::{ButtonTextures};
 use crate::Window;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_titlebar,
+    draw_container, draw_footer, draw_titlebar,
     text_color,
 };
 use ragnarok_game::event::GameEvent;
@@ -11,17 +10,7 @@ use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
 
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
 
 pub const ITEM_LIST_SELECTION_WINDOW_ID: WidgetId = WidgetId(2100);
 const OK_ID: WidgetId = WidgetId(2101);
@@ -72,7 +61,6 @@ pub struct ListRow {
 
 #[derive(Default)]
 pub struct ItemListSelectionWindow {
-    has_grf_textures: bool,
     open: bool,
     title: String,
     context: Option<ListContext>,
@@ -192,8 +180,6 @@ impl ItemListSelectionWindow {
             self.confirm(&mut events);
             return events;
         }
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
         let tc = text_color();
         let (btn_w, btn_h) = self.btn_size;
 
@@ -296,7 +282,6 @@ impl ItemListSelectionWindow {
         }
         if confirm_now {
             self.confirm(&mut events);
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -342,38 +327,11 @@ impl ItemListSelectionWindow {
             texture: TextureRef::White,
         });
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
 
 impl Window for ItemListSelectionWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths
-    }
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 use crate::helper::window_chrome::{
-    FOOTER_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer,
+    draw_container, draw_footer,
     draw_sys_button, draw_titlebar, label_color, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -18,12 +18,6 @@ const OK_BTN_ID: WidgetId = WidgetId(3310);
 const CANCEL_BTN_ID: WidgetId = WidgetId(3311);
 const RADIO_BASE_ID: u32 = 3320;
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const RADIO_ON_TEX: &str = ragnarok_resources::ui::RADIOBTN_ON;
-const RADIO_OFF_TEX: &str = ragnarok_resources::ui::RADIOBTN_OFF;
-const BTN_OK_TEX: &str = ragnarok_resources::ui::BTN_OK;
-const BTN_CANCEL_TEX: &str = ragnarok_resources::ui::BTN_CANCEL;
 
 const WIN_W: f32 = 150.0;
 const TITLE_H: f32 = 17.0;
@@ -38,7 +32,6 @@ pub const MODE_ADD_FRIEND: u8 = 3;
 
 pub struct PartyHelperWindow {
     pub open: bool,
-    pub has_grf_textures: bool,
     mode: u8,
     name_input: TextInput,
     exp_share: bool,
@@ -57,7 +50,6 @@ impl PartyHelperWindow {
     pub fn new() -> Self {
         Self {
             open: false,
-            has_grf_textures: false,
             mode: MODE_CREATE,
             name_input: TextInput::new(24, false),
             exp_share: false,
@@ -111,11 +103,10 @@ impl PartyHelperWindow {
         value: u8,
         current: &mut u8,
         editable: bool,
-        grf: bool,
         tc: [f32; 4],
     ) {
         let on = *current == value;
-        Self::draw_radio(ui, x, y, on, grf);
+        Self::draw_radio(ui, x, y, on);
         let color = if editable {
             tc
         } else {
@@ -132,52 +123,22 @@ impl PartyHelperWindow {
         }
     }
 
-    fn draw_radio(ui: &mut UiFrame, x: f32, y: f32, on: bool, grf: bool) {
-        if grf {
-            let tex = if on { RADIO_ON_TEX } else { RADIO_OFF_TEX };
-            let (v, i) = draw::quad_vertices(x, y, 12.0, 12.0, [1.0; 4]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(tex.to_string()),
-            });
+    fn draw_radio(ui: &mut UiFrame, x: f32, y: f32, on: bool) {
+        let c = if on {
+            [0.3, 0.6, 0.9, 1.0]
         } else {
-            let c = if on {
-                [0.3, 0.6, 0.9, 1.0]
-            } else {
-                [0.3, 0.3, 0.35, 1.0]
-            };
-            let (v, i) = draw::quad_vertices(x, y + 2.0, 10.0, 10.0, c);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
-        }
+            [0.3, 0.3, 0.35, 1.0]
+        };
+        let (v, i) = draw::quad_vertices(x, y + 2.0, 10.0, 10.0, c);
+        ui.draw_calls.push(DrawCall {
+            vertices: v.to_vec(),
+            indices: i.to_vec(),
+            texture: TextureRef::White,
+        });
     }
 }
 
 impl Window for PartyHelperWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            TITLEBAR_TEX,
-            FOOTER_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            RADIO_ON_TEX,
-            RADIO_OFF_TEX,
-            BTN_OK_TEX,
-            BTN_CANCEL_TEX,
-        ]
-    }
 }
 
 impl InGameWindow for PartyHelperWindow {
@@ -197,9 +158,6 @@ impl InGameWindow for PartyHelperWindow {
             return Vec::new();
         }
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
         let tc = text_color();
         let lc = label_color();
         let mut events = Vec::new();
@@ -247,7 +205,6 @@ impl InGameWindow for PartyHelperWindow {
         );
         if close_resp.clicked() {
             self.open = false;
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -285,7 +242,6 @@ impl InGameWindow for PartyHelperWindow {
                 0,
                 &mut v,
                 self.editable,
-                grf,
                 tc,
             );
             cy += ROW_H;
@@ -298,7 +254,6 @@ impl InGameWindow for PartyHelperWindow {
                 1,
                 &mut v,
                 self.editable,
-                grf,
                 tc,
             );
             cy += ROW_H + 6.0;
@@ -316,7 +271,6 @@ impl InGameWindow for PartyHelperWindow {
                 0,
                 &mut self.item_pickup,
                 self.editable,
-                grf,
                 tc,
             );
             cy += ROW_H;
@@ -329,7 +283,6 @@ impl InGameWindow for PartyHelperWindow {
                 1,
                 &mut self.item_pickup,
                 self.editable,
-                grf,
                 tc,
             );
             cy += ROW_H + 6.0;
@@ -345,7 +298,6 @@ impl InGameWindow for PartyHelperWindow {
                 0,
                 &mut self.item_division,
                 self.editable,
-                grf,
                 tc,
             );
             cy += ROW_H;
@@ -358,7 +310,6 @@ impl InGameWindow for PartyHelperWindow {
                 1,
                 &mut self.item_division,
                 self.editable,
-                grf,
                 tc,
             );
         }
@@ -404,7 +355,6 @@ impl InGameWindow for PartyHelperWindow {
             self.open = false;
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

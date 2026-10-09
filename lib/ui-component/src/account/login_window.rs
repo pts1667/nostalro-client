@@ -1,27 +1,12 @@
 use crate::Window;
-use crate::helper::{ButtonTextures, CheckboxTextures};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
 
-const EXIT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::login::BTN_EXIT,
-    hover: ragnarok_resources::ui::login::BTN_EXIT_A,
-    pressed: ragnarok_resources::ui::login::BTN_EXIT_B,
-};
 
-const CONNECT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::login::BTN_CONNECT,
-    hover: ragnarok_resources::ui::login::BTN_CONNECT_A,
-    pressed: ragnarok_resources::ui::login::BTN_CONNECT_B,
-};
 
-const KEEP_CHECKBOX: CheckboxTextures = CheckboxTextures {
-    off: ragnarok_resources::ui::login::CHK_SAVEOFF,
-    on: ragnarok_resources::ui::login::CHK_SAVEON,
-};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LoginFocus {
@@ -34,10 +19,7 @@ pub struct LoginWindow {
     pub password: TextInput,
     pub keep_id: bool,
     pub focus: LoginFocus,
-    pub has_grf_textures: bool,
     win_size: (f32, f32),
-    btn_size: (f32, f32),
-    keep_size: (f32, f32),
 }
 
 const FALLBACK_WIN_W: f32 = 280.0;
@@ -54,8 +36,6 @@ const CONNECT_BTN_RIGHT: f32 = 50.0;
 const EXIT_BTN_RIGHT: f32 = 5.0;
 const BTN_BOTTOM: f32 = 4.0;
 
-const INPUT_TEXTURE: &str = ragnarok_resources::ui::login::NAME_EDIT;
-const WIN_TEXTURE: &str = ragnarok_resources::ui::login::WIN_LOGIN;
 
 pub const LOGIN_WINDOW_ID: WidgetId = WidgetId(10);
 const TITLE_BAR_H: f32 = 25.0;
@@ -82,25 +62,14 @@ impl LoginWindow {
             password: TextInput::new(23, true),
             keep_id: false,
             focus: LoginFocus::Username,
-            has_grf_textures: false,
             win_size: (FALLBACK_WIN_W, FALLBACK_WIN_H),
-            btn_size: (FALLBACK_BTN_W, FALLBACK_BTN_H),
-            keep_size: (FALLBACK_KEEP_W, FALLBACK_KEEP_H),
         }
     }
 
     pub fn build(&mut self, ui: &mut UiFrame) -> Vec<GameEvent> {
         let mut events = Vec::new();
-        let (win_w, win_h) = if self.has_grf_textures {
-            self.win_size
-        } else {
-            ((FALLBACK_WIN_W), (FALLBACK_WIN_H))
-        };
-        let (btn_w, btn_h) = if self.has_grf_textures {
-            self.btn_size
-        } else {
-            ((FALLBACK_BTN_W), (FALLBACK_BTN_H))
-        };
+        let (win_w, win_h) = ((FALLBACK_WIN_W), (FALLBACK_WIN_H));
+        let (btn_w, btn_h) = ((FALLBACK_BTN_W), (FALLBACK_BTN_H));
         let field_w = win_w - (FIELD_X) - (FIELD_RIGHT_MARGIN);
         let win = ui.window_account(LOGIN_WINDOW_ID, win_w, win_h, TITLE_BAR_H);
 
@@ -120,38 +89,28 @@ impl LoginWindow {
             }
         }
 
-        if self.has_grf_textures {
-            let (verts, indices) =
-                draw::quad_vertices(win.x, win.y, win.w, win.h, [1.0, 1.0, 1.0, 1.0]);
+        let (verts, indices) =
+            draw::quad_vertices(win.x, win.y, win.w, win.h, [0.08, 0.08, 0.12, 0.95]);
+        ui.draw_calls.push(DrawCall {
+            vertices: verts.to_vec(),
+            indices: indices.to_vec(),
+            texture: TextureRef::White,
+        });
+
+        let border_color = [0.4, 0.4, 0.5, 1.0];
+        let b = 1.0;
+        for (bx, by, bw, bh) in [
+            (win.x, win.y, win.w, b),
+            (win.x, win.y + win.h - b, win.w, b),
+            (win.x, win.y, b, win.h),
+            (win.x + win.w - b, win.y, b, win.h),
+        ] {
+            let (v, i) = draw::quad_vertices(bx, by, bw, bh, border_color);
             ui.draw_calls.push(DrawCall {
-                vertices: verts.to_vec(),
-                indices: indices.to_vec(),
-                texture: TextureRef::Named(WIN_TEXTURE.to_string()),
-            });
-        } else {
-            let (verts, indices) =
-                draw::quad_vertices(win.x, win.y, win.w, win.h, [0.08, 0.08, 0.12, 0.95]);
-            ui.draw_calls.push(DrawCall {
-                vertices: verts.to_vec(),
-                indices: indices.to_vec(),
+                vertices: v.to_vec(),
+                indices: i.to_vec(),
                 texture: TextureRef::White,
             });
-
-            let border_color = [0.4, 0.4, 0.5, 1.0];
-            let b = 1.0;
-            for (bx, by, bw, bh) in [
-                (win.x, win.y, win.w, b),
-                (win.x, win.y + win.h - b, win.w, b),
-                (win.x, win.y, b, win.h),
-                (win.x + win.w - b, win.y, b, win.h),
-            ] {
-                let (v, i) = draw::quad_vertices(bx, by, bw, bh, border_color);
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: TextureRef::White,
-                });
-            }
         }
 
 let input_bg = TextInputBg::Default;
@@ -182,11 +141,7 @@ let input_bg = TextInputBg::Default;
         let connect = ui.button(CONNECT_ID, connect_rect, "Connect");
         let exit = ui.button(EXIT_ID, exit_rect, "Exit");
 
-        let (keep_w, keep_h) = if self.has_grf_textures {
-            self.keep_size
-        } else {
-            (FALLBACK_KEEP_W, FALLBACK_KEEP_H)
-        };
+        let (keep_w, keep_h) = (FALLBACK_KEEP_W, FALLBACK_KEEP_H);
         let keep_rect = Rect::new(
             win.x + self.win_size.0 - keep_w - 20.0,
             username_rect.y + (btn_h - keep_h) / 2.0,
@@ -212,47 +167,11 @@ let input_bg = TextInputBg::Default;
 }
 
 impl Window for LoginWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
     fn window_size(&self) -> (f32, f32) {
-        if self.has_grf_textures {
-            self.win_size
-        } else {
-            (FALLBACK_WIN_W, FALLBACK_WIN_H)
-        }
+        (FALLBACK_WIN_W, FALLBACK_WIN_H)
     }
 
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(WIN_TEXTURE) {
-            self.win_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(CONNECT_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(KEEP_CHECKBOX.off) {
-            self.keep_size = (w as f32, h as f32);
-        }
-    }
 
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            CONNECT_BTN.normal,
-            CONNECT_BTN.hover,
-            CONNECT_BTN.pressed,
-            EXIT_BTN.normal,
-            EXIT_BTN.hover,
-            EXIT_BTN.pressed,
-            INPUT_TEXTURE,
-            WIN_TEXTURE,
-            KEEP_CHECKBOX.off,
-            KEEP_CHECKBOX.on,
-        ]
-    }
 }
 
 #[cfg(test)]

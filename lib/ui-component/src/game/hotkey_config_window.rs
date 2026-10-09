@@ -1,6 +1,5 @@
-use crate::helper::{ButtonTextures};
 use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button,
+    draw_container, draw_footer, draw_sys_button,
     draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -11,23 +10,8 @@ use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
-const RESET_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_RESET,
-    hover: ragnarok_resources::ui::BTN_RESET_A,
-    pressed: ragnarok_resources::ui::BTN_RESET_B,
-};
 
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
 
 pub const HOTKEY_CONFIG_WINDOW_ID: WidgetId = WidgetId(4300);
 const CLOSE_BTN_ID: WidgetId = WidgetId(4301);
@@ -40,8 +24,6 @@ const NEXT_BTN_ID: WidgetId = WidgetId(4309);
 const FOOTER_CLOSE_BTN_ID: WidgetId = WidgetId(4310);
 const CELL_BASE_ID: u32 = 4350;
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 const WIN_W: f32 = 380.0;
 const TITLE_H: f32 = 17.0;
 const TAB_H: f32 = 20.0;
@@ -97,7 +79,6 @@ struct Row {
 }
 
 pub struct HotkeyConfigWindow {
-    has_grf_textures: bool,
     open: bool,
     staged_interface: KeyBindings,
     staged_emotion: EmotionKeys,
@@ -119,7 +100,6 @@ impl Default for HotkeyConfigWindow {
 impl HotkeyConfigWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             open: false,
             staged_interface: KeyBindings::defaults(),
             staged_emotion: EmotionKeys::default(),
@@ -281,40 +261,8 @@ fn emote_label(emote_type: u8) -> String {
 }
 
 impl Window for HotkeyConfigWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(RESET_BTN.normal) {
-            self.reset_size = (w as f32, h as f32);
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, WIN_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-            RESET_BTN.normal,
-            RESET_BTN.hover,
-            RESET_BTN.pressed,
-        ]
     }
 }
 
@@ -335,8 +283,6 @@ impl InGameWindow for HotkeyConfigWindow {
             return Vec::new();
         }
         let events = Vec::new();
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
         let tc = text_color();
 
         let default_x = (ui.ctx.screen_width - WIN_W) / 2.0;
@@ -383,7 +329,6 @@ impl InGameWindow for HotkeyConfigWindow {
         );
         if close_resp.clicked() {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -513,7 +458,6 @@ impl InGameWindow for HotkeyConfigWindow {
             .clicked()
         {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
         let cancel_rect = Rect::new(close_rect.x - CELL_GAP - bw, by, bw, bh);
@@ -522,7 +466,6 @@ impl InGameWindow for HotkeyConfigWindow {
             .clicked()
         {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
         let ok_rect = Rect::new(cancel_rect.x - CELL_GAP - bw, by, bw, bh);
@@ -531,7 +474,6 @@ impl InGameWindow for HotkeyConfigWindow {
             self.close();
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

@@ -1,6 +1,4 @@
-use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_sys_button, draw_titlebar, text_color,
-};
+use crate::helper::window_chrome::{draw_sys_button, draw_titlebar, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::frame::{UiFrame, WidgetId};
@@ -14,9 +12,6 @@ const SFX_MUTE_ID: WidgetId = WidgetId(2804);
 const CLOSE_BTN_ID: WidgetId = WidgetId(2805);
 const UNFOCUSED_ID: WidgetId = WidgetId(2806);
 const STEREO_ID: WidgetId = WidgetId(2807);
-
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
 const WIN_W: f32 = 260.0;
 const WIN_H: f32 = 180.0;
@@ -32,7 +27,6 @@ const CB_ROW_H: f32 = 24.0;
 #[derive(Default)]
 pub struct SoundOptionsWindow {
     pub open: bool,
-    pub has_grf_textures: bool,
     bgm_volume: f32,
     sfx_volume: f32,
     bgm_enabled: bool,
@@ -45,7 +39,6 @@ impl SoundOptionsWindow {
     pub fn new() -> Self {
         Self {
             open: false,
-            has_grf_textures: false,
             bgm_volume: 0.8,
             sfx_volume: 0.8,
             bgm_enabled: true,
@@ -90,23 +83,7 @@ impl SoundOptionsWindow {
     }
 }
 
-impl Window for SoundOptionsWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-        ]
-    }
-}
+impl Window for SoundOptionsWindow {}
 
 impl InGameWindow for SoundOptionsWindow {
     fn wants_escape(&self, _ctx: &BuildCtx) -> bool {
@@ -125,8 +102,6 @@ impl InGameWindow for SoundOptionsWindow {
             return Vec::new();
         }
         let mut events = Vec::new();
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
 
         let default_x = (ui.ctx.screen_width - WIN_W) / 2.0;
         let default_y = (ui.ctx.screen_height - WIN_H) / 2.0;
@@ -167,7 +142,6 @@ impl InGameWindow for SoundOptionsWindow {
         );
         if close_resp.clicked() {
             self.open = false;
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -265,7 +239,6 @@ impl InGameWindow for SoundOptionsWindow {
             events.push(self.changed_event(true));
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

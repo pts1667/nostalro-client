@@ -170,7 +170,6 @@ pub struct CharCreateWindow {
     /// Dev aid: draw a small button that flips the skin (v1 hexagon ↔ v2 compact).
     /// Off in the real client, where the packetver fixes the skin.
     pub show_skin_toggle: bool,
-    pub has_grf_textures: bool,
     win_origin: (f32, f32),
 }
 
@@ -185,7 +184,6 @@ impl CharCreateWindow {
             with_stats,
             error_message: None,
             show_skin_toggle: false,
-            has_grf_textures: false,
             win_origin: (0.0, 0.0),
         }
     }
@@ -280,15 +278,12 @@ impl CharCreateWindow {
 
     pub fn build(&mut self, ui: &mut UiFrame) -> Vec<GameEvent> {
         let mut events = Vec::new();
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
         if self.with_stats {
             self.build_stat_layout(ui, &mut events);
         } else {
             self.build_compact_layout(ui, &mut events);
         }
         self.maybe_draw_skin_toggle(ui);
-        ui.has_grf_textures = prev_grf;
         events
     }
 
@@ -301,10 +296,7 @@ impl CharCreateWindow {
         let label = if self.with_stats { "v1" } else { "v2" };
         // Force the fallback (labelled box) look so the dev toggle reads the same
         // regardless of the active skin's GRF state.
-        let prev = ui.has_grf_textures;
-        ui.has_grf_textures = false;
         let clicked = ui.button(SKIN_TOGGLE_ID, rect, label).clicked();
-        ui.has_grf_textures = prev;
         if clicked {
             self.with_stats = !self.with_stats;
             self.error_message = None;
@@ -316,32 +308,17 @@ impl CharCreateWindow {
         self.win_origin = (win.x, win.y);
         let (ox, oy) = (win.x, win.y);
 
-        if self.has_grf_textures {
-            push_quad(
-                ui,
-                ox,
-                oy,
-                WIN_W,
-                WIN_H,
-                TextureRef::Named(WIN_TEXTURE.to_string()),
-            );
-        } else {
-            push_color_quad(ui, ox, oy, WIN_W, WIN_H, [0.08, 0.08, 0.12, 0.95]);
-            let title = "Create Character";
-            let tw = ui.atlas.measure_text(title);
-            ui.text(
-                ox + (WIN_W - tw) / 2.0,
-                oy + ui.atlas.line_height,
-                title,
-                [1.0; 4],
-            );
-        }
+        push_color_quad(ui, ox, oy, WIN_W, WIN_H, [0.08, 0.08, 0.12, 0.95]);
+        let title = "Create Character";
+        let tw = ui.atlas.measure_text(title);
+        ui.text(
+            ox + (WIN_W - tw) / 2.0,
+            oy + ui.atlas.line_height,
+            title,
+            [1.0; 4],
+        );
 
-        let name_bg = if self.has_grf_textures {
-            TextInputBg::Transparent
-        } else {
-            TextInputBg::Default
-        };
+        let name_bg = TextInputBg::Default;
         let name_rect = Rect::new(ox + NAME_X, oy + NAME_Y, NAME_W, NAME_H);
         ui.text_input(NAME_ID, name_rect, &mut self.name, name_bg);
 
@@ -455,7 +432,6 @@ impl CharCreateWindow {
         let win = ui.window_account(CHAR_CREATE_WINDOW_ID, V2_W, V2_H, V2_HEADER_H);
         self.win_origin = (win.x, win.y);
         let (ox, oy) = (win.x, win.y);
-        let has_grf = self.has_grf_textures;
         let content_y = oy + V2_HEADER_H;
         let footer_y = content_y + V2_CONTENT_H;
 
@@ -467,11 +443,7 @@ impl CharCreateWindow {
             window_chrome::text_color(),
         );
 
-        if has_grf {
-            window_chrome::draw_textured_quad(ui, ox, content_y, V2_W, V2_CONTENT_H, WIN2_TEXTURE);
-        } else {
-            window_chrome::draw_container(ui, ox, content_y, V2_W, V2_CONTENT_H);
-        }
+        window_chrome::draw_container(ui, ox, content_y, V2_W, V2_CONTENT_H);
         window_chrome::draw_footer(ui, ox, footer_y, V2_W, V2_FOOTER_H);
 
 let name_bg = TextInputBg::Default;
@@ -544,15 +516,6 @@ let name_bg = TextInputBg::Default;
     }
 }
 
-fn push_quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, texture: TextureRef) {
-    let (v, i) = draw::quad_vertices(x, y, w, h, [1.0, 1.0, 1.0, 1.0]);
-    ui.draw_calls.push(DrawCall {
-        vertices: v.to_vec(),
-        indices: i.to_vec(),
-        texture,
-    });
-}
-
 fn push_color_quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
     let (v, i) = draw::quad_vertices(x, y, w, h, color);
     ui.draw_calls.push(DrawCall {
@@ -563,38 +526,12 @@ fn push_color_quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32
 }
 
 impl Window for CharCreateWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
     fn window_size(&self) -> (f32, f32) {
         if self.with_stats {
             (WIN_W, WIN_H)
         } else {
             (V2_W, V2_H)
         }
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            WIN_TEXTURE,
-            WIN2_TEXTURE,
-            NAME_EDIT_TEXTURE,
-            ARROW_L_TEXTURE,
-            ARROW_R_TEXTURE,
-            ARROW_UP_TEXTURE,
-            window_chrome::TITLEBAR_TEX,
-            window_chrome::FOOTER_TEX,
-            MAKE_BTN.normal,
-            MAKE_BTN.hover,
-            MAKE_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ]
     }
 }
 

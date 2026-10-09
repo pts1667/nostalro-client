@@ -1,7 +1,6 @@
-use crate::helper::{ButtonTextures};
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    FOOTER_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer,
+    draw_container, draw_footer,
     draw_sys_button, draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -10,17 +9,7 @@ use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
 
 pub const EMBLEM_PICKER_WINDOW_ID: WidgetId = WidgetId(3480);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3481);
@@ -33,8 +22,6 @@ const EMBLEM_SCROLL: ScrollbarIds = ScrollbarIds {
 };
 const THUMB_BASE_ID: u32 = 3490;
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
 const WIN_W: f32 = 322.0;
 const TITLE_H: f32 = 17.0;
@@ -68,7 +55,6 @@ pub struct EmblemEntry {
 
 pub struct EmblemPickerWindow {
     pub open: bool,
-    pub has_grf_textures: bool,
     entries: Vec<EmblemEntry>,
     selected: Option<usize>,
     scroll: usize,
@@ -84,7 +70,6 @@ impl EmblemPickerWindow {
     pub fn new() -> Self {
         Self {
             open: false,
-            has_grf_textures: false,
             entries: Vec::new(),
             selected: None,
             scroll: 0,
@@ -122,32 +107,8 @@ impl EmblemPickerWindow {
 }
 
 impl Window for EmblemPickerWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, TITLE_H + CONTENT_H + FOOTER_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            FOOTER_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths
     }
 }
 
@@ -168,8 +129,6 @@ impl InGameWindow for EmblemPickerWindow {
             return Vec::new();
         }
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
         let tc = text_color();
         let mut events = Vec::new();
 
@@ -201,7 +160,6 @@ impl InGameWindow for EmblemPickerWindow {
         );
         if close_resp.clicked() {
             self.open = false;
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -214,7 +172,6 @@ impl InGameWindow for EmblemPickerWindow {
         draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         events.extend(self.build_footer(ui, x, footer_y));
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

@@ -46,6 +46,7 @@ use ragnarok_renderer::{
 use ragnarok_ui::context::UiContext;
 use ragnarok_ui::frame::{UiFrame, UiOutput};
 use ragnarok_ui::state::StateCache;
+use ragnarok_ui_component::Window as _;
 use ragnarok_ui_component::account::char_create_window::CharCreateWindow;
 use ragnarok_ui_component::account::char_select_window::CharSelectWindow;
 use ragnarok_ui_component::account::login_server_list_window::{
@@ -509,7 +510,7 @@ impl App {
                         &renderer.font_atlas,
                         &mut self.ui_state_cache,
                         elapsed,
-                        server_win.has_grf_textures,
+                        server_win.has_grf_textures(),
                         None,
                         &self.saved_window_positions,
                     );
@@ -535,7 +536,7 @@ impl App {
                         &renderer.font_atlas,
                         &mut self.ui_state_cache,
                         elapsed,
-                        self.login_window.has_grf_textures,
+                        self.login_window.has_grf_textures(),
                         initial_focus,
                         &self.saved_window_positions,
                     );
@@ -561,7 +562,7 @@ impl App {
                         &renderer.font_atlas,
                         &mut self.ui_state_cache,
                         elapsed,
-                        server_win.has_grf_textures,
+                        server_win.has_grf_textures(),
                         None,
                         &self.saved_window_positions,
                     );
@@ -587,7 +588,7 @@ impl App {
                         &renderer.font_atlas,
                         &mut self.ui_state_cache,
                         elapsed,
-                        char_win.has_grf_textures,
+                        char_win.has_grf_textures(),
                         None,
                         &self.saved_window_positions,
                     );
@@ -613,7 +614,7 @@ impl App {
                         &renderer.font_atlas,
                         &mut self.ui_state_cache,
                         elapsed,
-                        create_win.has_grf_textures,
+                        create_win.has_grf_textures(),
                         None,
                         &self.saved_window_positions,
                     );
@@ -636,7 +637,7 @@ impl App {
                         &renderer.font_atlas,
                         &mut self.ui_state_cache,
                         elapsed,
-                        self.windows.system_menu.has_grf_textures,
+                        false,
                         None,
                         &self.saved_window_positions,
                     );

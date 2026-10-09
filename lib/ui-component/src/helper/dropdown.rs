@@ -1,14 +1,8 @@
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use crate::helper::{ButtonTextures};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::theme::FallbackPalette as P;
 
-const CARET: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::TXTBOX_BTN_A,
-    hover: ragnarok_resources::ui::basic::TXTBOX_BTN_B,
-    pressed: ragnarok_resources::ui::basic::TXTBOX_BTN_C,
-};
 
 pub const OPTION_H: f32 = 16.0;
 
@@ -16,10 +10,6 @@ const BG: [f32; 4] = P::SLOT_FILL;
 const BORDER: [f32; 4] = P::WIN_BORDER;
 const SELECTION: [f32; 4] = P::BTN_HOVER_MID;
 const TEXT: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-
-pub fn grf_texture_paths() -> Vec<&'static str> {
-    vec![CARET.normal, CARET.hover, CARET.pressed]
-}
 
 #[derive(Default)]
 pub struct Dropdown {
@@ -60,24 +50,7 @@ impl Dropdown {
         ui.text(rect.x + 3.0, rect.y + 12.0, label, TEXT);
 
         let caret = Rect::new(rect.x + rect.w - rect.h, rect.y, rect.h, rect.h);
-        if ui.has_grf_textures {
-            let pressed = resp.hovered() && (ui.ctx.mouse_clicked || ui.ctx.mouse_down);
-            let tex = if pressed {
-                CARET.pressed
-            } else if resp.hovered() {
-                CARET.hover
-            } else {
-                CARET.normal
-            };
-            let (v, i) = draw::quad_vertices(caret.x, caret.y, caret.w, caret.h, BG);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(tex.to_string()),
-            });
-        } else {
-            down_arrow(ui, caret.x + caret.w / 2.0, caret.y + 6.0, TEXT);
-        }
+        down_arrow(ui, caret.x + caret.w / 2.0, caret.y + 6.0, TEXT);
 
         let mut toggled = false;
         if resp.clicked() && !blocked {

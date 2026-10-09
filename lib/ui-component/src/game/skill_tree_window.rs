@@ -1,4 +1,3 @@
-use crate::helper::{ButtonTextures};
 use ragnarok_game::data_table::DataTable;
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::skill::{SkillData, SkillEnum, SkillTargetType};
@@ -9,29 +8,14 @@ use ragnarok_ui::rect::Rect;
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    FOOTER_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button, draw_titlebar,
+    draw_container, draw_footer, draw_sys_button, draw_titlebar,
     text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::data_table::skill_name_table::format_skill_display_name;
 
-const CLOSE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CLOSE,
-    hover: ragnarok_resources::ui::BTN_CLOSE_A,
-    pressed: ragnarok_resources::ui::BTN_CLOSE_B,
-};
 
-const USE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
 
-const LEVELUP_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::SKILL_UP_A,
-    hover: ragnarok_resources::ui::basic::SKILL_UP_B,
-    pressed: ragnarok_resources::ui::basic::SKILL_UP_C,
-};
 
 pub const SKILL_WINDOW_ID: WidgetId = WidgetId(1200);
 const SKILL_CLOSE_BTN_ID: WidgetId = WidgetId(1201);
@@ -54,14 +38,9 @@ const PAD_X: f32 = 6.0;
 const FALLBACK_BTN_W: f32 = 42.0;
 const FALLBACK_BTN_H: f32 = 20.0;
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const ARW_LEFT_TEX: &str = ragnarok_resources::ui::basic::ARW_LEFT;
-const ARW_RIGHT_TEX: &str = ragnarok_resources::ui::basic::ARW_RIGHT;
 const ARW_SIZE: f32 = 11.0;
 
 pub struct SkillTreeWindow {
-    pub has_grf_textures: bool,
     scroll_offset: usize,
     btn_size: (f32, f32),
     levelup_btn_size: (f32, f32),
@@ -77,7 +56,6 @@ impl Default for SkillTreeWindow {
 impl SkillTreeWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             scroll_offset: 0,
             btn_size: (FALLBACK_BTN_W, FALLBACK_BTN_H),
             levelup_btn_size: (16.0, 16.0),
@@ -87,53 +65,10 @@ impl SkillTreeWindow {
 }
 
 impl Window for SkillTreeWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
 
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-        self.tooltip_container.has_grf_textures = value;
-    }
-
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(CLOSE_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(LEVELUP_BTN.normal) {
-            self.levelup_btn_size = (w as f32, h as f32);
-        }
-        self.tooltip_container.set_texture_sizes(size_fn);
-    }
 
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, TITLE_H + VISIBLE_ROWS as f32 * ROW_H + FOOTER_H)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str>
-    where
-        Self: Sized,
-    {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            FOOTER_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            ARW_LEFT_TEX,
-            ARW_RIGHT_TEX,
-            LEVELUP_BTN.normal,
-            LEVELUP_BTN.hover,
-            LEVELUP_BTN.pressed,
-            USE_BTN.normal,
-            USE_BTN.hover,
-            USE_BTN.pressed,
-            CLOSE_BTN.normal,
-            CLOSE_BTN.hover,
-            CLOSE_BTN.pressed,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths.extend(DialogContainer::grf_texture_paths());
-        paths
     }
 }
 
@@ -155,7 +90,6 @@ impl InGameWindow for SkillTreeWindow {
         }
 
         let mut events = Vec::new();
-        let has_grf = self.has_grf_textures;
         let tc = text_color();
 
         let total_skills = character.skills.skills().len();
@@ -229,11 +163,7 @@ impl InGameWindow for SkillTreeWindow {
             let entry_id = WidgetId(SKILL_ENTRY_BASE_ID + vis_i as u32);
 
             if vis_i > 0 {
-                let sep_color = if has_grf {
-                    [0.8, 0.8, 0.8, 1.0]
-                } else {
-                    [0.3, 0.3, 0.4, 1.0]
-                };
+                let sep_color = [0.3, 0.3, 0.4, 1.0];
                 let (v, idx) = draw::quad_vertices(x + PAD_X, row_y, skill_area_w, 1.0, sep_color);
                 ui.draw_calls.push(DrawCall {
                     vertices: v.to_vec(),
@@ -246,11 +176,7 @@ impl InGameWindow for SkillTreeWindow {
             let row_resp = ui.interact(entry_id, row_rect);
             let mut pointer_on_row_widget = false;
             if row_resp.hovered() {
-                let hover_bg = if has_grf {
-                    [0.85, 0.85, 0.8, 0.5]
-                } else {
-                    [0.3, 0.3, 0.4, 0.3]
-                };
+                let hover_bg = [0.3, 0.3, 0.4, 0.3];
                 let (v, idx) = draw::quad_vertices(x + PAD_X, row_y, skill_area_w, ROW_H, hover_bg);
                 ui.draw_calls.push(DrawCall {
                     vertices: v.to_vec(),
@@ -294,21 +220,12 @@ impl InGameWindow for SkillTreeWindow {
                 let left_id = WidgetId(SKILL_LEVEL_DOWN_BASE_ID + vis_i as u32);
                 let left_rect = Rect::new(name_x, arw_y, ARW_SIZE, ARW_SIZE);
                 let left_resp = ui.interact(left_id, left_rect);
-                if has_grf {
-                    let (v, i) = draw::quad_vertices(name_x, arw_y, ARW_SIZE, ARW_SIZE, [1.0; 4]);
-                    ui.draw_calls.push(DrawCall {
-                        vertices: v.to_vec(),
-                        indices: i.to_vec(),
-                        texture: TextureRef::Named(ARW_LEFT_TEX.to_string()),
-                    });
+                let c = if left_resp.hovered() {
+                    [1.0, 1.0, 0.5, 1.0]
                 } else {
-                    let c = if left_resp.hovered() {
-                        [1.0, 1.0, 0.5, 1.0]
-                    } else {
-                        level_color
-                    };
-                    ui.text(name_x, level_y, "<", c);
-                }
+                    level_color
+                };
+                ui.text(name_x, level_y, "<", c);
                 if left_resp.clicked() {
                     level_changes.push((visible_skill, false));
                 }
@@ -321,21 +238,12 @@ impl InGameWindow for SkillTreeWindow {
                 let right_id = WidgetId(SKILL_LEVEL_UP_BASE_ID + vis_i as u32);
                 let right_rect = Rect::new(right_x, arw_y, ARW_SIZE, ARW_SIZE);
                 let right_resp = ui.interact(right_id, right_rect);
-                if has_grf {
-                    let (v, i) = draw::quad_vertices(right_x, arw_y, ARW_SIZE, ARW_SIZE, [1.0; 4]);
-                    ui.draw_calls.push(DrawCall {
-                        vertices: v.to_vec(),
-                        indices: i.to_vec(),
-                        texture: TextureRef::Named(ARW_RIGHT_TEX.to_string()),
-                    });
+                let c = if right_resp.hovered() {
+                    [1.0, 1.0, 0.5, 1.0]
                 } else {
-                    let c = if right_resp.hovered() {
-                        [1.0, 1.0, 0.5, 1.0]
-                    } else {
-                        level_color
-                    };
-                    ui.text(right_x, level_y, ">", c);
-                }
+                    level_color
+                };
+                ui.text(right_x, level_y, ">", c);
                 if right_resp.clicked() {
                     level_changes.push((visible_skill, true));
                 }

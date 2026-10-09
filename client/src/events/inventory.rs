@@ -404,12 +404,10 @@ impl App {
             .unwrap_or_default();
         let mut dialog = CardInsertDialog::new();
         dialog.open(card_index, card_name, eligible);
-        dialog.has_grf_textures = self.windows.card_insert_dialog_has_grf_textures;
-        if dialog.has_grf_textures
-            && let Some(renderer) = &self.renderer
-        {
-            dialog.set_texture_sizes(&|name| renderer.texture_cache.texture_size(name));
-        }
+        dialog.set_has_grf_textures(self.windows.card_insert_dialog_has_grf_textures);
+        if dialog.has_grf_textures()
+            && let Some(_renderer) = &self.renderer
+        {}
         let tex_paths = dialog.pending_texture_paths();
         self.windows.card_insert_dialog = Some(dialog);
         self.preload_item_icons(tex_paths);
