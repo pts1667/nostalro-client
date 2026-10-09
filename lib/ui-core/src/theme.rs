@@ -31,6 +31,13 @@ impl FallbackPalette {
     pub const GLOSS_RIM: [f32; 4] = rgb(0x26, 0x42, 0x8E);
     pub const GLOSS_GLYPH: [f32; 4] = rgb(0xFF, 0xFF, 0xFF);
 
+    /// Labelled buttons use the same two tones, lightened so dark text stays
+    /// readable across the step at half height.
+    pub const BTN_UP_TOP: [f32; 4] = rgb(0xF2, 0xF7, 0xFF);
+    pub const BTN_UP_BOT: [f32; 4] = rgb(0xA6, 0xC0, 0xEE);
+    pub const BTN_LO_TOP: [f32; 4] = rgb(0x8C, 0xAE, 0xE8);
+    pub const BTN_LO_BOT: [f32; 4] = rgb(0xD6, 0xE7, 0xFC);
+
     pub const SLOT_FILL: [f32; 4] = rgb(0xFF, 0xFF, 0xFF);
     pub const SLOT_INSET: [f32; 4] = rgb(0xCF, 0xD6, 0xE5);
 
@@ -87,53 +94,152 @@ pub fn bevel(ui: &mut UiFrame, r: Rect, radius: f32, hi: [f32; 4], lo: [f32; 4])
     seg(ui, r.x + r.w - 1.0, r.y + rad, 1.0, r.h - 2.0 * rad, lo);
 }
 
-/// Glossy rounded button that reads recessed: a single shadow-gradient edge
-/// (dark at the top, fading lighter down the sides to the bottom) acts as the
-/// border, then a concave top→mid→bottom glossy face, then a centered dark label.
-pub fn fallback_button(ui: &mut UiFrame, r: Rect, hovered: bool, pressed: bool, label: &str) {
-    let (top, mid, bot, sh_top, sh_bot) = if pressed {
-        (
-            FallbackPalette::BTN_PRESS_TOP,
-            FallbackPalette::BTN_PRESS_MID,
-            FallbackPalette::BTN_PRESS_BOT,
-            FallbackPalette::BTN_INSET_SHADOW_BLUE_TOP,
-            FallbackPalette::BTN_INSET_SHADOW_BLUE_BOT,
-        )
-    } else if hovered {
-        (
-            FallbackPalette::BTN_HOVER_TOP,
-            FallbackPalette::BTN_HOVER_MID,
-            FallbackPalette::BTN_HOVER_BOT,
-            FallbackPalette::BTN_INSET_SHADOW_BLUE_TOP,
-            FallbackPalette::BTN_INSET_SHADOW_BLUE_BOT,
-        )
+pub fn mix(a: [f32; 4], b: [f32; 4], t: f32) -> [f32; 4] {
+    std::array::from_fn(|k| a[k] + (b[k] - a[k]) * t)
+}
+
+/// Brightens a colour for the hovered state.
+pub fn lift(c: [f32; 4], hovered: bool) -> [f32; 4] {
+    if hovered {
+        mix(c, [1.0, 1.0, 1.0, c[3]], 0.30)
     } else {
-        (
-            FallbackPalette::BTN_FACE_TOP,
-            FallbackPalette::BTN_FACE_MID,
-            FallbackPalette::BTN_FACE_BOT,
-            FallbackPalette::BTN_INSET_SHADOW_TOP,
-            FallbackPalette::BTN_INSET_SHADOW_BOT,
-        )
+        c
+    }
+}
+
+/// Half of a disc as a triangle fan, lerping `at_diameter` to `at_far` with the
+/// distance from the horizontal diameter. `upper` picks the half above it.
+fn half_disc(
+    cx: f32,
+    cy: f32,
+    r: f32,
+    upper: bool,
+    at_diameter: [f32; 4],
+    at_far: [f32; 4],
+) -> (Vec<UiVertex>, Vec<u32>) {
+    const SEGS: usize = 10;
+    let sign = if upper { -1.0 } else { 1.0 };
+    let vertex = |p: [f32; 2], color| UiVertex {
+        position: p,
+        tex_coord: [0.0, 0.0],
+        color,
     };
-    let (v, i) = draw::rounded_rect_vgrad(r.x, r.y, r.w, r.h, CORNER_RADIUS, sh_top, sh_bot);
+    let mut verts = vec![vertex([cx, cy], at_diameter)];
+    for k in 0..=SEGS {
+        let a = std::f32::consts::PI * k as f32 / SEGS as f32;
+        let (dx, dy) = (r * a.cos(), sign * r * a.sin());
+        let t = (dy.abs() / r).clamp(0.0, 1.0);
+        verts.push(vertex([cx + dx, cy + dy], mix(at_diameter, at_far, t)));
+    }
+    let mut indices = Vec::with_capacity(SEGS * 3);
+    for k in 0..SEGS as u32 {
+        indices.extend([0, 1 + k, 2 + k]);
+    }
+    (verts, indices)
+}
+
+/// Round glossy blue disc: a dark rim around the two-tone face, with a soft
+/// highlight on the upper half.
+pub fn gloss_disc(ui: &mut UiFrame, cx: f32, cy: f32, r: f32, hovered: bool) {
+    for upper in [true, false] {
+        let (v, i) = half_disc(cx, cy, r, upper, FallbackPalette::GLOSS_RIM, FallbackPalette::GLOSS_RIM);
+        push_white(ui, v, i);
+    }
+    let r = r - 1.0;
+    let (v, i) = half_disc(
+        cx,
+        cy,
+        r,
+        true,
+        lift(FallbackPalette::GLOSS_UP_BOT, hovered),
+        lift(FallbackPalette::GLOSS_UP_TOP, hovered),
+    );
+    push_white(ui, v, i);
+    let (v, i) = half_disc(
+        cx,
+        cy,
+        r,
+        false,
+        lift(FallbackPalette::GLOSS_LO_TOP, hovered),
+        lift(FallbackPalette::GLOSS_LO_BOT, hovered),
+    );
+    push_white(ui, v, i);
+    let (v, i) = draw::rounded_rect(
+        cx - r * 0.55,
+        cy - r * 0.85,
+        r * 1.1,
+        r * 0.45,
+        r * 0.22,
+        [1.0, 1.0, 1.0, 0.40],
+    );
+    push_white(ui, v, i);
+}
+
+/// Straight line segment of the given thickness, drawn as a rotated quad.
+pub fn line(ui: &mut UiFrame, a: (f32, f32), b: (f32, f32), thickness: f32, color: [f32; 4]) {
+    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+    let len = (dx * dx + dy * dy).sqrt();
+    if len <= 0.0 {
+        return;
+    }
+    let (nx, ny) = (-dy / len * thickness * 0.5, dx / len * thickness * 0.5);
+    let vertex = |x: f32, y: f32| UiVertex {
+        position: [x, y],
+        tex_coord: [0.0, 0.0],
+        color,
+    };
+    ui.draw_calls.push(DrawCall {
+        vertices: vec![
+            vertex(a.0 + nx, a.1 + ny),
+            vertex(a.0 - nx, a.1 - ny),
+            vertex(b.0 + nx, b.1 + ny),
+            vertex(b.0 - nx, b.1 - ny),
+        ],
+        indices: vec![0, 1, 2, 2, 1, 3],
+        texture: TextureRef::White,
+    });
+}
+
+/// Glossy blue button: a dark rim around the two-tone face (light above, mid blue
+/// below, meeting at half height), a top bevel line and a centred dark label.
+/// Hover brightens the face; pressed darkens it.
+pub fn fallback_button(ui: &mut UiFrame, r: Rect, hovered: bool, pressed: bool, label: &str) {
+    let shade = |c: [f32; 4]| {
+        let c = lift(c, hovered);
+        if pressed {
+            mix(c, FallbackPalette::GLOSS_RIM, 0.22)
+        } else {
+            c
+        }
+    };
+    let (v, i) = draw::rounded_rect(r.x, r.y, r.w, r.h, CORNER_RADIUS, FallbackPalette::GLOSS_RIM);
     push_white(ui, v, i);
 
     let (fx, fy, fw, fh) = (r.x + 1.0, r.y + 1.0, r.w - 2.0, r.h - 2.0);
     let fr = (CORNER_RADIUS - 1.0).max(0.0);
-    let valley = (fh * 0.35).round();
-    let (v, i) = draw::rounded_rect_corners_vgrad(fx, fy, fw, valley, [fr, fr, 0.0, 0.0], top, mid);
+    let upper = (fh * 0.5).floor();
+    let (v, i) = draw::rounded_rect_corners_vgrad(
+        fx,
+        fy,
+        fw,
+        upper,
+        [fr, fr, 0.0, 0.0],
+        shade(FallbackPalette::BTN_UP_TOP),
+        shade(FallbackPalette::BTN_UP_BOT),
+    );
     push_white(ui, v, i);
     let (v, i) = draw::rounded_rect_corners_vgrad(
         fx,
-        fy + valley,
+        fy + upper,
         fw,
-        fh - valley,
+        fh - upper,
         [0.0, 0.0, fr, fr],
-        mid,
-        bot,
+        shade(FallbackPalette::BTN_LO_TOP),
+        shade(FallbackPalette::BTN_LO_BOT),
     );
     push_white(ui, v, i);
+    let (v, i) = draw::quad_vertices(fx + fr, fy, fw - 2.0 * fr, 1.0, [1.0, 1.0, 1.0, 0.55]);
+    push_white(ui, v.to_vec(), i.to_vec());
 
     if !label.is_empty() {
         let tw = ui.atlas.measure_text(label);

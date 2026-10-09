@@ -1,8 +1,7 @@
-use ragnarok_renderer::ui_renderer::UiVertex;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::UiFrame;
 use ragnarok_ui::rect::Rect;
-use ragnarok_ui::theme::{CORNER_RADIUS, FallbackPalette as P};
+use ragnarok_ui::theme::{CORNER_RADIUS, FallbackPalette as P, gloss_disc, lift, line};
 
 fn fill(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
     if w <= 0.0 || h <= 0.0 {
@@ -183,112 +182,6 @@ pub fn cell(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, active: bool) {
     fill(ui, x, y + h - 1.0, w, 1.0, P::WIN_BORDER);
     fill(ui, x, y, 1.0, h, P::WIN_BORDER);
     fill(ui, x + w - 1.0, y, 1.0, h, P::WIN_BORDER);
-}
-
-fn mix(a: [f32; 4], b: [f32; 4], t: f32) -> [f32; 4] {
-    std::array::from_fn(|k| a[k] + (b[k] - a[k]) * t)
-}
-
-/// Brightens a colour for the hovered state.
-fn lift(c: [f32; 4], hovered: bool) -> [f32; 4] {
-    if hovered {
-        mix(c, [1.0, 1.0, 1.0, c[3]], 0.30)
-    } else {
-        c
-    }
-}
-
-/// Half of a disc as a triangle fan, lerping `at_diameter` to `at_far` with the
-/// distance from the horizontal diameter. `upper` picks the half above it.
-fn half_disc(
-    cx: f32,
-    cy: f32,
-    r: f32,
-    upper: bool,
-    at_diameter: [f32; 4],
-    at_far: [f32; 4],
-) -> (Vec<UiVertex>, Vec<u32>) {
-    const SEGS: usize = 10;
-    let sign = if upper { -1.0 } else { 1.0 };
-    let vertex = |p: [f32; 2], color| UiVertex {
-        position: p,
-        tex_coord: [0.0, 0.0],
-        color,
-    };
-    let mut verts = vec![vertex([cx, cy], at_diameter)];
-    for k in 0..=SEGS {
-        let a = std::f32::consts::PI * k as f32 / SEGS as f32;
-        let (dx, dy) = (r * a.cos(), sign * r * a.sin());
-        let t = (dy.abs() / r).clamp(0.0, 1.0);
-        verts.push(vertex([cx + dx, cy + dy], mix(at_diameter, at_far, t)));
-    }
-    let mut indices = Vec::with_capacity(SEGS * 3);
-    for k in 0..SEGS as u32 {
-        indices.extend([0, 1 + k, 2 + k]);
-    }
-    (verts, indices)
-}
-
-/// Round glossy blue disc: a dark rim around the two-tone face, with a soft
-/// highlight on the upper half.
-fn gloss_disc(ui: &mut UiFrame, cx: f32, cy: f32, r: f32, hovered: bool) {
-    for upper in [true, false] {
-        let (v, i) = half_disc(cx, cy, r, upper, P::GLOSS_RIM, P::GLOSS_RIM);
-        rounded(ui, v, i);
-    }
-    let r = r - 1.0;
-    let (v, i) = half_disc(
-        cx,
-        cy,
-        r,
-        true,
-        lift(P::GLOSS_UP_BOT, hovered),
-        lift(P::GLOSS_UP_TOP, hovered),
-    );
-    rounded(ui, v, i);
-    let (v, i) = half_disc(
-        cx,
-        cy,
-        r,
-        false,
-        lift(P::GLOSS_LO_TOP, hovered),
-        lift(P::GLOSS_LO_BOT, hovered),
-    );
-    rounded(ui, v, i);
-    let (v, i) = draw::rounded_rect(
-        cx - r * 0.55,
-        cy - r * 0.85,
-        r * 1.1,
-        r * 0.45,
-        r * 0.22,
-        [1.0, 1.0, 1.0, 0.40],
-    );
-    rounded(ui, v, i);
-}
-
-/// Straight line segment of the given thickness, drawn as a rotated quad.
-fn line(ui: &mut UiFrame, a: (f32, f32), b: (f32, f32), thickness: f32, color: [f32; 4]) {
-    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
-    let len = (dx * dx + dy * dy).sqrt();
-    if len <= 0.0 {
-        return;
-    }
-    let (nx, ny) = (-dy / len * thickness * 0.5, dx / len * thickness * 0.5);
-    let vertex = |x: f32, y: f32| UiVertex {
-        position: [x, y],
-        tex_coord: [0.0, 0.0],
-        color,
-    };
-    ui.draw_calls.push(DrawCall {
-        vertices: vec![
-            vertex(a.0 + nx, a.1 + ny),
-            vertex(a.0 - nx, a.1 - ny),
-            vertex(b.0 + nx, b.1 + ny),
-            vertex(b.0 - nx, b.1 - ny),
-        ],
-        indices: vec![0, 1, 2, 2, 1, 3],
-        texture: TextureRef::White,
-    });
 }
 
 /// White glyph with a dark outline, centred on `(cx, cy)`. `_`, `x` and `+` are

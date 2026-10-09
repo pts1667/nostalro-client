@@ -3546,6 +3546,14 @@ fn build_fallback_gallery(ui: &mut UiFrame, name_field: &mut TextInput) {
     ui.text(wx + 140.0, 266.0, "Use", P::TEXT_ON_LIGHT);
     fallback::cell(ui, wx + 132.0, 276.0, 70.0, 20.0, false);
     ui.text(wx + 140.0, 290.0, "Etc", P::TEXT_ON_LIGHT);
+
+    // Checkbox, slider and resize grip
+    ui.text(bx, 240.0, "CHECKBOX / SLIDER / GRIP", heading);
+    ui.checkbox_display(Rect::new(bx, 252.0, 13.0, 13.0), false);
+    ui.checkbox_display(Rect::new(bx + 20.0, 252.0, 13.0, 13.0), true);
+    let mut level = 0.6;
+    ui.slider(WidgetId(60003), Rect::new(bx + 50.0, 252.0, 100.0, 13.0), &mut level, 0.0, 1.0);
+    ui.resize_handle(WidgetId(60004), Rect::new(bx + 170.0, 252.0, 12.0, 12.0));
 }
 
 fn add_button<F>(

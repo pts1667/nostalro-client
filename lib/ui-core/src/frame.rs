@@ -666,7 +666,7 @@ impl<'a> UiFrame<'a> {
         if response.clicked {
             *checked = !*checked;
         }
-        self.draw_checkbox(rect, *checked);
+        self.draw_checkbox(rect, *checked, response.hovered);
         response
     }
 
@@ -683,14 +683,19 @@ impl<'a> UiFrame<'a> {
     }
 
     pub fn checkbox_display(&mut self, rect: Rect, checked: bool) {
-        self.draw_checkbox(rect, checked);
+        self.draw_checkbox(rect, checked, false);
     }
 
-    fn draw_checkbox(&mut self, rect: Rect, checked: bool) {
-        use crate::theme::FallbackPalette as P;
-        // A recessed well with a 1px frame, and a filled square when checked.
+    fn draw_checkbox(&mut self, rect: Rect, checked: bool, hovered: bool) {
+        use crate::theme::{FallbackPalette as P, lift, line};
+        // A glossy-rimmed white well, with a navy tick when checked.
         self.push_shape(draw::rounded_rect(
-            rect.x, rect.y, rect.w, rect.h, 2.0, P::WIN_BORDER,
+            rect.x,
+            rect.y,
+            rect.w,
+            rect.h,
+            2.0,
+            lift(P::GLOSS_RIM, hovered),
         ));
         self.push_shape(draw::rounded_rect_vgrad(
             rect.x + 1.0,
@@ -698,18 +703,15 @@ impl<'a> UiFrame<'a> {
             rect.w - 2.0,
             rect.h - 2.0,
             1.5,
-            P::SLOT_FILL,
-            P::SLOT_INSET,
+            lift(P::SLOT_FILL, hovered),
+            lift(P::BTN_LO_BOT, hovered),
         ));
         if checked {
-            self.push_shape(draw::rounded_rect(
-                rect.x + 3.0,
-                rect.y + 3.0,
-                rect.w - 6.0,
-                rect.h - 6.0,
-                1.0,
-                P::SYS_BTN,
-            ));
+            let at = |fx: f32, fy: f32| (rect.x + rect.w * fx, rect.y + rect.h * fy);
+            let (a, b, c) = (at(0.24, 0.52), at(0.43, 0.74), at(0.80, 0.26));
+            for (p, q) in [(a, b), (b, c)] {
+                line(self, p, q, 2.0, P::GLOSS_RIM);
+            }
         }
     }
 
@@ -1044,57 +1046,67 @@ impl<'a> UiFrame<'a> {
         let span = (max - min).abs().max(f32::EPSILON);
         let t = ((*value - min) / span).clamp(0.0, 1.0);
         use crate::theme::FallbackPalette as P;
-        let track_h = 4.0;
+        // Grey capsule track, a glossy blue capsule up to the knob, and a round
+        // glossy knob.
+        let track_h = 5.0;
         let track_y = rect.y + (rect.h - track_h) * 0.5;
-        let knob_w = 8.0;
+        let knob_w = rect.h.clamp(8.0, 13.0);
         let knob_x = rect.x + t * (rect.w - knob_w);
+        let knob_cx = knob_x + knob_w * 0.5;
 
         self.push_shape(draw::rounded_rect(
             rect.x,
             track_y,
             rect.w,
             track_h,
-            2.0,
-            P::WIN_BORDER,
+            track_h * 0.5,
+            [0.60, 0.64, 0.72, 1.0],
         ));
-        if knob_x > rect.x {
-            self.push_shape(draw::rounded_rect(
-                rect.x,
-                track_y,
-                knob_x - rect.x,
-                track_h,
-                2.0,
-                P::SYS_BTN,
+        self.push_shape(draw::rounded_rect_vgrad(
+            rect.x + 1.0,
+            track_y + 1.0,
+            rect.w - 2.0,
+            track_h - 2.0,
+            (track_h - 2.0) * 0.5,
+            [0.80, 0.83, 0.89, 1.0],
+            [0.93, 0.94, 0.97, 1.0],
+        ));
+        if knob_cx - rect.x > 2.0 {
+            self.push_shape(draw::rounded_rect_vgrad(
+                rect.x + 1.0,
+                track_y + 1.0,
+                knob_cx - rect.x - 1.0,
+                track_h - 2.0,
+                (track_h - 2.0) * 0.5,
+                P::GLOSS_UP_TOP,
+                P::GLOSS_UP_BOT,
             ));
         }
-        let knob = if resp.hovered || resp.dragging {
-            (P::BTN_HOVER_TOP, P::BTN_HOVER_MID)
-        } else {
-            (P::BTN_FACE_TOP, P::BTN_FACE_MID)
-        };
-        self.push_shape(draw::rounded_rect_vgrad(
-            knob_x, rect.y, knob_w, rect.h, 2.0, knob.0, knob.1,
-        ));
+        crate::theme::gloss_disc(
+            self,
+            knob_cx,
+            rect.y + rect.h * 0.5,
+            knob_w * 0.5,
+            resp.hovered || resp.dragging,
+        );
 
         SliderResponse { changed, released }
     }
 
     pub fn resize_handle(&mut self, id: WidgetId, rect: Rect) -> DragResponse {
         let resp = self.drag_handle(id, rect, true);
-        use crate::theme::FallbackPalette as P;
-        let c = if resp.hovered {
-            P::BTN_BORDER_ACTIVE
-        } else {
-            P::BTN_BORDER
-        };
-        self.push_shape(draw::rounded_rect(
-            rect.x + rect.w * 0.5,
-            rect.y + rect.h * 0.5,
-            rect.w * 0.5,
-            rect.h * 0.5,
-            1.0,
-            c,
-        ));
+        use crate::theme::{FallbackPalette as P, line};
+        // Three diagonal grooves in the bottom-right corner: a light edge under a
+        // blue line, darker while hovered.
+        let colour = if resp.hovered { P::GLOSS_RIM } else { P::GLOSS_UP_BOT };
+        let s = rect.w.min(rect.h);
+        let (right, bottom) = (rect.x + rect.w - 1.0, rect.y + rect.h - 1.0);
+        for k in [0.4, 0.7, 1.0] {
+            let d = s * k;
+            for (c, off) in [([1.0, 1.0, 1.0, 0.9], 1.0), (colour, 0.0)] {
+                line(self, (right - d + off, bottom + off), (right + off, bottom - d + off), 1.2, c);
+            }
+        }
 
         resp
     }
