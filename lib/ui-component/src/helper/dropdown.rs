@@ -1,6 +1,7 @@
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+use ragnarok_ui::theme::FallbackPalette as P;
 
 pub const OPTION_H: f32 = 16.0;
 
@@ -10,9 +11,9 @@ const CARET: ButtonTextures = ButtonTextures {
     pressed: ragnarok_resources::ui::basic::TXTBOX_BTN_C,
 };
 
-const BG: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
-const BORDER: [f32; 4] = [0.761, 0.761, 0.761, 1.0];
-const SELECTION: [f32; 4] = [0.451, 0.62, 0.937, 1.0];
+const BG: [f32; 4] = P::SLOT_FILL;
+const BORDER: [f32; 4] = P::WIN_BORDER;
+const SELECTION: [f32; 4] = P::BTN_HOVER_MID;
 const TEXT: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 pub fn grf_texture_paths() -> Vec<&'static str> {

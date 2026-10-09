@@ -4,6 +4,7 @@ use crate::rect::Rect;
 use crate::state::StateCache;
 use crate::text_input::TextInput;
 use ragnarok_renderer::font_atlas::FontAtlas;
+use ragnarok_renderer::ui_renderer::UiVertex;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 
@@ -729,32 +730,46 @@ impl<'a> UiFrame<'a> {
                 texture: TextureRef::Named(tex.to_string()),
             });
         } else {
-            let mut fill = |x: f32, y: f32, w: f32, h: f32, color: [f32; 4]| {
-                let (verts, indices) = draw::quad_vertices(x, y, w, h, color);
-                self.draw_calls.push(DrawCall {
-                    vertices: verts.to_vec(),
-                    indices: indices.to_vec(),
-                    texture: TextureRef::White,
-                });
-            };
-            fill(rect.x, rect.y, rect.w, rect.h, [0.6, 0.6, 0.65, 1.0]);
-            fill(
+            use crate::theme::FallbackPalette as P;
+            // A recessed well with a 1px frame, and a filled square when checked.
+            self.push_shape(draw::rounded_rect(
+                rect.x,
+                rect.y,
+                rect.w,
+                rect.h,
+                2.0,
+                P::WIN_BORDER,
+            ));
+            self.push_shape(draw::rounded_rect_vgrad(
                 rect.x + 1.0,
                 rect.y + 1.0,
                 rect.w - 2.0,
                 rect.h - 2.0,
-                [1.0, 1.0, 1.0, 1.0],
-            );
+                1.5,
+                P::SLOT_FILL,
+                P::SLOT_INSET,
+            ));
             if checked {
-                fill(
-                    rect.x + 2.0,
-                    rect.y + 2.0,
-                    rect.w - 4.0,
-                    rect.h - 4.0,
-                    [0.286, 0.4, 0.7, 1.0],
-                );
+                self.push_shape(draw::rounded_rect(
+                    rect.x + 3.0,
+                    rect.y + 3.0,
+                    rect.w - 6.0,
+                    rect.h - 6.0,
+                    1.0,
+                    P::SYS_BTN,
+                ));
             }
         }
+    }
+
+    /// Pushes a rounded shape from `draw::rounded_rect*` as a white draw call.
+    /// Shared by the procedural widget fallbacks.
+    fn push_shape(&mut self, (vertices, indices): (Vec<UiVertex>, Vec<u32>)) {
+        self.draw_calls.push(DrawCall {
+            vertices,
+            indices,
+            texture: TextureRef::White,
+        });
     }
 
     /// A labeled button drawn procedurally regardless of GRF textures — for
@@ -1096,41 +1111,38 @@ impl<'a> UiFrame<'a> {
 
         let span = (max - min).abs().max(f32::EPSILON);
         let t = ((*value - min) / span).clamp(0.0, 1.0);
+        use crate::theme::FallbackPalette as P;
         let track_h = 4.0;
         let track_y = rect.y + (rect.h - track_h) * 0.5;
         let knob_w = 8.0;
         let knob_x = rect.x + t * (rect.w - knob_w);
 
-        let push_rect = |ui: &mut Self, x: f32, y: f32, w: f32, h: f32, c: [f32; 4]| {
-            let (v, i) = draw::quad_vertices(x, y, w, h, c);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
-        };
-        push_rect(
-            self,
+        self.push_shape(draw::rounded_rect(
             rect.x,
             track_y,
             rect.w,
             track_h,
-            [0.2, 0.2, 0.28, 1.0],
-        );
-        push_rect(
-            self,
-            rect.x,
-            track_y,
-            knob_x - rect.x,
-            track_h,
-            [0.45, 0.55, 0.8, 1.0],
-        );
-        let knob_c = if resp.hovered || resp.dragging {
-            [0.85, 0.9, 1.0, 1.0]
+            2.0,
+            P::WIN_BORDER,
+        ));
+        if knob_x > rect.x {
+            self.push_shape(draw::rounded_rect(
+                rect.x,
+                track_y,
+                knob_x - rect.x,
+                track_h,
+                2.0,
+                P::SYS_BTN,
+            ));
+        }
+        let knob = if resp.hovered || resp.dragging {
+            (P::BTN_HOVER_TOP, P::BTN_HOVER_MID)
         } else {
-            [0.65, 0.7, 0.85, 1.0]
+            (P::BTN_FACE_TOP, P::BTN_FACE_MID)
         };
-        push_rect(self, knob_x, rect.y, knob_w, rect.h, knob_c);
+        self.push_shape(draw::rounded_rect_vgrad(
+            knob_x, rect.y, knob_w, rect.h, 2.0, knob.0, knob.1,
+        ));
 
         SliderResponse { changed, released }
     }
@@ -1146,23 +1158,20 @@ impl<'a> UiFrame<'a> {
                 texture: TextureRef::Named(RESIZE_HANDLE_TEX.to_string()),
             });
         } else {
+            use crate::theme::FallbackPalette as P;
             let c = if resp.hovered {
-                [0.7, 0.7, 0.8, 1.0]
+                P::BTN_BORDER_ACTIVE
             } else {
-                [0.4, 0.4, 0.5, 1.0]
+                P::BTN_BORDER
             };
-            let (v, i) = draw::quad_vertices(
+            self.push_shape(draw::rounded_rect(
                 rect.x + rect.w * 0.5,
                 rect.y + rect.h * 0.5,
                 rect.w * 0.5,
                 rect.h * 0.5,
+                1.0,
                 c,
-            );
-            self.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
+            ));
         }
 
         resp

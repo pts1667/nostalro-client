@@ -64,12 +64,9 @@ impl DialogContainer {
         self.sysbox_sizes = other.sysbox_sizes;
     }
 
+    /// Dark text in both looks: the nine-slice frame and the fallback panel are light.
     pub fn text_color(&self) -> [f32; 4] {
-        if self.has_grf_textures {
-            [0.0, 0.0, 0.0, 1.0]
-        } else {
-            [1.0, 1.0, 1.0, 1.0]
-        }
+        [0.0, 0.0, 0.0, 1.0]
     }
 
     pub fn draw(
@@ -182,27 +179,9 @@ fn push_bounds(
     });
 }
 
+/// The light panel from `helper::fallback`, used when the nine-slice art is absent.
 fn draw_fallback(draw_calls: &mut Vec<DrawCall>, x: f32, y: f32, w: f32, h: f32) {
-    let (v, i) = draw::quad_vertices(x, y, w, h, [0.15, 0.15, 0.22, 0.95]);
-    draw_calls.push(DrawCall {
-        vertices: v.to_vec(),
-        indices: i.to_vec(),
-        texture: TextureRef::White,
-    });
-    let border_color = [0.5, 0.5, 0.6, 1.0];
-    for (bx, by, bw, bh) in [
-        (x, y, w, 1.0),
-        (x, y + h - 1.0, w, 1.0),
-        (x, y, 1.0, h),
-        (x + w - 1.0, y, 1.0, h),
-    ] {
-        let (v, i) = draw::quad_vertices(bx, by, bw, bh, border_color);
-        draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::White,
-        });
-    }
+    crate::helper::fallback::panel_into(draw_calls, x, y, w, h);
 }
 
 #[cfg(test)]
@@ -274,7 +253,7 @@ mod tests {
     fn fallback_draws_background_and_border() {
         let mut calls = Vec::new();
         draw_fallback(&mut calls, 0.0, 0.0, 100.0, 80.0);
-        assert_eq!(calls.len(), 5);
+        assert_eq!(calls.len(), 2);
         for call in &calls {
             assert!(matches!(call.texture, TextureRef::White));
         }
@@ -285,7 +264,7 @@ mod tests {
         let container = DialogContainer::new();
         let mut calls = Vec::new();
         container.draw(&mut calls, 0.0, 0.0, 100.0, 80.0, [1.0; 4]);
-        assert_eq!(calls.len(), 5); // fallback
+        assert_eq!(calls.len(), 2); // fallback panel
     }
 
     #[test]
@@ -320,9 +299,9 @@ mod tests {
     }
 
     #[test]
-    fn text_color_depends_on_grf() {
+    fn text_color_is_dark_in_both_looks() {
         let mut container = DialogContainer::new();
-        assert_eq!(container.text_color(), [1.0, 1.0, 1.0, 1.0]);
+        assert_eq!(container.text_color(), [0.0, 0.0, 0.0, 1.0]);
         container.has_grf_textures = true;
         assert_eq!(container.text_color(), [0.0, 0.0, 0.0, 1.0]);
     }

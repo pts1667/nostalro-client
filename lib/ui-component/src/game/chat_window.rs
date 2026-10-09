@@ -1,3 +1,4 @@
+use crate::helper::fallback;
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
@@ -388,13 +389,7 @@ impl ChatWindow {
         let max_lines = visible_line_count(h);
         let max_scroll = total.saturating_sub(max_lines);
 
-        let track_color = [0.0, 0.0, 0.0, 0.3];
-        let (v, i) = draw::quad_vertices(x, y, scrollbar_w, h, track_color);
-        ui.draw_calls.push(draw::DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: draw::TextureRef::White,
-        });
+        fallback::scroll_track(ui, x, y, scrollbar_w, h);
 
         let up_rect = Rect::new(x, y, scrollbar_w, scroll_btn_h);
         let up_response = ui.interact(SCROLL_UP_ID, up_rect);
@@ -409,22 +404,14 @@ impl ChatWindow {
                 texture: draw::TextureRef::Named(SCROLL_UP.to_string()),
             });
         } else {
-            let color = if up_response.hovered() {
-                [0.5, 0.5, 0.6, 1.0]
-            } else {
-                [0.3, 0.3, 0.4, 1.0]
-            };
-            let (v, i) = draw::quad_vertices(x, y, scrollbar_w, scroll_btn_h, color);
-            ui.draw_calls.push(draw::DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: draw::TextureRef::White,
-            });
-            ui.text(
-                x + (3.0),
-                y + ui.atlas.line_height,
-                "\u{25B2}",
-                [0.8, 0.8, 0.8, 1.0],
+            fallback::scroll_button(
+                ui,
+                x,
+                y,
+                scrollbar_w,
+                scroll_btn_h,
+                true,
+                up_response.hovered(),
             );
         }
 
@@ -443,22 +430,14 @@ impl ChatWindow {
                 texture: draw::TextureRef::Named(SCROLL_DOWN.to_string()),
             });
         } else {
-            let color = if down_response.hovered() {
-                [0.5, 0.5, 0.6, 1.0]
-            } else {
-                [0.3, 0.3, 0.4, 1.0]
-            };
-            let (v, i) = draw::quad_vertices(x, down_y, scrollbar_w, scroll_btn_h, color);
-            ui.draw_calls.push(draw::DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: draw::TextureRef::White,
-            });
-            ui.text(
-                x + (3.0),
-                down_y + ui.atlas.line_height,
-                "\u{25BC}",
-                [0.8, 0.8, 0.8, 1.0],
+            fallback::scroll_button(
+                ui,
+                x,
+                down_y,
+                scrollbar_w,
+                scroll_btn_h,
+                false,
+                down_response.hovered(),
             );
         }
 
@@ -498,23 +477,14 @@ impl ChatWindow {
             }
 
             let thumb_active = t.dragging || t.hovered;
-            let thumb_color = if thumb_active {
-                [0.6, 0.6, 0.7, 0.9]
-            } else {
-                [0.5, 0.5, 0.6, 0.8]
-            };
-            let (v, i) = draw::quad_vertices(
-                x + (2.0),
+            fallback::scroll_thumb(
+                ui,
+                x + 2.0,
                 thumb_y,
-                scrollbar_w - (4.0),
+                scrollbar_w - 4.0,
                 thumb_h,
-                thumb_color,
+                thumb_active,
             );
-            ui.draw_calls.push(draw::DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: draw::TextureRef::White,
-            });
         }
     }
 

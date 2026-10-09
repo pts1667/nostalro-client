@@ -88,9 +88,18 @@ pub fn footer(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
 /// Standalone light panel (all corners rounded) with a gray border — for
 /// windows that draw their own body without a separate title bar.
 pub fn panel(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
-    let (v, i) = draw::rounded_rect(x, y, w, h, CORNER_RADIUS, P::WIN_BORDER);
-    rounded(ui, v, i);
-    let (v, i) = draw::rounded_rect(
+    panel_into(&mut ui.draw_calls, x, y, w, h);
+}
+
+/// [`panel`] for code that builds its draw calls without a `UiFrame`.
+pub fn panel_into(draw_calls: &mut Vec<DrawCall>, x: f32, y: f32, w: f32, h: f32) {
+    let (vertices, indices) = draw::rounded_rect(x, y, w, h, CORNER_RADIUS, P::WIN_BORDER);
+    draw_calls.push(DrawCall {
+        vertices,
+        indices,
+        texture: TextureRef::White,
+    });
+    let (vertices, indices) = draw::rounded_rect(
         x + 1.0,
         y + 1.0,
         w - 2.0,
@@ -98,7 +107,11 @@ pub fn panel(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
         (CORNER_RADIUS - 1.0).max(0.0),
         P::WIN_BODY,
     );
-    rounded(ui, v, i);
+    draw_calls.push(DrawCall {
+        vertices,
+        indices,
+        texture: TextureRef::White,
+    });
 }
 
 /// Flat light cell with a 1px border — for stat cells, tabs and selector fields.
@@ -161,5 +174,62 @@ pub fn gauge(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, fill_pct: f32, is
         ([0.44, 0.55, 0.82, 1.0], [0.61, 0.71, 0.92, 1.0])
     };
     let (v, i) = draw::rounded_rect_vgrad(x, y, w * pct, h, 2.0, top, bot);
+    rounded(ui, v, i);
+}
+
+/// Scrollbar arrow button: a raised rounded face with a small triangle drawn
+/// from quads, so it does not depend on a glyph being in the font.
+pub fn scroll_button(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, up: bool, hovered: bool) {
+    let (top, mid) = if hovered {
+        (P::BTN_HOVER_TOP, P::BTN_HOVER_MID)
+    } else {
+        (P::BTN_FACE_TOP, P::BTN_FACE_MID)
+    };
+    let (v, i) = draw::rounded_rect_vgrad(x, y, w, h, 2.0, top, mid);
+    rounded(ui, v, i);
+
+    // Four rows, apex first, centred in the button.
+    let cx = x + w * 0.5;
+    let cy = y + h * 0.5 - 2.0;
+    for k in 0..4 {
+        let row_w = 1.0 + 2.0 * k as f32;
+        let row = if up { k } else { 3 - k };
+        fill(
+            ui,
+            cx - row_w * 0.5,
+            cy + row as f32,
+            row_w,
+            1.0,
+            P::TEXT_ON_LIGHT,
+        );
+    }
+}
+
+/// Recessed track behind a scrollbar thumb.
+pub fn scroll_track(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
+    let (v, i) = draw::rounded_rect(x, y, w, h, 2.0, P::WIN_BORDER);
+    rounded(ui, v, i);
+    let (v, i) = draw::rounded_rect_vgrad(
+        x + 1.0,
+        y + 1.0,
+        w - 2.0,
+        h - 2.0,
+        1.5,
+        P::SLOT_INSET,
+        P::SLOT_FILL,
+    );
+    rounded(ui, v, i);
+}
+
+/// Scrollbar thumb: a raised rounded grip that brightens under the pointer.
+pub fn scroll_thumb(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, hovered: bool) {
+    let (top, mid) = if hovered {
+        (P::BTN_HOVER_TOP, P::BTN_HOVER_MID)
+    } else {
+        (P::BTN_FACE_TOP, P::BTN_FACE_MID)
+    };
+    let (v, i) = draw::rounded_rect(x, y, w, h, 2.0, P::BTN_BORDER_ACTIVE);
+    rounded(ui, v, i);
+    let (v, i) = draw::rounded_rect_vgrad(x + 1.0, y + 1.0, w - 2.0, h - 2.0, 1.5, top, mid);
     rounded(ui, v, i);
 }

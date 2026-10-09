@@ -120,12 +120,9 @@ pub fn text_color(_has_grf: bool) -> [f32; 4] {
 }
 
 /// Dark navy blue used for field labels (Name/HP/SP/stat names) in info windows.
-pub fn label_color(has_grf: bool) -> [f32; 4] {
-    if has_grf {
-        [0.14, 0.20, 0.38, 1.0]
-    } else {
-        [0.45, 0.65, 1.0, 1.0]
-    }
+/// Light blue would be unreadable on the light fallback panels, so both looks use it.
+pub fn label_color(_has_grf: bool) -> [f32; 4] {
+    [0.14, 0.20, 0.38, 1.0]
 }
 
 pub fn draw_hline(ui: &mut UiFrame, x: f32, y: f32, w: f32) {
@@ -158,14 +155,13 @@ pub fn draw_value_bar(
     h: f32,
     fill_pct: f32,
     fill: [f32; 4],
-    has_grf: bool,
+    _has_grf: bool,
 ) {
-    if has_grf {
-        push_quad(ui, x, y, w + 2.0, h + 2.0, [0.69, 0.69, 0.69, 1.0]);
-        push_quad(ui, x + 1.0, y + 1.0, w, h, [1.0; 4]);
-    } else {
-        push_quad(ui, x, y, w + 2.0, h + 2.0, [0.3, 0.3, 0.35, 0.9]);
-    }
+    // Grey frame with a white well. Same in both looks, so the bar reads the same
+    // whether or not the game data is present.
+    use ragnarok_ui::theme::FallbackPalette as P;
+    push_quad(ui, x, y, w + 2.0, h + 2.0, P::WIN_BORDER);
+    push_quad(ui, x + 1.0, y + 1.0, w, h, P::SLOT_FILL);
     if fill_pct > 0.0 {
         let fw = (w * fill_pct.clamp(0.0, 1.0)).floor();
         push_quad(ui, x + 1.0, y + 1.0, fw, h, fill);

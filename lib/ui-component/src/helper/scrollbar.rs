@@ -1,3 +1,4 @@
+use crate::helper::fallback;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
@@ -35,15 +36,6 @@ fn blit(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, texture: &str) {
         vertices: v.to_vec(),
         indices: i.to_vec(),
         texture: TextureRef::Named(texture.to_string()),
-    });
-}
-
-fn fill(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
-    let (v, i) = draw::quad_vertices(x, y, w, h, color);
-    ui.draw_calls.push(DrawCall {
-        vertices: v.to_vec(),
-        indices: i.to_vec(),
-        texture: TextureRef::White,
     });
 }
 
@@ -91,12 +83,15 @@ pub fn scrollbar(
     if has_grf {
         blit(ui, x, y + 1.0, SCROLLBAR_W, SCROLL_BTN_H, SCROLL_UP_TEX);
     } else {
-        let color = if up_response.hovered() {
-            [0.5, 0.5, 0.6, 1.0]
-        } else {
-            [0.3, 0.3, 0.4, 1.0]
-        };
-        fill(ui, x, y, SCROLLBAR_W, SCROLL_BTN_H, color);
+        fallback::scroll_button(
+            ui,
+            x,
+            y,
+            SCROLLBAR_W,
+            SCROLL_BTN_H,
+            true,
+            up_response.hovered(),
+        );
     }
     if up_response.clicked() && offset > 0 {
         offset -= 1;
@@ -117,7 +112,7 @@ pub fn scrollbar(
             SCROLL_TRACK_TEX,
         );
     } else {
-        fill(ui, x, track_top, SCROLLBAR_W, track_h, [0.0, 0.0, 0.0, 0.3]);
+        fallback::scroll_track(ui, x, track_top, SCROLLBAR_W, track_h);
     }
 
     let down_y = y + h - SCROLL_BTN_H;
@@ -133,12 +128,15 @@ pub fn scrollbar(
             SCROLL_DOWN_TEX,
         );
     } else {
-        let color = if down_response.hovered() {
-            [0.5, 0.5, 0.6, 1.0]
-        } else {
-            [0.3, 0.3, 0.4, 1.0]
-        };
-        fill(ui, x, down_y, SCROLLBAR_W, SCROLL_BTN_H, color);
+        fallback::scroll_button(
+            ui,
+            x,
+            down_y,
+            SCROLLBAR_W,
+            SCROLL_BTN_H,
+            false,
+            down_response.hovered(),
+        );
     }
     if down_response.clicked() && offset < max_scroll {
         offset += 1;
@@ -201,12 +199,7 @@ pub fn scrollbar(
             THUMB_BOTTOM_TEX,
         );
     } else {
-        let color = if hovered {
-            [0.6, 0.6, 0.7, 0.9]
-        } else {
-            [0.5, 0.5, 0.6, 0.8]
-        };
-        fill(ui, x + 2.0, thumb_y, SCROLLBAR_W - 4.0, thumb_h, color);
+        fallback::scroll_thumb(ui, x + 2.0, thumb_y, SCROLLBAR_W - 4.0, thumb_h, hovered);
     }
 
     offset
@@ -333,7 +326,17 @@ mod tests {
         let mut ui = test_frame(&mut ctx, &mut state);
         let win = ui.window_at(WIN_ID, 200.0, 200.0, 200.0, 100.0, 100.0);
         let content = Rect::new(win.x, win.y, 180.0, 200.0);
-        scrollbar(&mut ui, ids(), 0, 5, 10, content, win.x + 180.0, win.y, 200.0);
+        scrollbar(
+            &mut ui,
+            ids(),
+            0,
+            5,
+            10,
+            content,
+            win.x + 180.0,
+            win.y,
+            200.0,
+        );
 
         let mut ctx = UiContext::new(800.0, 600.0);
         ctx.mouse_x = 285.0;
@@ -342,7 +345,17 @@ mod tests {
         let mut ui = test_frame(&mut ctx, &mut state);
         let win = ui.window_at(WIN_ID, 200.0, 200.0, 200.0, 100.0, 100.0);
         let content = Rect::new(win.x, win.y, 180.0, 200.0);
-        let offset = scrollbar(&mut ui, ids(), 0, 5, 10, content, win.x + 180.0, win.y, 200.0);
+        let offset = scrollbar(
+            &mut ui,
+            ids(),
+            0,
+            5,
+            10,
+            content,
+            win.x + 180.0,
+            win.y,
+            200.0,
+        );
 
         assert_eq!((win.x, win.y), (100.0, 100.0));
         assert!(offset > 0);
