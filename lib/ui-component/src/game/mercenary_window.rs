@@ -128,7 +128,7 @@ impl MercenaryWindow {
         ui.text_bold(rx + 34.0, ry + BASELINE, &merc.name, lc);
         ry += 20.0;
 
-        ui.text(rx, ry + BASELINE, &format!("lvl {}", merc.level), tc);
+        ui.text(rx, ry + BASELINE, &rust_i18n::t!("mercenary.level_short", level = merc.level), tc);
         let (sw, sh) = self.skill_size;
         let (fw, fh) = self.fired_size;
         let skill_rect = Rect::new(right_edge - sw, ry, sw, sh);

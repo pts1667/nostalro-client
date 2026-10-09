@@ -146,7 +146,7 @@ impl HomunSkillWindow {
             let name_x = icon_x + ICON_SIZE + 8.0;
             let display_name = format_skill_display_name(&skill.skill, data.skill_name.as_ref());
             ui.text(name_x, row_y + 14.0, &display_name, tc);
-            ui.text(name_x, row_y + 28.0, &format!("Lv : {}", skill.level), tc);
+            ui.text(name_x, row_y + 28.0, &rust_i18n::t!("common.level_short", level = skill.level), tc);
 
             let mut sp_right = x + WIN_W - PAD;
             if skill.upgradable && homun.skill_points > 0 {
@@ -163,7 +163,7 @@ impl HomunSkillWindow {
             ui.text_right(
                 sp_right,
                 row_y + 24.0,
-                &format!("Sp : {}", skill.sp_cost),
+                &rust_i18n::t!("common.sp_cost", sp = skill.sp_cost),
                 tc,
             );
 
@@ -200,7 +200,7 @@ impl HomunSkillWindow {
         ui.text(
             x + PAD,
             footer_y + 15.0,
-            &format!("Skill Point: {}", homun.skill_points),
+            &rust_i18n::t!("homun_skill.skill_point", points = homun.skill_points),
             tc,
         );
 

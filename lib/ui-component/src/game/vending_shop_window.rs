@@ -187,7 +187,7 @@ impl VendingShopWindow {
         ui.text(
             dx + 17.0,
             dy + TITLE_H - 4.0,
-            &format!("Merchant Shop - {}", self.title),
+            &rust_i18n::t!("vending_shop.title", title = self.title),
             tc,
         );
 

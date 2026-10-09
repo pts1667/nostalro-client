@@ -506,22 +506,26 @@ impl GuildWindow {
         let lx = x + 9.0;
         let online = g.members.iter().filter(|m| m.online).count();
 
-        ui.text(lx, cy + 20.0, &format!("Guild Name : {}", g.name), TEXT);
-        ui.text(lx, cy + 36.0, &format!("Guild lvl : {}", g.level), TEXT);
+        ui.text(lx, cy + 20.0, &rust_i18n::t!("guild.guild_name", name = g.name), TEXT);
+        ui.text(lx, cy + 36.0, &rust_i18n::t!("guild.guild_level", level = g.level), TEXT);
         ui.text(
             lx,
             cy + 52.0,
-            &format!("Guild Master : {}", g.master_name),
+            &rust_i18n::t!("guild.guild_master", name = g.master_name),
             TEXT,
         );
-        let members_text = format!("Members : {} / {}", g.member_num, g.max_member_num);
+        let members_text = rust_i18n::t!(
+            "guild.members",
+            current = g.member_num,
+            max = g.max_member_num
+        );
         ui.text(lx, cy + 68.0, &members_text, TEXT);
         let online_icon_x = lx + ui.atlas.measure_text(&members_text) + 6.0;
         ui.text(online_icon_x + 18.0, cy + 68.0, &online.to_string(), TEXT);
         ui.text(
             lx,
             cy + 84.0,
-            &format!("Avg.lvl of Members : {}", g.avg_level),
+            &rust_i18n::t!("guild.avg_level_of_members", level = g.avg_level),
             TEXT,
         );
         let land = if g.manage_land.is_empty() {
@@ -539,7 +543,7 @@ impl GuildWindow {
         ui.text(
             rx,
             cy + 20.0,
-            &format!("EXP : {} / {}", g.exp, g.max_exp),
+            &rust_i18n::t!("guild.exp", exp = g.exp, max = g.max_exp),
             TEXT,
         );
 
@@ -565,10 +569,10 @@ impl GuildWindow {
             }
         }
 
-        ui.text(rx, cy + 68.0, &format!("Tax Point : {}", g.point), TEXT);
+        ui.text(rx, cy + 68.0, &rust_i18n::t!("guild.tax_point", point = g.point), TEXT);
 
-        events.extend(self.build_relation_box(ui, g, rx, cy + 98.0, "Alliance", 0, is_master));
-        events.extend(self.build_relation_box(ui, g, rx, cy + 178.0, "Antagonist", 1, is_master));
+        events.extend(self.build_relation_box(ui, g, rx, cy + 98.0, &rust_i18n::t!("guild.alliance"), 0, is_master));
+        events.extend(self.build_relation_box(ui, g, rx, cy + 178.0, &rust_i18n::t!("guild.antagonist"), 1, is_master));
         events
     }
 

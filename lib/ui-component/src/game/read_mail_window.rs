@@ -189,7 +189,7 @@ impl InGameWindow for ReadMailWindow {
             ui.text(
                 x + BODY_X_OFF + 120.0,
                 attach_y + SLOT_SIZE / 2.0 + 4.0,
-                &format!("{} z", thousands(zeny)),
+                &rust_i18n::t!("read_mail.zeny", amount = thousands(zeny)),
                 tc,
             );
         }

@@ -146,7 +146,7 @@ impl InGameWindow for ShortcutListWindow {
             ui.text(
                 x + PAD,
                 row_y + 12.0,
-                &format!("Alt + {}", slot_hotkey_digit(i)),
+                &rust_i18n::t!("shortcut_list.alt_hotkey", key = slot_hotkey_digit(i)),
                 tc,
             );
             ui.text_input(

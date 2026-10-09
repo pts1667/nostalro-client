@@ -277,7 +277,7 @@ impl MakeItemWindow {
         ui.text(
             dx + 17.0,
             dy + TITLE_H - 3.0,
-            &format!("{} Create", target.name),
+            &rust_i18n::t!("make_item.create", name = target.name),
             tc,
         );
 

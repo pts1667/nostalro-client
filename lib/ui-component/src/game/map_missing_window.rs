@@ -71,7 +71,7 @@ impl MapMissingWindow {
         ui.text(
             wx + 16.0,
             wy + 8.0 + lh * 2.6,
-            &format!("Map '{}' is not in your game data.", self.map_name),
+            &rust_i18n::t!("map_missing.not_in_data", map = self.map_name),
             [0.85, 0.86, 0.92, 1.0],
         );
 
