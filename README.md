@@ -331,6 +331,17 @@ cargo run --example hot_reload -p ragnarok-ui-component -- --example inventory
 cargo run --example hot_reload -p ragnarok-ui-component -- --example npc_shop --grf data/data.grf
 ```
 
+## UI snapshots
+
+Renders UI windows offscreen to PNG files, with no window opened. Use it to see a window's state, or to compare before and after a UI change. The default fallback mode needs no game data; `--mode grf` adds the textured look. See [docs/ui-snapshots.md](docs/ui-snapshots.md).
+
+```bash
+cargo run --bin ui-snapshot -- --list
+cargo run --bin ui-snapshot -- inventory login category:game
+cargo run --bin ui-snapshot -- --all --out target/ui-before
+cargo run --bin ui-snapshot -- inventory --mode grf --grf data/data.grf
+```
+
 ## GR2 viewer
 
 Render Granny (GR2) 3D models: guild flags, guardians, the Emperium. Needs a GRF, and an emblem `.bmp` when rendering a guild flag.

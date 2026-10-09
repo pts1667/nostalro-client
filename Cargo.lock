@@ -3161,6 +3161,7 @@ dependencies = [
  "ragnarok-renderer",
  "ragnarok-resources",
  "ragnarok-ui",
+ "ragnarok-ui-component-hot",
  "tracing",
  "tracing-subscriber",
  "wgpu 28.0.0",

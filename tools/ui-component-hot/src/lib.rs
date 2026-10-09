@@ -2048,7 +2048,14 @@ fn create_single(name: &str) -> State {
 pub unsafe extern "C" fn hot_create(name_ptr: *const u8, name_len: usize) -> *mut () {
     let name =
         unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(name_ptr, name_len)) };
-    let state = match name {
+    let state = create_state(name);
+    Box::into_raw(Box::new(state)) as *mut ()
+}
+
+/// Builds a category or single-window state. Category names win over window
+/// names, so `chat` is the chat category; use [`Scene::single`] for the window.
+fn create_state(name: &str) -> State {
+    match name {
         "game" => State::Category {
             components: GAME_COMPONENTS.iter().map(|n| create_single(n)).collect(),
         },
@@ -2077,8 +2084,123 @@ pub unsafe extern "C" fn hot_create(name_ptr: *const u8, name_len: usize) -> *mu
                 .collect(),
         },
         _ => create_single(name),
-    };
-    Box::into_raw(Box::new(state)) as *mut ()
+    }
+}
+
+/// Single-window names accepted by [`Scene::single`]. Keep in step with the arms
+/// of `create_single`; the `scene_names_construct` test catches a stale entry.
+pub const SCENE_NAMES: &[&str] = &[
+    "inventory",
+    "cart",
+    "storage",
+    "storage_password",
+    "trade",
+    "mailbox",
+    "read_mail",
+    "vending_setup",
+    "my_shop",
+    "vending_buy",
+    "vending_board",
+    "chat_room_board",
+    "cart_select",
+    "npc_shop",
+    "login",
+    "chat",
+    "npc_dialog",
+    "confirm_dialog",
+    "number_input",
+    "server_list",
+    "equipment",
+    "system_menu",
+    "char_select",
+    "char_create",
+    "item_info",
+    "book",
+    "monster_info",
+    "chat_room_create",
+    "emotion",
+    "shortcut_list",
+    "graphic_options",
+    "hotkey_config",
+    "quest",
+    "quest_detail",
+    "minimap",
+    "world_map",
+    "chat_room_member",
+    "skill_tree",
+    "card_insert",
+    "dialog_container",
+    "hotkey_bar",
+    "basic_info",
+    "status",
+    "party",
+    "guild",
+    "mercenary",
+    "mercenary_skill",
+    "homun",
+    "pet",
+    "companion_ai_config",
+    "fallback",
+];
+
+/// Category names accepted by [`Scene::category`].
+pub const CATEGORY_NAMES: &[&str] = &[
+    "game",
+    "account",
+    "shop",
+    "map",
+    "social",
+    "chat",
+    "companion",
+];
+
+/// One window or category built from the hot-reload fixtures, usable without
+/// loading the dylib. Used by `ragnarok-tools` `ui-snapshot`.
+pub struct Scene {
+    state: State,
+}
+
+impl Scene {
+    pub fn single(name: &str) -> Result<Self, String> {
+        if !SCENE_NAMES.contains(&name) {
+            return Err(format!("unknown scene '{name}'"));
+        }
+        Ok(Self {
+            state: create_single(name),
+        })
+    }
+
+    pub fn category(name: &str) -> Result<Self, String> {
+        if !CATEGORY_NAMES.contains(&name) {
+            return Err(format!("unknown category '{name}'"));
+        }
+        Ok(Self {
+            state: create_state(name),
+        })
+    }
+
+    /// Switches the windows to textured rendering. `size_fn` reports GRF texture
+    /// sizes and may return `None` for textures that are not loaded yet.
+    pub fn enable_grf_textures(
+        &mut self,
+        size_fn: &impl Fn(&str) -> Option<(u32, u32)>,
+        table: Option<&ItemResourceTable>,
+    ) {
+        grf_init_single(&mut self.state, size_fn, table);
+    }
+
+    /// Builds one frame into `ui`, the same work `hot_build` does.
+    pub fn build(&mut self, ui: &mut UiFrame) {
+        build_frame(&mut self.state, ui);
+    }
+}
+
+fn build_frame(state: &mut State, ui: &mut UiFrame) {
+    build_single(state, ui);
+    // No cursor sprite here, so the tooltip layer just goes last in the one pass.
+    let tooltips = std::mem::take(&mut ui.tooltip_draw_calls);
+    ui.draw_calls.extend(tooltips);
+    let _ = ui.draw_drag_icon();
 }
 
 fn grf_init_single(
@@ -2787,6 +2909,20 @@ fn repack_gallery_layout(components: &[State], ui: &mut UiFrame) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scene_names_construct() {
+        for name in SCENE_NAMES {
+            if let Err(e) = Scene::single(name) {
+                panic!("{e}");
+            }
+        }
+        for name in CATEGORY_NAMES {
+            if let Err(e) = Scene::category(name) {
+                panic!("{e}");
+            }
+        }
+    }
 
     #[test]
     fn account_windows_report_packable_size() {
@@ -3520,11 +3656,7 @@ fn add_button<F>(
 pub unsafe extern "C" fn hot_build(state_ptr: *mut (), ui_ptr: *mut UiFrame) {
     let state = unsafe { &mut *(state_ptr as *mut State) };
     let ui = unsafe { &mut *ui_ptr };
-    build_single(state, ui);
-    // No cursor sprite here, so the tooltip layer just goes last in the one pass.
-    let tooltips = std::mem::take(&mut ui.tooltip_draw_calls);
-    ui.draw_calls.extend(tooltips);
-    let _ = ui.draw_drag_icon();
+    build_frame(state, ui);
 }
 
 #[unsafe(no_mangle)]

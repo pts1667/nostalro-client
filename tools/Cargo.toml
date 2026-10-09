@@ -51,6 +51,10 @@ path = "src/bin/list_effect_sprites.rs"
 name = "viewer"
 path = "src/bin/viewer.rs"
 
+[[bin]]
+name = "ui-snapshot"
+path = "src/bin/ui_snapshot.rs"
+
 
 [dependencies]
 ragnarok-formats = { workspace = true }
@@ -59,6 +63,7 @@ ragnarok-renderer = { workspace = true }
 ragnarok-game = { workspace = true }
 ragnarok-effects = { workspace = true }
 ragnarok-ui = { workspace = true }
+ragnarok-ui-component-hot = { workspace = true }
 models = { workspace = true }
 wgpu = { workspace = true }
 winit = { workspace = true }

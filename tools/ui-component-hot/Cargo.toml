@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-crate-type = ["cdylib"]
+# `rlib` lets `ragnarok-tools` (ui-snapshot) reuse the fixtures through `Scene`.
+# The hot-reload host still loads the `cdylib` artifact unchanged.
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ragnarok-resources = { workspace = true }

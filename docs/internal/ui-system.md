@@ -492,13 +492,22 @@ UTF-8 Korean names decoded from EUC-KR. Use forward slashes.
 ## Testing
 
 Widgets and windows can be tested without a GPU by building a `UiContext` with
-fake input, a `StateCache`, and a `FontAtlas` from the embedded font.
-`BuildCtx::test` gives a minimal live-state context for window tests. See the
-`make_frame` helpers in `login_window.rs` and `server_list_window.rs`.
+fake input, a `StateCache`, and a `FontAtlas` from the embedded font. The
+`test_frame` / `TestFrame` helpers in `ragnarok-ui` (`test_support.rs`, behind the
+`test-support` feature) build a `UiFrame` with that atlas. `BuildCtx::test` gives
+a minimal live-state context, but it is `#[cfg(test)]`, so it is only visible
+inside `ragnarok-ui-component`'s own tests. See `login_window.rs` for an example.
 
 Test behavior, not draw calls: check that clicks produce the right response, that
 focus cycles, and that the expected `GameEvent`s are emitted with the right
 values.
+
+## Visual snapshots
+
+`ui-snapshot` (`tools/src/ui_snapshot/`) renders windows to PNG without a window,
+using the fixtures in `tools/ui-component-hot` through its `Scene` API. Use it to
+check a change visually, or to diff before and after. See
+[docs/ui-snapshots.md](../ui-snapshots.md).
 
 ## Adding a new window
 

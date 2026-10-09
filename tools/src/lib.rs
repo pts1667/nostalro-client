@@ -6,5 +6,6 @@ pub mod rendering_viewer;
 pub mod rsw_viewer;
 pub mod sprite_viewer;
 pub mod stress;
+pub mod ui_snapshot;
 pub mod viewer;
 pub mod viewer_common;

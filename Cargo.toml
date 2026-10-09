@@ -68,6 +68,7 @@ ragnarok-network = { path = "lib/network" }
 ragnarok-profiling = { path = "lib/profiling" }
 ragnarok-ui = { path = "lib/ui-core" }
 ragnarok-ui-component = { path = "lib/ui-component" }
+ragnarok-ui-component-hot = { path = "tools/ui-component-hot" }
 ragnarok-audio = { path = "lib/audio" }
 libloading = "0.8"
 
