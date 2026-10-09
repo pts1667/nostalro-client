@@ -168,8 +168,7 @@ impl InGameWindow for EmblemPickerWindow {
 
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
         let mut events = Vec::new();
 
         let win_h = TITLE_H + CONTENT_H + FOOTER_H;
@@ -178,7 +177,7 @@ impl InGameWindow for EmblemPickerWindow {
         let y = win.y;
         ui.interact(EMBLEM_PICKER_WINDOW_ID, Rect::new(x, y, WIN_W, win_h));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         ui.text(x + 17.0, y + TITLE_H - 3.0, "Select emblem", tc);
 
         let close_rect = Rect::new(
@@ -196,9 +195,6 @@ impl InGameWindow for EmblemPickerWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -208,12 +204,12 @@ impl InGameWindow for EmblemPickerWindow {
         }
 
         let content_y = y + TITLE_H;
-        draw_container(ui, x, content_y, WIN_W, CONTENT_H, grf);
+        draw_container(ui, x, content_y, WIN_W, CONTENT_H);
         self.build_grid(ui, x + 6.0, content_y + 6.0);
         self.build_preview(ui, x + GRID_W + 12.0, content_y + 6.0);
 
         let footer_y = content_y + CONTENT_H;
-        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H, grf);
+        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         events.extend(self.build_footer(ui, x, footer_y));
 
         ui.has_grf_textures = prev_grf;

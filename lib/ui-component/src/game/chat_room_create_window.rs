@@ -212,7 +212,7 @@ impl InGameWindow for ChatRoomCreateWindow {
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
         let bg = if grf {
             TextInputBg::Gray
         } else {
@@ -232,7 +232,7 @@ impl InGameWindow for ChatRoomCreateWindow {
         let (x, y) = (win.x, win.y);
         ui.interact(CHAT_ROOM_CREATE_WINDOW_ID, Rect::new(x, y, WIN_W, win_h));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         let title_label = if self.change_room_id.is_some() {
             "Chat Room Settings"
         } else {
@@ -255,9 +255,6 @@ impl InGameWindow for ChatRoomCreateWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -267,8 +264,8 @@ impl InGameWindow for ChatRoomCreateWindow {
         }
 
         let body_y = y + TITLE_H;
-        draw_container(ui, x, body_y, WIN_W, body_h, grf);
-        draw_footer(ui, x, y + win_h - FOOTER_H, WIN_W, FOOTER_H, grf);
+        draw_container(ui, x, body_y, WIN_W, body_h);
+        draw_footer(ui, x, y + win_h - FOOTER_H, WIN_W, FOOTER_H);
 
         let field_x = x + PAD + LABEL_W;
         let field_w = WIN_W - PAD * 2.0 - LABEL_W;

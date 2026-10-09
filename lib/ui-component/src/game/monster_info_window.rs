@@ -102,7 +102,6 @@ impl InGameWindow for MonsterInfoWindow {
 
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
 
         if self.measured.is_none() {
             let widest = self
@@ -121,8 +120,8 @@ impl InGameWindow for MonsterInfoWindow {
         let (x, y) = (win.x, win.y);
         ui.interact(MONSTER_INFO_WINDOW_ID, Rect::new(x, y, w, h));
 
-        draw_titlebar(ui, x, y, w, TITLE_H, grf);
-        ui.text(x + 16.0, y + TITLE_H - 3.0, "Monster Info", text_color(grf));
+        draw_titlebar(ui, x, y, w, TITLE_H);
+        ui.text(x + 16.0, y + TITLE_H - 3.0, "Monster Info", text_color());
 
         let close_rect = Rect::new(
             x + w - CLOSE_BTN_SIZE - 3.0,
@@ -139,9 +138,6 @@ impl InGameWindow for MonsterInfoWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -151,11 +147,11 @@ impl InGameWindow for MonsterInfoWindow {
         }
 
         let body_y = y + TITLE_H;
-        draw_container(ui, x, body_y, w, h - TITLE_H, grf);
+        draw_container(ui, x, body_y, w, h - TITLE_H);
 
         let mut text_y = body_y + PAD + LINE_H - 3.0;
         for line in &self.lines {
-            ui.colored_text(x + PAD, text_y, line, text_color(grf));
+            ui.colored_text(x + PAD, text_y, line, text_color());
             text_y += LINE_H;
         }
 

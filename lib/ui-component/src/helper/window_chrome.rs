@@ -20,22 +20,15 @@ pub fn draw_textured_quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, path
     });
 }
 
+/// Small rounded system button (close, minimize), drawn procedurally.
 pub fn draw_sys_button(
     ui: &mut UiFrame,
     rect: Rect,
     size: (f32, f32),
     hovered: bool,
-    has_grf: bool,
-    on_tex: &str,
-    off_tex: &str,
     fallback_char: Option<char>,
 ) {
-    if has_grf {
-        let tex = if hovered { on_tex } else { off_tex };
-        draw_textured_quad(ui, rect.x, rect.y, size.0, size.1, tex);
-    } else {
-        crate::helper::fallback::sys_button(ui, rect.x, rect.y, size.0, hovered, fallback_char);
-    }
+    crate::helper::fallback::sys_button(ui, rect.x, rect.y, size.0, hovered, fallback_char);
 }
 
 pub const TITLEBAR_TEX: &str = ragnarok_resources::ui::basic::TITLEBAR_MID;
@@ -62,66 +55,18 @@ pub fn gauge_texture_paths() -> Vec<&'static str> {
     ]
 }
 
-/// Draws a 3-slice HP/SP gauge (red or blue) with fixed-width caps and a
-/// stretched middle. Falls back to a flat fill bar when GRF textures are absent.
-#[allow(clippy::too_many_arguments)]
-pub fn draw_gauge(
-    ui: &mut UiFrame,
-    x: f32,
-    y: f32,
-    w: f32,
-    h: f32,
-    cap_w: f32,
-    fill_pct: f32,
-    is_red: bool,
-    has_grf: bool,
-) {
-    let pct = fill_pct.clamp(0.0, 1.0);
-    if has_grf {
-        let (left, mid, right) = if is_red {
-            (GZE_RED_LEFT, GZE_RED_MID, GZE_RED_RIGHT)
-        } else {
-            (GZE_BLUE_LEFT, GZE_BLUE_MID, GZE_BLUE_RIGHT)
-        };
-        let white = [1.0; 4];
-        let mid_max = (w - cap_w * 2.0).max(0.0);
-        let filled = (pct * w).max(0.0);
-        if pct <= 0.0 {
-            return;
-        }
-        let (v, i) = draw::quad_vertices(x, y, cap_w, h, white);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::Named(left.to_string()),
-        });
-        let mid_w = (filled - cap_w * 2.0).clamp(0.0, mid_max);
-        if mid_w > 0.0 {
-            let (v, i) = draw::quad_vertices(x + cap_w, y, mid_w, h, white);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(mid.to_string()),
-            });
-        }
-        let (v, i) = draw::quad_vertices(x + cap_w + mid_w, y, cap_w, h, white);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::Named(right.to_string()),
-        });
-    } else {
-        crate::helper::fallback::gauge(ui, x, y, w, h, pct, is_red);
-    }
+/// HP/SP gauge: a rounded bar filled to `fill_pct`, red or blue.
+pub fn draw_gauge(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, fill_pct: f32, is_red: bool) {
+    crate::helper::fallback::gauge(ui, x, y, w, h, fill_pct.clamp(0.0, 1.0), is_red);
 }
 
-pub fn text_color(_has_grf: bool) -> [f32; 4] {
+/// Body text colour. Dark on the light panels in both looks.
+pub fn text_color() -> [f32; 4] {
     [0.0, 0.0, 0.0, 1.0]
 }
 
 /// Dark navy blue used for field labels (Name/HP/SP/stat names) in info windows.
-/// Light blue would be unreadable on the light fallback panels, so both looks use it.
-pub fn label_color(_has_grf: bool) -> [f32; 4] {
+pub fn label_color() -> [f32; 4] {
     [0.14, 0.20, 0.38, 1.0]
 }
 
@@ -131,22 +76,13 @@ pub fn draw_hline(ui: &mut UiFrame, x: f32, y: f32, w: f32) {
 
 pub const EXP_BAR_FILL: [f32; 4] = [0.26, 0.38, 0.65, 1.0];
 
-/// Thin flat EXP-style bar (gray border, white fill area, blue fill) matching the
-/// character info window's exp gauge.
-pub fn draw_exp_bar(
-    ui: &mut UiFrame,
-    x: f32,
-    y: f32,
-    w: f32,
-    h: f32,
-    fill_pct: f32,
-    has_grf: bool,
-) {
-    draw_value_bar(ui, x, y, w, h, fill_pct, EXP_BAR_FILL, has_grf);
+/// Thin EXP-style bar (grey frame, white well, blue fill) matching the character
+/// info window's exp gauge.
+pub fn draw_exp_bar(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, fill_pct: f32) {
+    draw_value_bar(ui, x, y, w, h, fill_pct, EXP_BAR_FILL);
 }
 
 /// [`draw_exp_bar`] with the fill colour chosen by the caller.
-#[allow(clippy::too_many_arguments)]
 pub fn draw_value_bar(
     ui: &mut UiFrame,
     x: f32,
@@ -155,10 +91,8 @@ pub fn draw_value_bar(
     h: f32,
     fill_pct: f32,
     fill: [f32; 4],
-    _has_grf: bool,
 ) {
-    // Grey frame with a white well. Same in both looks, so the bar reads the same
-    // whether or not the game data is present.
+    // Grey frame with a white well.
     use ragnarok_ui::theme::FallbackPalette as P;
     push_quad(ui, x, y, w + 2.0, h + 2.0, P::WIN_BORDER);
     push_quad(ui, x + 1.0, y + 1.0, w, h, P::SLOT_FILL);
@@ -168,63 +102,14 @@ pub fn draw_value_bar(
     }
 }
 
-pub fn draw_titlebar(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, has_grf: bool) {
-    if has_grf {
-        let (v, i) = draw::quad_vertices(x, y, w, h, [1.0, 1.0, 1.0, 1.0]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::Named(TITLEBAR_TEX.to_string()),
-        });
-        let btn_size = 11.0;
-        let btn_x = x + 4.0;
-        let btn_y = y + 3.0;
-        let tex = if Rect::new(btn_x, btn_y, btn_size, btn_size)
-            .contains(ui.ctx.mouse_x, ui.ctx.mouse_y)
-        {
-            SYS_BASE_ON_TEX
-        } else {
-            SYS_BASE_OFF_TEX
-        };
-        let (v, i) = draw::quad_vertices(btn_x, btn_y, btn_size, btn_size, [1.0, 1.0, 1.0, 1.0]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::Named(tex.to_string()),
-        });
-    } else {
-        crate::helper::fallback::titlebar(ui, x, y, w, h);
-    }
+pub fn draw_titlebar(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
+    crate::helper::fallback::titlebar(ui, x, y, w, h);
 }
 
-pub fn draw_container(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, has_grf: bool) {
-    if has_grf {
-        let (v, i) = draw::quad_vertices(x, y, w, h, [1.0, 1.0, 1.0, 1.0]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::White,
-        });
-        let (v, i) = draw::quad_vertices(x + w - 1.0, y, 1.0, h, [0.8, 0.8, 0.8, 1.0]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::White,
-        });
-    } else {
-        crate::helper::fallback::container(ui, x, y, w, h);
-    }
+pub fn draw_container(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
+    crate::helper::fallback::container(ui, x, y, w, h);
 }
 
-pub fn draw_footer(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, has_grf: bool) {
-    if has_grf {
-        let (v, i) = draw::quad_vertices(x, y, w, h, [1.0, 1.0, 1.0, 1.0]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::Named(FOOTER_TEX.to_string()),
-        });
-    } else {
-        crate::helper::fallback::footer(ui, x, y, w, h);
-    }
+pub fn draw_footer(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
+    crate::helper::fallback::footer(ui, x, y, w, h);
 }

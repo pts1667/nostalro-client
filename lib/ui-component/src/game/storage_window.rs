@@ -206,7 +206,7 @@ impl InGameWindow for StorageWindow {
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         if let Some((_, dialog)) = &self.qty_dialog {
             ui.set_modal(&[dialog.win_id()]);
@@ -217,12 +217,12 @@ impl InGameWindow for StorageWindow {
         let (x, y) = (win.x, win.y);
         ui.interact(STORAGE_WINDOW_ID, Rect::new(x, y, WIN_W, win_h));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         ui.text(x + 17.0, y + TITLE_H - 3.0, "Storage", tc);
 
         let container_y = y + TITLE_H;
         let list_h = self.rows as f32 * ROW_H;
-        draw_container(ui, x, container_y, WIN_W, list_h, grf);
+        draw_container(ui, x, container_y, WIN_W, list_h);
 
         // --- Tab column (left), reusing the inventory 3-tab strip ---
         let (tab_w, tab_img_h) = self.tab_size;
@@ -421,7 +421,7 @@ impl InGameWindow for StorageWindow {
 
         // --- Footer ---
         let footer_y = container_y + list_h;
-        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H, grf);
+        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         let (cur, max) = (character.storage.cur_count, character.storage.max_count);
         let count_color = if max > 0 && cur >= max {
             WARN_COLOR

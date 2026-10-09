@@ -143,7 +143,7 @@ impl InGameWindow for ReadMailWindow {
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         let win = ui.window_at(READ_MAIL_WINDOW_ID, WIN_W, WIN_H, TITLE_H, 560.0, 60.0);
         let (x, y) = (win.x, win.y);

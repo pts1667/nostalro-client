@@ -1229,7 +1229,7 @@ impl CompanionAiConfigWindow {
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
         let mut events = Vec::new();
-        let tc = text_color(grf);
+        let tc = text_color();
         self.enum_dd.begin_frame();
         self.enum_overlay_cur = None;
 
@@ -1244,7 +1244,7 @@ impl CompanionAiConfigWindow {
         let (x, y) = (win.x, win.y);
         ui.interact(COMPANION_AI_CONFIG_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         ui.text(x + 16.0, y + 13.0, "Companion AI Settings", tc);
 
         let sys_w = 11.0;
@@ -1262,13 +1262,10 @@ impl CompanionAiConfigWindow {
             close_rect,
             (sys_w, sys_w),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
 
-        draw_container(ui, x, y + TITLE_H, WIN_W, WIN_H - TITLE_H, grf);
+        draw_container(ui, x, y + TITLE_H, WIN_W, WIN_H - TITLE_H);
 
         // Tab bar.
         let tab_w = WIN_W / TABS.len() as f32;

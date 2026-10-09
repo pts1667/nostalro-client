@@ -88,8 +88,8 @@ impl PetWindow {
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
         let mut events = Vec::new();
-        let tc = text_color(grf);
-        let lc = label_color(grf);
+        let tc = text_color();
+        let lc = label_color();
         self.command.begin_frame();
 
         let win = ui.window_at(PET_WINDOW_ID, WIN_W, WIN_H, TITLE_H, 250.0, 140.0);
@@ -98,7 +98,7 @@ impl PetWindow {
         ui.interact(PET_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
         let bounds = Rect::new(0.0, 0.0, ui.ctx.screen_width, ui.ctx.screen_height);
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         ui.text(x + 16.0, y + 13.0, "Pet Information", tc);
 
         let sys_w = 11.0;
@@ -115,13 +115,10 @@ impl PetWindow {
             close_rect,
             (sys_w, sys_w),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
 
-        draw_container(ui, x, y + TITLE_H, WIN_W, PANEL_H, grf);
+        draw_container(ui, x, y + TITLE_H, WIN_W, PANEL_H);
 
         // Illustration (left column).
         let ill_x = x + PAD;

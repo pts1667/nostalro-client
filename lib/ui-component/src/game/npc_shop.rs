@@ -307,9 +307,9 @@ impl NpcShop {
         ui.interact(INPUT_WIN_ID, Rect::new(win.x, win.y, win_w, win_h));
 
         let grf = self.has_grf_textures;
-        let text_color = text_color(grf);
+        let text_color = text_color();
 
-        draw_titlebar(ui, win.x, win.y, win_w, title_h, grf);
+        draw_titlebar(ui, win.x, win.y, win_w, title_h);
         let title = match self.shop.mode {
             Some(NpcShopMode::Buy) => "Shop Items",
             Some(NpcShopMode::Sell) => "Available Items for selling",
@@ -319,7 +319,7 @@ impl NpcShop {
 
         let container_y = win.y + title_h;
         let container_h = win_h - title_h - footer_h;
-        draw_container(ui, win.x, container_y, win_w, container_h, grf);
+        draw_container(ui, win.x, container_y, win_w, container_h);
 
         let max_scroll = item_count.saturating_sub(self.input_visible_rows);
 
@@ -449,7 +449,7 @@ impl NpcShop {
         }
 
         let footer_y = win.y + win_h - footer_h;
-        draw_footer(ui, win.x, footer_y, win_w, footer_h, grf);
+        draw_footer(ui, win.x, footer_y, win_w, footer_h);
 
         let check_rect = Rect::new(
             win.x + CHECK_X,
@@ -526,9 +526,9 @@ impl NpcShop {
         ui.interact(OUTPUT_WIN_ID, Rect::new(win.x, win.y, win_w, win_h));
 
         let grf = self.has_grf_textures;
-        let text_color = text_color(grf);
+        let text_color = text_color();
 
-        draw_titlebar(ui, win.x, win.y, win_w, title_h, grf);
+        draw_titlebar(ui, win.x, win.y, win_w, title_h);
         let title = match self.shop.mode {
             Some(NpcShopMode::Buy) => "Buying Items",
             Some(NpcShopMode::Sell) => "Selling Items",
@@ -538,7 +538,7 @@ impl NpcShop {
 
         let container_y = win.y + title_h;
         let container_h = win_h - title_h - footer_h;
-        draw_container(ui, win.x, container_y, win_w, container_h, grf);
+        draw_container(ui, win.x, container_y, win_w, container_h);
 
         let list_y = container_y + pad_y;
         let icon_size = ICON_SIZE;
@@ -676,7 +676,7 @@ impl NpcShop {
         }
 
         let footer_y = win.y + win_h - footer_h;
-        draw_footer(ui, win.x, footer_y, win_w, footer_h, grf);
+        draw_footer(ui, win.x, footer_y, win_w, footer_h);
 
         let total = self.shop.basket_total();
         let total_label = format!("Total : {} Zeny", format_thousands(total));
@@ -1019,20 +1019,21 @@ mod tests {
         shop_ui.shop.add_to_basket(0, 10);
 
         let mut state = StateCache::new();
-        let frame = |state: &mut StateCache, shop_ui: &mut NpcShop, mx: f32, my: f32, down: bool| {
-            let mut character = Character::new();
-            let data = DataTable::new();
-            let mut ctx = UiContext::new(800.0, 600.0);
-            ctx.mouse_x = mx;
-            ctx.mouse_y = my;
-            ctx.mouse_down = down;
-            let mut ui = test_frame(&mut ctx, state);
-            shop_ui.setup_modal(&mut ui);
-            let z = ui.get_z_order();
-            ui.compute_hovered_window(&z);
-            shop_ui.build(&mut ui, &mut crate::BuildCtx::test(&mut character, &data));
-            ui.draw_drag_icon();
-        };
+        let frame =
+            |state: &mut StateCache, shop_ui: &mut NpcShop, mx: f32, my: f32, down: bool| {
+                let mut character = Character::new();
+                let data = DataTable::new();
+                let mut ctx = UiContext::new(800.0, 600.0);
+                ctx.mouse_x = mx;
+                ctx.mouse_y = my;
+                ctx.mouse_down = down;
+                let mut ui = test_frame(&mut ctx, state);
+                shop_ui.setup_modal(&mut ui);
+                let z = ui.get_z_order();
+                ui.compute_hovered_window(&z);
+                shop_ui.build(&mut ui, &mut crate::BuildCtx::test(&mut character, &data));
+                ui.draw_drag_icon();
+            };
 
         let (input_h, output_h) = shop_ui.window_heights();
         let basket_row = (

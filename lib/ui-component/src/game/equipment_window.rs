@@ -245,7 +245,7 @@ impl InGameWindow for EquipmentWindow {
         ui.has_grf_textures = self.has_grf_textures;
 
         let grf = self.has_grf_textures;
-        let text_color = text_color(grf);
+        let text_color = text_color();
 
         let win_w = WIN_W;
         let content_h = if self.bg_size.1 > 0.0 {
@@ -266,7 +266,7 @@ impl InGameWindow for EquipmentWindow {
         let win_rect = Rect::new(win.x, win.y, win_w, win_h);
         ui.interact(EQ_WINDOW_ID, win_rect);
 
-        draw_titlebar(ui, win.x, win.y, win_w, TITLE_H, grf);
+        draw_titlebar(ui, win.x, win.y, win_w, TITLE_H);
         ui.text(
             win.x + (17.0),
             win.y + (TITLE_H) - (3.0),
@@ -290,9 +290,6 @@ impl InGameWindow for EquipmentWindow {
             mini_rect,
             (btn_size, btn_size),
             mini_resp.hovered(),
-            grf,
-            MINI_ON_TEX,
-            MINI_OFF_TEX,
             Some('_'),
         );
         if mini_resp.clicked() {
@@ -314,9 +311,6 @@ impl InGameWindow for EquipmentWindow {
             close_rect,
             (btn_size, btn_size),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {

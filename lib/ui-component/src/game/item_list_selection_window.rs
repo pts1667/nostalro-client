@@ -192,8 +192,7 @@ impl ItemListSelectionWindow {
         }
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
         let (btn_w, btn_h) = self.btn_size;
 
         let visible_rows = self.visible_rows.clamp(MIN_VISIBLE_ROWS, MAX_VISIBLE_ROWS);
@@ -209,13 +208,13 @@ impl ItemListSelectionWindow {
         let win = ui.window_fixed(ITEM_LIST_SELECTION_WINDOW_ID, WIN_W, win_h, dx, dy);
         ui.interact(ITEM_LIST_SELECTION_WINDOW_ID, win);
 
-        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H);
         ui.text(dx + 17.0, dy + TITLE_H - 3.0, &self.title, tc);
 
         let body_y = dy + TITLE_H;
         let body_h = PAD + list_h + PAD;
-        draw_container(ui, dx, body_y, WIN_W, body_h, grf);
-        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H, grf);
+        draw_container(ui, dx, body_y, WIN_W, body_h);
+        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H);
 
         let has_scroll = max_scroll > 0;
         let list_w = WIN_W - PAD * 2.0 - if has_scroll { SCROLLBAR_W } else { 0.0 };

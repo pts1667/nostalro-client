@@ -253,13 +253,7 @@ impl HotkeyBarWindow {
         }
     }
 
-    fn describe_close_clicked(
-        &self,
-        ui: &mut UiFrame,
-        rect: Rect,
-        has_grf: bool,
-        close_size: f32,
-    ) -> bool {
+    fn describe_close_clicked(&self, ui: &mut UiFrame, rect: Rect, close_size: f32) -> bool {
         ui.begin_popup_layer(rect);
         ui.interact(DESCRIBE_ID, rect);
         let close_rect = Rect::new(
@@ -277,9 +271,6 @@ impl HotkeyBarWindow {
             close_rect,
             (close_size, close_size),
             close_resp.hovered(),
-            has_grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         ui.end_popup_layer();
@@ -485,9 +476,6 @@ impl InGameWindow for HotkeyBarWindow {
             close_rect,
             (close_size, close_size),
             close_resp.hovered(),
-            has_grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -516,7 +504,7 @@ impl InGameWindow for HotkeyBarWindow {
             }
         }
 
-        let tc = text_color(has_grf);
+        let tc = text_color();
 
         for row in 0..visible_rows {
             let row_y = win.y + row as f32 * ROW_H;
@@ -775,7 +763,7 @@ impl InGameWindow for HotkeyBarWindow {
             ui.draw_calls.extend(pinned_calls);
             match tooltip_rect {
                 Some(rect) => {
-                    if self.describe_close_clicked(ui, rect, has_grf, close_size) {
+                    if self.describe_close_clicked(ui, rect, close_size) {
                         self.described_skill = None;
                     }
                 }

@@ -240,8 +240,8 @@ impl BasicInfoWindow {
         }
     }
 
-    fn draw_exp_bar(ui: &mut UiFrame, x: f32, y: f32, fill_pct: f32, grf: bool) {
-        crate::helper::window_chrome::draw_exp_bar(ui, x, y, EXP_BAR_W, EXP_BAR_H, fill_pct, grf);
+    fn draw_exp_bar(ui: &mut UiFrame, x: f32, y: f32, fill_pct: f32) {
+        crate::helper::window_chrome::draw_exp_bar(ui, x, y, EXP_BAR_W, EXP_BAR_H, fill_pct);
     }
 
     fn build_large(
@@ -253,7 +253,7 @@ impl BasicInfoWindow {
     ) -> Vec<GameEvent> {
         let mut events = Vec::new();
         let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
         let x = win.x;
         let y = win.y;
         let delta = ui.elapsed_secs;
@@ -279,9 +279,6 @@ impl BasicInfoWindow {
             close_rect,
             (self.sys_btn_size.0, self.sys_btn_size.1),
             close_resp.hovered(),
-            grf,
-            SYS_BASE_ON,
-            SYS_BASE_OFF,
             None,
         );
 
@@ -305,9 +302,6 @@ impl BasicInfoWindow {
             mini_rect,
             (self.sys_btn_size.0, self.sys_btn_size.1),
             mini_resp.hovered(),
-            grf,
-            SYS_MINI_ON,
-            SYS_MINI_OFF,
             Some('_'),
         );
 
@@ -419,7 +413,7 @@ impl BasicInfoWindow {
         let blvl_text = format!("Base Lv. {}", character.base_level);
         ui.text(x + 15.0, y + 80.0, &blvl_text, tc);
         let base_exp_pct = character.base_exp_percentage();
-        Self::draw_exp_bar(ui, x + EXP_BAR_X, y + EXP_BAR_Y, base_exp_pct, grf);
+        Self::draw_exp_bar(ui, x + EXP_BAR_X, y + EXP_BAR_Y, base_exp_pct);
         let exp_text = format!("{:.1}%", (base_exp_pct * 1000.0).floor() * 0.1);
 
         let exp_bar_rect = Rect::new(
@@ -435,7 +429,7 @@ impl BasicInfoWindow {
         let jlvl_text = format!("Job Lv. {}", character.job_level);
         ui.text(x + 15.0, y + 93.0, &jlvl_text, tc);
         let job_exp_pct = character.job_exp_percentage();
-        Self::draw_exp_bar(ui, x + EXP_BAR_X, y + JEXP_BAR_Y, job_exp_pct, grf);
+        Self::draw_exp_bar(ui, x + EXP_BAR_X, y + JEXP_BAR_Y, job_exp_pct);
         let jexp_text = format!("{:.1}%", (job_exp_pct * 1000.0).floor() * 0.1);
 
         let jexp_bar_rect = Rect::new(
@@ -531,7 +525,7 @@ impl BasicInfoWindow {
         win: Rect,
     ) -> Vec<GameEvent> {
         let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
         let x = win.x;
         let y = win.y;
 
@@ -572,9 +566,6 @@ impl BasicInfoWindow {
             mini_rect,
             (self.sys_btn_size.0, self.sys_btn_size.1),
             mini_resp.hovered(),
-            grf,
-            SYS_MINI_ON,
-            SYS_MINI_OFF,
             Some('+'),
         );
 

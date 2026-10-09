@@ -188,7 +188,7 @@ impl VendingSetupWindow {
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         let grid_w = AVAIL_COLS as f32 * CELL;
         let grid_h = AVAIL_ROWS as f32 * CELL;
@@ -206,7 +206,7 @@ impl VendingSetupWindow {
         let (wx, wy) = (win.x, win.y);
         ui.interact(VENDING_AVAILABLE_WINDOW_ID, Rect::new(wx, wy, win_w, win_h));
 
-        draw_titlebar(ui, wx, wy, win_w, TITLE_H, grf);
+        draw_titlebar(ui, wx, wy, win_w, TITLE_H);
         ui.text(
             wx + 17.0,
             wy + TITLE_H - 3.0,
@@ -215,7 +215,7 @@ impl VendingSetupWindow {
         );
 
         let body_y = wy + TITLE_H;
-        draw_container(ui, wx, body_y, win_w, AVAIL_PAD + grid_h + AVAIL_PAD, grf);
+        draw_container(ui, wx, body_y, win_w, AVAIL_PAD + grid_h + AVAIL_PAD);
 
         let staged = self.staged_indices();
         let available: Vec<(u16, i16, Option<String>, bool)> = character
@@ -400,7 +400,7 @@ impl InGameWindow for VendingSetupWindow {
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
         let bg = if grf {
             TextInputBg::Gray
         } else {
@@ -418,13 +418,13 @@ impl InGameWindow for VendingSetupWindow {
         let (dx, dy) = (win.x, win.y);
         ui.interact(VENDING_SETUP_WINDOW_ID, Rect::new(dx, dy, WIN_W, win_h));
 
-        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H);
         ui.text(dx + 6.0, dy + TITLE_H - 3.0, "Open a Shop", tc);
 
         let body_y = dy + TITLE_H;
         let body_h = PAD + NAME_ROW_H + PAD + list_h + PAD;
-        draw_container(ui, dx, body_y, WIN_W, body_h, grf);
-        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H, grf);
+        draw_container(ui, dx, body_y, WIN_W, body_h);
+        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H);
 
         let name_y = body_y + PAD;
         ui.text(dx + PAD, name_y + NAME_ROW_H - 6.0, "Shop Name", tc);

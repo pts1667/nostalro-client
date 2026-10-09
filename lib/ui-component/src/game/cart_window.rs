@@ -164,7 +164,7 @@ impl InGameWindow for CartWindow {
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
-        let text_color = text_color(grf);
+        let text_color = text_color();
 
         let (win_w, full_h) = self.dimensions();
         let win_h = if self.minimized { TITLE_H } else { full_h };
@@ -172,7 +172,7 @@ impl InGameWindow for CartWindow {
         let win = ui.window_at(CART_WINDOW_ID, win_w, win_h, TITLE_H, 80.0, 120.0);
         ui.interact(CART_WINDOW_ID, Rect::new(win.x, win.y, win_w, win_h));
 
-        draw_titlebar(ui, win.x, win.y, win_w, TITLE_H, grf);
+        draw_titlebar(ui, win.x, win.y, win_w, TITLE_H);
         ui.text(win.x + 17.0, win.y + TITLE_H - 3.0, "Cart", text_color);
 
         let mini_rect = Rect::new(
@@ -190,9 +190,6 @@ impl InGameWindow for CartWindow {
             mini_rect,
             (MINI_BTN_SIZE, MINI_BTN_SIZE),
             mini_resp.hovered(),
-            grf,
-            MINI_ON_TEX,
-            MINI_OFF_TEX,
             Some('_'),
         );
         if mini_resp.clicked() {
@@ -214,9 +211,6 @@ impl InGameWindow for CartWindow {
             close_rect,
             (MINI_BTN_SIZE, MINI_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -232,7 +226,7 @@ impl InGameWindow for CartWindow {
 
         let container_y = win.y + TITLE_H;
         let container_h = PAD_Y + GRID_ROWS as f32 * CELL_SIZE + PAD_Y;
-        draw_container(ui, win.x, container_y, win_w, container_h, grf);
+        draw_container(ui, win.x, container_y, win_w, container_h);
 
         let grid_x = win.x + PAD_X;
         let grid_y = container_y + PAD_Y;
@@ -389,7 +383,7 @@ impl InGameWindow for CartWindow {
         }
 
         let footer_y = container_y + container_h;
-        draw_footer(ui, win.x, footer_y, win_w, FOOTER_H, grf);
+        draw_footer(ui, win.x, footer_y, win_w, FOOTER_H);
         let cart = &character.cart;
         let footer_label = format!("{}/{}", cart.weight / 10, cart.max_weight / 10);
         ui.text(

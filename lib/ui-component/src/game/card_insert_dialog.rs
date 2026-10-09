@@ -169,7 +169,6 @@ impl InGameWindow for CardInsertDialog {
         }
 
         let mut events = Vec::new();
-        let grf = self.has_grf_textures;
 
         if ui.ctx.key_enter && self.selected_index.is_some() {
             let idx = self.selected_index.unwrap();
@@ -188,9 +187,9 @@ impl InGameWindow for CardInsertDialog {
         let win_h = TITLE_H + container_h + FOOTER_H;
         let win = ui.window(CARD_INSERT_WINDOW_ID, WIN_W, win_h, TITLE_H);
 
-        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H);
         let title = format!("Card Insert - {}", self.card_name);
-        let title_text_color = text_color(grf);
+        let title_text_color = text_color();
         ui.text(
             win.x + 20.0,
             win.y + TITLE_H - 4.0,
@@ -199,7 +198,7 @@ impl InGameWindow for CardInsertDialog {
         );
 
         let container_y = win.y + TITLE_H;
-        draw_container(ui, win.x, container_y, WIN_W, container_h, grf);
+        draw_container(ui, win.x, container_y, WIN_W, container_h);
 
         let has_scrollbar = item_count > visible;
         let scrollbar_w = if has_scrollbar { SCROLLBAR_W } else { 0.0 };
@@ -281,7 +280,7 @@ impl InGameWindow for CardInsertDialog {
             }
 
             let text_y = ry + ITEM_ROW_H - 8.0;
-            ui.text(name_x, text_y, &item.display_name, text_color(grf));
+            ui.text(name_x, text_y, &item.display_name, text_color());
 
             if response.clicked() {
                 self.selected_index = Some(list_idx);
@@ -298,7 +297,7 @@ impl InGameWindow for CardInsertDialog {
         }
 
         let footer_y = container_y + container_h;
-        draw_footer(ui, win.x, footer_y, WIN_W, FOOTER_H, grf);
+        draw_footer(ui, win.x, footer_y, WIN_W, FOOTER_H);
 
         let (btn_w, btn_h) = self.btn_size;
         let footer_rect = Rect::new(win.x, footer_y, WIN_W, FOOTER_H);

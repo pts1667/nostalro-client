@@ -637,8 +637,8 @@ impl InGameWindow for ItemInfoWindow {
             let win_rect = Rect::new(win.x, win.y, illust_w, total_h);
             ui.interact(CARD_ILLUST_WINDOW_ID, win_rect);
 
-            draw_titlebar(ui, win.x, win.y, illust_w, TITLE_H_ILLUS, grf);
-            let text_color = text_color(grf);
+            draw_titlebar(ui, win.x, win.y, illust_w, TITLE_H_ILLUS);
+            let text_color = text_color();
             ui.text(
                 win.x + (17.0),
                 win.y + (TITLE_H_ILLUS) - (3.0),
@@ -673,9 +673,6 @@ impl InGameWindow for ItemInfoWindow {
                 close_rect,
                 (CLOSE_SIZE, CLOSE_SIZE),
                 close_resp.hovered(),
-                grf,
-                CLOSE_ON_TEX,
-                CLOSE_OFF_TEX,
                 Some('x'),
             );
 
@@ -846,9 +843,6 @@ fn build_info_window(
         close_rect,
         (CLOSE_SIZE, CLOSE_SIZE),
         close_resp.hovered(),
-        grf,
-        CLOSE_ON_TEX,
-        CLOSE_OFF_TEX,
         Some('x'),
     );
     let closed = close_resp.clicked();

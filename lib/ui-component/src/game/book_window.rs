@@ -126,7 +126,6 @@ impl InGameWindow for BookWindow {
 
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
 
         let bg = self.content.as_ref().unwrap().bg_color;
         if self.wrapped_lines.is_empty() {
@@ -178,9 +177,9 @@ impl InGameWindow for BookWindow {
             });
         }
 
-        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H);
         let title = format!("Book  ({}/{})", self.page + 1, total_pages);
-        ui.text(win.x + 20.0, win.y + TITLE_H - 5.0, &title, text_color(grf));
+        ui.text(win.x + 20.0, win.y + TITLE_H - 5.0, &title, text_color());
 
         let close_rect = Rect::new(
             win.x + WIN_W - CLOSE_SIZE - 4.0,
@@ -197,9 +196,6 @@ impl InGameWindow for BookWindow {
             close_rect,
             (CLOSE_SIZE, CLOSE_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {

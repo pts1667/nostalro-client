@@ -260,7 +260,6 @@ impl InGameWindow for WorldMapWindow {
 
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
 
         let (scale, map_w, map_h) = self.layout(ui.ctx.screen_width, ui.ctx.screen_height);
         let win_w = map_w;
@@ -304,7 +303,7 @@ impl InGameWindow for WorldMapWindow {
         }
         Self::outline(ui, map_x, map_y, map_w, map_h, PANEL_BORDER);
 
-        draw_titlebar(ui, win.x, win.y, win_w, TITLE_H, grf);
+        draw_titlebar(ui, win.x, win.y, win_w, TITLE_H);
         let current_name = self
             .current_map
             .as_deref()
@@ -322,7 +321,7 @@ impl InGameWindow for WorldMapWindow {
         } else {
             format!("World Map - {current_name}")
         };
-        ui.text(win.x + 20.0, win.y + TITLE_H - 5.0, &title, text_color(grf));
+        ui.text(win.x + 20.0, win.y + TITLE_H - 5.0, &title, text_color());
 
         let close_rect = Rect::new(
             win.x + win_w - CLOSE_SIZE - 4.0,
@@ -339,9 +338,6 @@ impl InGameWindow for WorldMapWindow {
             close_rect,
             (CLOSE_SIZE, CLOSE_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {

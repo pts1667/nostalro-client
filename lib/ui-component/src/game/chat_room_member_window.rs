@@ -273,8 +273,7 @@ impl InGameWindow for ChatRoomMemberWindow {
 
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         let win_w = self.width;
         let visible_rows = self.visible_rows();
@@ -292,7 +291,7 @@ impl InGameWindow for ChatRoomMemberWindow {
         let (x, y) = (win.x, win.y);
         ui.interact(CHAT_ROOM_MEMBER_WINDOW_ID, Rect::new(x, y, win_w, win_h));
 
-        draw_titlebar(ui, x, y, win_w, TITLE_H, grf);
+        draw_titlebar(ui, x, y, win_w, TITLE_H);
         let header = format!("{} ({}/{})", self.title, self.members.len(), self.max_count);
         ui.text(x + 16.0, y + TITLE_H - 3.0, &header, tc);
 
@@ -306,15 +305,12 @@ impl InGameWindow for ChatRoomMemberWindow {
             close_rect,
             (11.0, 11.0),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
 
         let body_y = y + TITLE_H;
-        draw_container(ui, x, body_y, win_w, body_h, grf);
-        draw_footer(ui, x, y + win_h - FOOTER_H, win_w, FOOTER_H, grf);
+        draw_container(ui, x, body_y, win_w, body_h);
+        draw_footer(ui, x, y + win_h - FOOTER_H, win_w, FOOTER_H);
 
         let content_y = body_y + PAD;
 

@@ -207,7 +207,7 @@ impl InGameWindow for InventoryWindow {
         ui.has_grf_textures = self.has_grf_textures;
 
         let grf = self.has_grf_textures;
-        let text_color = text_color(grf);
+        let text_color = text_color();
 
         let (win_w, full_h, tab_strip_w) = self.compute_dimensions();
         let win_h = if self.minimized { TITLE_H } else { full_h };
@@ -219,7 +219,7 @@ impl InGameWindow for InventoryWindow {
         let win_rect = Rect::new(win.x, win.y, win_w, win_h);
         ui.interact(INV_WINDOW_ID, win_rect);
 
-        draw_titlebar(ui, win.x, win.y, win_w, TITLE_H, grf);
+        draw_titlebar(ui, win.x, win.y, win_w, TITLE_H);
         ui.text(
             win.x + (17.0),
             win.y + (TITLE_H) - (3.0),
@@ -243,9 +243,6 @@ impl InGameWindow for InventoryWindow {
             mini_rect,
             (mini_size, mini_size),
             mini_resp.hovered(),
-            grf,
-            MINI_ON_TEX,
-            MINI_OFF_TEX,
             Some('_'),
         );
         if mini_resp.clicked() {
@@ -268,9 +265,6 @@ impl InGameWindow for InventoryWindow {
             close_rect,
             (close_size, close_size),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -289,7 +283,7 @@ impl InGameWindow for InventoryWindow {
         let grid_h = self.grid_rows as f32 * (CELL_SIZE);
         let container_y = win.y + (TITLE_H);
         let container_h = (PAD_Y) + grid_h + (PAD_Y);
-        draw_container(ui, grid_area_x, container_y, grid_area_w, container_h, grf);
+        draw_container(ui, grid_area_x, container_y, grid_area_w, container_h);
 
         let filtered_count = character.inventory.filtered_items().len();
         let total_rows = (filtered_count + self.grid_cols - 1) / self.grid_cols.max(1);
@@ -471,7 +465,7 @@ impl InGameWindow for InventoryWindow {
         };
 
         let footer_y = container_y + container_h;
-        draw_footer(ui, win.x, footer_y, win_w, FOOTER_H, grf);
+        draw_footer(ui, win.x, footer_y, win_w, FOOTER_H);
         let total_count = character.inventory.all_items().len();
         let item_count_label = format!("Num: {total_count}/100");
         ui.text(

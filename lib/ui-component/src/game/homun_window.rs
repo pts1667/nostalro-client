@@ -1,8 +1,7 @@
 use crate::helper::colors;
 use crate::helper::window_chrome::{
-    EXP_BAR_FILL, GZE_BLUE_LEFT, TITLEBAR_TEX, draw_container, draw_exp_bar, draw_gauge,
-    draw_hline, draw_sys_button, draw_titlebar, draw_value_bar, gauge_texture_paths, label_color,
-    text_color,
+    EXP_BAR_FILL, TITLEBAR_TEX, draw_container, draw_exp_bar, draw_gauge, draw_hline,
+    draw_sys_button, draw_titlebar, draw_value_bar, gauge_texture_paths, label_color, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::companion::{HomunculusState, aspd_display};
@@ -76,7 +75,6 @@ pub struct HomunWindow {
     pub has_grf_textures: bool,
     visible: bool,
     rename_input: TextInput,
-    bar_cap_w: f32,
     bg_size: (f32, f32),
     rename_size: (f32, f32),
     del_size: (f32, f32),
@@ -96,7 +94,6 @@ impl HomunWindow {
             has_grf_textures: false,
             visible: false,
             rename_input: TextInput::new(23, false),
-            bar_cap_w: 4.0,
             bg_size: (0.0, 0.0),
             rename_size: (40.0, 16.0),
             del_size: (42.0, 20.0),
@@ -131,8 +128,8 @@ impl HomunWindow {
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
         let mut events = Vec::new();
-        let tc = text_color(grf);
-        let lc = label_color(grf);
+        let tc = text_color();
+        let lc = label_color();
 
         let win = ui.window_at(HOMUN_WINDOW_ID, WIN_W, WIN_H, TITLE_H, 200.0, 120.0);
         let x = win.x;
@@ -149,8 +146,8 @@ impl HomunWindow {
                 texture: TextureRef::Named(BG_TEX.to_string()),
             });
         } else {
-            draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
-            draw_container(ui, x, y + TITLE_H, WIN_W, WIN_H - TITLE_H, grf);
+            draw_titlebar(ui, x, y, WIN_W, TITLE_H);
+            draw_container(ui, x, y + TITLE_H, WIN_W, WIN_H - TITLE_H);
         }
 
         ui.text(x + 5.0, y + 2.0 + BASELINE, "Homunculus Info", tc);
@@ -169,9 +166,6 @@ impl HomunWindow {
             close_rect,
             (sys_w, sys_w),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
 
@@ -263,18 +257,7 @@ impl HomunWindow {
             events.push(GameEvent::ToggleHomunSkillWindow);
         }
 
-        gauge_row(
-            ui,
-            x,
-            y + 73.0,
-            "HP",
-            homun.hp,
-            homun.max_hp,
-            true,
-            self.bar_cap_w,
-            tc,
-            grf,
-        );
+        gauge_row(ui, x, y + 73.0, "HP", homun.hp, homun.max_hp, true, tc, grf);
         gauge_row(
             ui,
             x,
@@ -283,7 +266,6 @@ impl HomunWindow {
             homun.sp,
             homun.max_sp,
             false,
-            self.bar_cap_w,
             tc,
             grf,
         );
@@ -310,7 +292,6 @@ impl HomunWindow {
             SMALL_BAR_W,
             EXP_BAR_H,
             exp_ratio,
-            grf,
         );
 
         self.accessory(ui, x, y, homun.accessory, data, tc, grf);
@@ -337,7 +318,6 @@ impl HomunWindow {
             EXP_BAR_H,
             (homun.hunger.max(0) as f32 / 100.0).clamp(0.0, 1.0),
             hunger_fill,
-            grf,
         );
 
         if !grf {
@@ -413,7 +393,6 @@ fn gauge_row(
     cur: u32,
     max: u32,
     is_hp: bool,
-    cap_w: f32,
     tc: [f32; 4],
     grf: bool,
 ) {
@@ -431,10 +410,8 @@ fn gauge_row(
         y,
         GAUGE_W,
         GAUGE_H,
-        cap_w,
         ratio,
         is_hp && ratio < 0.25,
-        grf,
     );
     ui.text(
         x + HPSP_TEXT_X,
@@ -467,9 +444,6 @@ impl Window for HomunWindow {
         self.has_grf_textures = value;
     }
     fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, _)) = size_fn(GZE_BLUE_LEFT) {
-            self.bar_cap_w = w as f32;
-        }
         if let Some((w, h)) = size_fn(BG_TEX) {
             self.bg_size = (w as f32, h as f32);
         }
@@ -538,7 +512,7 @@ const HPSP_LABEL_W: f32 = 22.0;
 
 /// Draws a HP/SP gauge with the label to the left of the bar and the value
 /// centered over it, returning the next y cursor.
-#[allow(clippy::too_many_arguments)]
+/// Labelled HP/SP row used by the mercenary window: label, gauge, and value text.
 pub(crate) fn bar(
     ui: &mut UiFrame,
     x: f32,
@@ -548,10 +522,8 @@ pub(crate) fn bar(
     cur: u32,
     max: u32,
     kind: GaugeKind,
-    cap_w: f32,
     tc: [f32; 4],
     _label_c: [f32; 4],
-    has_grf: bool,
 ) -> f32 {
     let ratio = if max > 0 {
         (cur as f32 / max as f32).clamp(0.0, 1.0)
@@ -562,7 +534,7 @@ pub(crate) fn bar(
     ui.text(x, y + BAR_H - 2.0, label, tc);
     let bx = x + HPSP_LABEL_W;
     let bw = w - HPSP_LABEL_W;
-    draw_gauge(ui, bx, y, bw, BAR_H, cap_w, ratio, is_red, has_grf);
+    draw_gauge(ui, bx, y, bw, BAR_H, ratio, is_red);
     ui.text_centered(bx, y + BAR_H - 2.0, bw, &format!("{cur} / {max}"), tc);
     y + BAR_H + 3.0
 }

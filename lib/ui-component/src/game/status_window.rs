@@ -169,7 +169,7 @@ impl InGameWindow for StatusWindow {
         ui.has_grf_textures = self.has_grf_textures;
         let mut events = Vec::new();
         let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         let win_h = if self.minimized { TITLE_H } else { WIN_H };
         let win = ui.window_at(STATUS_WINDOW_ID, WIN_W, win_h, TITLE_H, 60.0, 140.0);
@@ -178,7 +178,7 @@ impl InGameWindow for StatusWindow {
         let x = win.x;
         let y = win.y;
 
-        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H);
 
         ui.text(x + 18.0, y + 13.0, "Status", tc);
 
@@ -201,9 +201,6 @@ impl InGameWindow for StatusWindow {
             close_rect,
             (sys_w, sys_h),
             close_resp.hovered(),
-            grf,
-            SYS_CLOSE_ON,
-            SYS_CLOSE_OFF,
             Some('x'),
         );
 
@@ -220,9 +217,6 @@ impl InGameWindow for StatusWindow {
             mini_rect,
             (sys_w, sys_h),
             mini_resp.hovered(),
-            grf,
-            SYS_MINI_ON,
-            SYS_MINI_OFF,
             Some('_'),
         );
         if self.minimized {

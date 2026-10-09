@@ -361,14 +361,14 @@ impl InGameWindow for QuestWindow {
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
         self.pending_toggle = None;
 
         let win = ui.window_at(QUEST_WINDOW_ID, WIN_W, WIN_H, TITLE_H, 0.0, 120.0);
         let (x, y) = (win.x, win.y);
         ui.interact(QUEST_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         ui.text(x + 16.0, y + TITLE_H - 3.0, "Quest List", tc);
 
         let close_rect = Rect::new(
@@ -386,9 +386,6 @@ impl InGameWindow for QuestWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -406,7 +403,7 @@ impl InGameWindow for QuestWindow {
         fill(ui, x + TAB_STRIP_W, body_y, 1.0, body_h, BORDER);
 
         let footer_y = y + WIN_H - FOOTER_H;
-        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H, grf);
+        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         let view_rect = Rect::new(x + 6.0, footer_y + 2.0, 42.0, 20.0);
         if ui
             .button(VIEW_BTN_ID, view_rect, &VIEW_BTN, "View")
@@ -547,9 +544,6 @@ impl InGameWindow for QuestDetailWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {

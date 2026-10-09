@@ -334,8 +334,7 @@ impl InGameWindow for HotkeyConfigWindow {
         let events = Vec::new();
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         let default_x = (ui.ctx.screen_width - WIN_W) / 2.0;
         let default_y = (ui.ctx.screen_height - WIN_H) / 2.0;
@@ -352,9 +351,9 @@ impl InGameWindow for HotkeyConfigWindow {
 
         let body_y = y + TITLE_H;
         let body_h = WIN_H - TITLE_H - FOOTER_H;
-        draw_container(ui, x, body_y, WIN_W, body_h, grf);
+        draw_container(ui, x, body_y, WIN_W, body_h);
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         ui.text(
             x + 16.0,
             y + TITLE_H - 3.0,
@@ -377,9 +376,6 @@ impl InGameWindow for HotkeyConfigWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -495,7 +491,7 @@ impl InGameWindow for HotkeyConfigWindow {
         }
 
         let footer_y = y + WIN_H - FOOTER_H;
-        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H, grf);
+        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
 
         let (bw, bh) = self.btn_size;
         let (rw, rh) = self.reset_size;

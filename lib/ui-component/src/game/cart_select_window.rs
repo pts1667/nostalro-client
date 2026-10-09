@@ -118,13 +118,13 @@ impl InGameWindow for CartSelectWindow {
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
-        let text_color = text_color(grf);
+        let text_color = text_color();
 
         let win_h = TITLE_H + PAD + CART_MODELS.len() as f32 * ROW_H + PAD;
         let win = ui.window_at(CART_SELECT_WINDOW_ID, WIN_W, win_h, TITLE_H, 200.0, 160.0);
         ui.interact(CART_SELECT_WINDOW_ID, Rect::new(win.x, win.y, WIN_W, win_h));
 
-        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H);
         ui.text(
             win.x + 17.0,
             win.y + TITLE_H - 3.0,
@@ -147,9 +147,6 @@ impl InGameWindow for CartSelectWindow {
             close_rect,
             (MINI_BTN_SIZE, MINI_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -160,7 +157,7 @@ impl InGameWindow for CartSelectWindow {
 
         let body_y = win.y + TITLE_H;
         let body_h = PAD + CART_MODELS.len() as f32 * ROW_H + PAD;
-        draw_container(ui, win.x, body_y, WIN_W, body_h, grf);
+        draw_container(ui, win.x, body_y, WIN_W, body_h);
 
         for (i, (num, req_level)) in CART_MODELS.iter().enumerate() {
             let row_y = body_y + PAD + i as f32 * ROW_H;

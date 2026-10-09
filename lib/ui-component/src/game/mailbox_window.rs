@@ -196,7 +196,7 @@ impl InGameWindow for MailboxWindow {
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         let mode = character.mail.mode;
         if mode != self.last_mode {

@@ -139,8 +139,7 @@ impl InGameWindow for MyShopWindow {
 
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
         let (btn_w, btn_h) = self.btn_size;
 
         let visible_rows = self.rows.len().min(VISIBLE_ROWS).max(1);
@@ -155,7 +154,7 @@ impl InGameWindow for MyShopWindow {
         let (dx, dy) = (win.x, win.y);
         ui.interact(MY_SHOP_WINDOW_ID, Rect::new(dx, dy, WIN_W, win_h));
 
-        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H);
         let title = if self.shop_name.is_empty() {
             "My Shop".to_string()
         } else {
@@ -165,8 +164,8 @@ impl InGameWindow for MyShopWindow {
 
         let body_y = dy + TITLE_H;
         let body_h = PAD + list_h + PAD;
-        draw_container(ui, dx, body_y, WIN_W, body_h, grf);
-        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H, grf);
+        draw_container(ui, dx, body_y, WIN_W, body_h);
+        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H);
 
         let has_scroll = max_scroll > 0;
         let list_x = dx + PAD;

@@ -1,7 +1,7 @@
 use crate::game::homun_window::{GaugeKind, bar};
 use crate::helper::window_chrome::{
-    GZE_BLUE_LEFT, TITLEBAR_TEX, draw_container, draw_hline, draw_sys_button, draw_titlebar,
-    gauge_texture_paths, label_color, text_color,
+    TITLEBAR_TEX, draw_container, draw_hline, draw_sys_button, draw_titlebar, gauge_texture_paths,
+    label_color, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::companion::{MercenaryState, aspd_display};
@@ -42,7 +42,6 @@ const EXPIRE_COLOR: [f32; 4] = crate::helper::colors::RED;
 pub struct MercenaryWindow {
     pub has_grf_textures: bool,
     visible: bool,
-    bar_cap_w: f32,
     fired_size: (f32, f32),
     skill_size: (f32, f32),
 }
@@ -58,7 +57,6 @@ impl MercenaryWindow {
         Self {
             has_grf_textures: false,
             visible: false,
-            bar_cap_w: 4.0,
             fired_size: (42.0, 20.0),
             skill_size: (42.0, 20.0),
         }
@@ -83,17 +81,16 @@ impl MercenaryWindow {
         };
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
         let mut events = Vec::new();
-        let tc = text_color(grf);
-        let lc = label_color(grf);
+        let tc = text_color();
+        let lc = label_color();
 
         let win = ui.window_at(MERCENARY_WINDOW_ID, WIN_W, WIN_H, TITLE_H, 240.0, 140.0);
         let x = win.x;
         let y = win.y;
         ui.interact(MERCENARY_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         ui.text(x + 16.0, y + 13.0, "Mercenary Info", tc);
 
         let sys_w = 11.0;
@@ -110,13 +107,10 @@ impl MercenaryWindow {
             close_rect,
             (sys_w, sys_w),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
 
-        draw_container(ui, x, y + TITLE_H, WIN_W, PANEL_H, grf);
+        draw_container(ui, x, y + TITLE_H, WIN_W, PANEL_H);
 
         // Left stat column (boxed cells).
         let stats = [
@@ -178,10 +172,8 @@ impl MercenaryWindow {
             merc.hp,
             merc.max_hp,
             GaugeKind::Hp,
-            self.bar_cap_w,
             tc,
             lc,
-            grf,
         );
         ry = bar(
             ui,
@@ -192,10 +184,8 @@ impl MercenaryWindow {
             merc.sp,
             merc.max_sp,
             GaugeKind::Sp,
-            self.bar_cap_w,
             tc,
             lc,
-            grf,
         );
         ry += 6.0;
 
@@ -245,9 +235,6 @@ impl Window for MercenaryWindow {
         self.has_grf_textures = value;
     }
     fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, _)) = size_fn(GZE_BLUE_LEFT) {
-            self.bar_cap_w = w as f32;
-        }
         if let Some((w, h)) = size_fn(FIRED_BTN.normal) {
             self.fired_size = (w as f32, h as f32);
         }

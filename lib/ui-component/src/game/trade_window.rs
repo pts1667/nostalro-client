@@ -291,7 +291,7 @@ impl InGameWindow for TradeWindow {
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         if let Some((_, dialog)) = &self.qty_dialog {
             ui.set_modal(&[dialog.win_id()]);
@@ -302,7 +302,7 @@ impl InGameWindow for TradeWindow {
         let (x, y) = (win.x, win.y);
         ui.interact(TRADE_WINDOW_ID, Rect::new(x, y, WIN_W, h));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         let title = format!(
             "Trade : {}  Lv{} ({})",
             character.trade.partner_name(),
@@ -321,7 +321,7 @@ impl InGameWindow for TradeWindow {
                 texture: TextureRef::Named(BG_TEX.to_string()),
             });
         } else {
-            draw_container(ui, x, body_y, WIN_W, body_h, grf);
+            draw_container(ui, x, body_y, WIN_W, body_h);
         }
 
         let right_x = x + COL_W;

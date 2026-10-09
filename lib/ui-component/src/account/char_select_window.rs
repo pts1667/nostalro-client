@@ -475,17 +475,16 @@ impl CharSelectWindow {
         let (ox, oy) = self.win_origin;
         let dx = ox + (WIN_W - DIALOG_W) / 2.0;
         let dy = oy + (WIN_H - DIALOG_H) / 2.0;
-        let grf = self.has_grf_textures;
-        let fg = text_color(grf);
+        let fg = text_color();
 
         push_color_quad(ui, ox, oy, WIN_W, WIN_H, [0.0, 0.0, 0.0, 0.55]);
 
-        draw_titlebar(ui, dx, dy, DIALOG_W, DIALOG_TITLE_H, grf);
+        draw_titlebar(ui, dx, dy, DIALOG_W, DIALOG_TITLE_H);
         let body_y = dy + DIALOG_TITLE_H;
         let body_h = DIALOG_H - DIALOG_TITLE_H - DIALOG_FOOTER_H;
-        draw_container(ui, dx, body_y, DIALOG_W, body_h, grf);
+        draw_container(ui, dx, body_y, DIALOG_W, body_h);
         let footer_y = dy + DIALOG_H - DIALOG_FOOTER_H;
-        draw_footer(ui, dx, footer_y, DIALOG_W, DIALOG_FOOTER_H, grf);
+        draw_footer(ui, dx, footer_y, DIALOG_W, DIALOG_FOOTER_H);
 
         let lh = ui.atlas.line_height;
         let name = self

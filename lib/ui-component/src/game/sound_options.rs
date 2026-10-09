@@ -128,7 +128,6 @@ impl InGameWindow for SoundOptionsWindow {
         let mut events = Vec::new();
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
 
         let default_x = (ui.ctx.screen_width - WIN_W) / 2.0;
         let default_y = (ui.ctx.screen_height - WIN_H) / 2.0;
@@ -147,13 +146,8 @@ impl InGameWindow for SoundOptionsWindow {
 
         crate::helper::fallback::window_body(ui, win.x, win.y + TITLE_H, WIN_W, WIN_H - TITLE_H);
 
-        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H, grf);
-        ui.text(
-            win.x + 20.0,
-            win.y + TITLE_H - 5.0,
-            "Sound",
-            text_color(grf),
-        );
+        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H);
+        ui.text(win.x + 20.0, win.y + TITLE_H - 5.0, "Sound", text_color());
 
         let close_rect = Rect::new(
             win.x + WIN_W - CLOSE_SIZE - 4.0,
@@ -170,9 +164,6 @@ impl InGameWindow for SoundOptionsWindow {
             close_rect,
             (CLOSE_SIZE, CLOSE_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -181,7 +172,7 @@ impl InGameWindow for SoundOptionsWindow {
             return events;
         }
 
-        let label_color = text_color(grf);
+        let label_color = text_color();
         let row = |n: usize| win.y + TITLE_H + 12.0 + n as f32 * ROW_H;
         let slider_x = win.x + 60.0;
         let mute_x = win.x + 60.0 + SLIDER_W + 8.0;

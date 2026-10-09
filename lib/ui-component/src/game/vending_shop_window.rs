@@ -183,7 +183,7 @@ impl VendingShopWindow {
     }
 
     fn build_left(&mut self, ui: &mut UiFrame, grf: bool) {
-        let tc = text_color(grf);
+        let tc = text_color();
         let rows_shown = self.list_rows;
         let max_scroll = self.rows.len().saturating_sub(rows_shown);
         let list_h = rows_shown as f32 * ROW_H;
@@ -193,7 +193,7 @@ impl VendingShopWindow {
         let (dx, dy) = (win.x, win.y);
         ui.interact(VENDING_SHOP_WINDOW_ID, Rect::new(dx, dy, WIN_W, win_h));
 
-        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H);
         ui.text(
             dx + 17.0,
             dy + TITLE_H - 4.0,
@@ -202,8 +202,8 @@ impl VendingShopWindow {
         );
 
         let body_y = dy + TITLE_H;
-        draw_container(ui, dx, body_y, WIN_W, PAD + list_h + PAD, grf);
-        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H, grf);
+        draw_container(ui, dx, body_y, WIN_W, PAD + list_h + PAD);
+        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H);
 
         let has_scroll = max_scroll > 0;
         let list_x = dx + PAD;
@@ -296,7 +296,7 @@ impl VendingShopWindow {
 
     fn build_right(&mut self, ui: &mut UiFrame, grf: bool) -> Vec<GameEvent> {
         let mut events = Vec::new();
-        let tc = text_color(grf);
+        let tc = text_color();
         let (btn_w, btn_h) = self.btn_size;
 
         let slots_shown = self.buy_rows;
@@ -307,13 +307,13 @@ impl VendingShopWindow {
         let (dx, dy) = (win.x, win.y);
         ui.interact(VENDING_BUY_WINDOW_ID, Rect::new(dx, dy, WIN_W, win_h));
 
-        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H);
         ui.text(dx + 17.0, dy + TITLE_H - 4.0, "Buying Items", tc);
 
         let body_y = dy + TITLE_H;
         let body_h = PAD + list_h + PAD + TOTAL_H;
-        draw_container(ui, dx, body_y, WIN_W, body_h, grf);
-        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H, grf);
+        draw_container(ui, dx, body_y, WIN_W, body_h);
+        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H);
 
         let slot_x = dx + PAD;
         let slot_w = WIN_W - PAD * 2.0;

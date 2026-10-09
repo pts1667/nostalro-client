@@ -210,8 +210,7 @@ impl InGameWindow for PartyFriendsWindow {
 
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
         let mut events = Vec::new();
 
         let win_h = TITLE_H + CONTENT_H + NAV_H + FOOTER_H;
@@ -221,7 +220,7 @@ impl InGameWindow for PartyFriendsWindow {
         ui.interact(PARTY_FRIENDS_WINDOW_ID, Rect::new(x, y, WIN_W, win_h));
 
         // Titlebar
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         let title = if self.friend_tab {
             format!("Friends ({})", friends.len())
         } else {
@@ -247,9 +246,6 @@ impl InGameWindow for PartyFriendsWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -260,7 +256,7 @@ impl InGameWindow for PartyFriendsWindow {
 
         // Content (white list area)
         let content_y = y + TITLE_H;
-        draw_container(ui, x, content_y, WIN_W, CONTENT_H, grf);
+        draw_container(ui, x, content_y, WIN_W, CONTENT_H);
 
         if self.friend_tab {
             self.build_friend_list(ui, friends, x, content_y);
@@ -270,12 +266,12 @@ impl InGameWindow for PartyFriendsWindow {
 
         // Navigation bar
         let nav_y = content_y + CONTENT_H;
-        draw_footer(ui, x, nav_y, WIN_W, NAV_H, grf);
+        draw_footer(ui, x, nav_y, WIN_W, NAV_H);
         events.extend(self.build_nav_bar(ui, party, friends, local_aid, x, nav_y));
 
         // Footer: tab switch
         let footer_y = nav_y + NAV_H;
-        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H, grf);
+        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         self.build_tab_switch(ui, x, footer_y, tc);
 
         ui.has_grf_textures = prev_grf;

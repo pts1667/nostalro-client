@@ -94,7 +94,7 @@ impl MercenarySkillWindow {
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
         let mut events = Vec::new();
-        let tc = text_color(grf);
+        let tc = text_color();
 
         let win = ui.window_at(
             MERCENARY_SKILL_WINDOW_ID,
@@ -108,7 +108,7 @@ impl MercenarySkillWindow {
         let y = win.y;
         ui.interact(MERCENARY_SKILL_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         ui.text(x + 16.0, y + 13.0, "Mercenary Soldier Skill List", tc);
 
         let sys_w = 11.0;
@@ -125,14 +125,11 @@ impl MercenarySkillWindow {
             close_rect,
             (sys_w, sys_w),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
 
         let list_h = ROW_H * VISIBLE_ROWS as f32;
-        draw_container(ui, x, y + TITLE_H, WIN_W, list_h, grf);
+        draw_container(ui, x, y + TITLE_H, WIN_W, list_h);
 
         let list_top = y + TITLE_H;
         for (idx, skill) in merc.skills.iter().take(VISIBLE_ROWS).enumerate() {
@@ -208,7 +205,7 @@ impl MercenarySkillWindow {
 
         // Footer.
         let footer_y = y + TITLE_H + list_h;
-        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H, grf);
+        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         ui.text(x + PAD, footer_y + 15.0, "Skill Point: 0", tc);
 
         let (cw, ch) = self.close_size;

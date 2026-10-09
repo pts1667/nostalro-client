@@ -209,8 +209,8 @@ impl InGameWindow for PartyHelperWindow {
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
         let grf = self.has_grf_textures;
-        let tc = text_color(grf);
-        let lc = label_color(grf);
+        let tc = text_color();
+        let lc = label_color();
         let mut events = Vec::new();
 
         let has_name = matches!(self.mode, MODE_CREATE | MODE_INVITE | MODE_ADD_FRIEND);
@@ -234,7 +234,7 @@ impl InGameWindow for PartyHelperWindow {
         let y = win.y;
         ui.interact(PARTY_HELPER_WINDOW_ID, Rect::new(x, y, WIN_W, win_h));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         ui.text(x + 17.0, y + TITLE_H - 3.0, self.title(), tc);
 
         let close_rect = Rect::new(
@@ -252,9 +252,6 @@ impl InGameWindow for PartyHelperWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -264,7 +261,7 @@ impl InGameWindow for PartyHelperWindow {
         }
 
         let content_y = y + TITLE_H;
-        draw_container(ui, x, content_y, WIN_W, body_h, grf);
+        draw_container(ui, x, content_y, WIN_W, body_h);
 
         let mut cy = content_y + 6.0;
         if has_name {
@@ -377,7 +374,7 @@ impl InGameWindow for PartyHelperWindow {
 
         // Footer: OK / Cancel
         let footer_y = content_y + body_h;
-        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H, grf);
+        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         let ok_rect = Rect::new(x + WIN_W - 46.0 - 42.0, footer_y + 4.0, 42.0, 20.0);
         let cancel_rect = Rect::new(x + WIN_W - 2.0 - 42.0, footer_y + 4.0, 42.0, 20.0);
         let ok = ui.button(OK_BTN_ID, ok_rect, &OK_TEX, "OK");

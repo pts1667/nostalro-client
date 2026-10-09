@@ -116,15 +116,14 @@ impl InGameWindow for EmotionWindow {
 
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         let (w, h) = (win_w(), win_h());
         let win = ui.window_at(EMOTION_WINDOW_ID, w, h, TITLE_H, 500.0, 200.0);
         let (x, y) = (win.x, win.y);
         ui.interact(EMOTION_WINDOW_ID, Rect::new(x, y, w, h));
 
-        draw_titlebar(ui, x, y, w, TITLE_H, grf);
+        draw_titlebar(ui, x, y, w, TITLE_H);
         ui.text(x + 16.0, y + TITLE_H - 3.0, "Emoticon", tc);
 
         let close_rect = Rect::new(
@@ -142,9 +141,6 @@ impl InGameWindow for EmotionWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -154,7 +150,7 @@ impl InGameWindow for EmotionWindow {
         }
 
         let body_y = y + TITLE_H;
-        draw_container(ui, x, body_y, w, h - TITLE_H, grf);
+        draw_container(ui, x, body_y, w, h - TITLE_H);
 
         let grid_x = x + PAD;
         let grid_y = body_y + PAD;

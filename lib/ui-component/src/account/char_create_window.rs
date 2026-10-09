@@ -474,20 +474,20 @@ impl CharCreateWindow {
         let content_y = oy + V2_HEADER_H;
         let footer_y = content_y + V2_CONTENT_H;
 
-        window_chrome::draw_titlebar(ui, ox, oy, V2_W, V2_HEADER_H, has_grf);
+        window_chrome::draw_titlebar(ui, ox, oy, V2_W, V2_HEADER_H);
         ui.text(
             ox + 18.0,
             oy + 2.0 + ui.atlas.ascent,
             "New Character",
-            window_chrome::text_color(has_grf),
+            window_chrome::text_color(),
         );
 
         if has_grf {
             window_chrome::draw_textured_quad(ui, ox, content_y, V2_W, V2_CONTENT_H, WIN2_TEXTURE);
         } else {
-            window_chrome::draw_container(ui, ox, content_y, V2_W, V2_CONTENT_H, has_grf);
+            window_chrome::draw_container(ui, ox, content_y, V2_W, V2_CONTENT_H);
         }
-        window_chrome::draw_footer(ui, ox, footer_y, V2_W, V2_FOOTER_H, has_grf);
+        window_chrome::draw_footer(ui, ox, footer_y, V2_W, V2_FOOTER_H);
 
         let name_bg = if has_grf {
             TextInputBg::Texture(NAME_EDIT_TEXTURE)

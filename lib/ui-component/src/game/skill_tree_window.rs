@@ -156,7 +156,7 @@ impl InGameWindow for SkillTreeWindow {
 
         let mut events = Vec::new();
         let has_grf = self.has_grf_textures;
-        let tc = text_color(has_grf);
+        let tc = text_color();
 
         let total_skills = character.skills.skills().len();
 
@@ -169,7 +169,7 @@ impl InGameWindow for SkillTreeWindow {
 
         ui.interact(SKILL_WINDOW_ID, win_rect);
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, has_grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         ui.text(x + 20.0, y + 13.0, "Skill Tree", tc);
 
         let close_x = x + WIN_W - 17.0;
@@ -181,9 +181,6 @@ impl InGameWindow for SkillTreeWindow {
             close_rect,
             (11.0, 11.0),
             close_resp.hovered(),
-            has_grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -192,7 +189,7 @@ impl InGameWindow for SkillTreeWindow {
         }
 
         let content_y = y + TITLE_H;
-        draw_container(ui, x, content_y, WIN_W, content_h, has_grf);
+        draw_container(ui, x, content_y, WIN_W, content_h);
 
         let max_scroll = total_skills.saturating_sub(VISIBLE_ROWS);
         let scroll_x = x + WIN_W - SCROLLBAR_W - 1.0;
@@ -421,7 +418,7 @@ impl InGameWindow for SkillTreeWindow {
         }
 
         let footer_y = content_y + content_h;
-        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H, has_grf);
+        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
 
         let sp_text = format!("Skill Point : {}", character.skill_point);
         ui.text(x + PAD_X, footer_y + 17.0, &sp_text, tc);

@@ -186,7 +186,6 @@ impl InGameWindow for GraphicOptionsWindow {
         let mut events = Vec::new();
         let prev_grf = ui.has_grf_textures;
         ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
 
         let default_x = (ui.ctx.screen_width - WIN_W) / 2.0;
         let default_y = (ui.ctx.screen_height - WIN_H) / 2.0;
@@ -205,12 +204,12 @@ impl InGameWindow for GraphicOptionsWindow {
 
         crate::helper::fallback::window_body(ui, win.x, win.y + TITLE_H, WIN_W, WIN_H - TITLE_H);
 
-        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H);
         ui.text(
             win.x + 20.0,
             win.y + TITLE_H - 5.0,
             "Graphic Settings",
-            text_color(grf),
+            text_color(),
         );
 
         let close_rect = Rect::new(
@@ -228,9 +227,6 @@ impl InGameWindow for GraphicOptionsWindow {
             close_rect,
             (CLOSE_SIZE, CLOSE_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -240,7 +236,7 @@ impl InGameWindow for GraphicOptionsWindow {
             return events;
         }
 
-        let label_color = text_color(grf);
+        let label_color = text_color();
         let row_y = |n: usize| win.y + TITLE_H + PAD + n as f32 * ROW_H;
         let cb_y = |n: usize| row_y(n) + (ROW_H - CB_SIZE) / 2.0 - 2.0;
         let text_y = |n: usize| row_y(n) + 13.0;
