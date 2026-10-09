@@ -1,0 +1,9 @@
+_version: 1
+
+# Shared labels. Window-specific text goes under the window name, for example
+# `basic_info.title`. Use named placeholders (`%{level}`) for values.
+common.ok: "OK"
+common.cancel: "Cancel"
+common.close: "Close"
+common.yes: "Yes"
+common.no: "No"

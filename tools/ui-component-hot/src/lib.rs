@@ -2924,6 +2924,82 @@ mod tests {
         }
     }
 
+    /// Scenes whose fallback still draws chrome as a GRF texture. Each entry must
+    /// still leak, so a fixed scene has to leave this list (the gate says so).
+    const PENDING_CHROME_LEAKS: &[&str] = &["minimap", "world_map"];
+
+    /// Game content that a window may draw with no data loaded. The renderer
+    /// skips these quads and logs an error. Chrome must not come through here.
+    fn is_content_texture(name: &str) -> bool {
+        // Map arrows are a UI glyph. They become procedural shapes, not content.
+        if name == ragnarok_resources::ui::minimap::MAP_ARROW {
+            return false;
+        }
+        const CONTENT_PREFIXES: &[&str] = &[
+            "@emo/",
+            "data/texture/유저인터페이스/item/",
+            "data/texture/유저인터페이스/cardbmp/",
+            "data/texture/유저인터페이스/collection/",
+            "data/texture/유저인터페이스/illust/",
+            "data/texture/유저인터페이스/map/",
+        ];
+        CONTENT_PREFIXES.iter().any(|p| name.starts_with(p))
+    }
+
+    /// Named textures one scene draws in fallback mode (no data loaded). Two
+    /// frames, so layout settles the same way the snapshot tool does it.
+    fn fallback_named_draws(name: &str) -> Vec<String> {
+        use ragnarok_ui::context::UiContext;
+        use ragnarok_ui::draw::TextureRef;
+        use ragnarok_ui::state::StateCache;
+        use ragnarok_ui::test_support::test_frame;
+
+        let mut scene = Scene::single(name).expect("scene name checked by SCENE_NAMES");
+        let mut ctx = UiContext::new(1280.0, 900.0);
+        let mut state = StateCache::new();
+        let mut named = Vec::new();
+        for _ in 0..2 {
+            ctx.begin_frame();
+            let mut ui = test_frame(&mut ctx, &mut state);
+            scene.build(&mut ui);
+            let out = ui.finish();
+            named = out
+                .draw_calls
+                .iter()
+                .chain(out.tooltip_draw_calls.iter())
+                .filter_map(|call| match &call.texture {
+                    TextureRef::Named(n) => Some(n.clone()),
+                    _ => None,
+                })
+                .collect();
+        }
+        named.sort();
+        named.dedup();
+        named
+    }
+
+    #[test]
+    fn fallback_draws_no_chrome_textures() {
+        let mut problems = Vec::new();
+        for name in SCENE_NAMES {
+            let chrome: Vec<String> = fallback_named_draws(name)
+                .into_iter()
+                .filter(|n| !is_content_texture(n))
+                .collect();
+            let pending = PENDING_CHROME_LEAKS.contains(name);
+            match (chrome.is_empty(), pending) {
+                (false, false) => {
+                    problems.push(format!("{name} draws chrome textures: {chrome:?}"))
+                }
+                (true, true) => problems.push(format!(
+                    "{name} no longer draws chrome textures; remove it from PENDING_CHROME_LEAKS"
+                )),
+                _ => {}
+            }
+        }
+        assert!(problems.is_empty(), "{}", problems.join("\n"));
+    }
+
     #[test]
     fn account_windows_report_packable_size() {
         // The packer lays out windows by their `window_size`; a (0,0) here means

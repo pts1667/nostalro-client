@@ -35,11 +35,12 @@ gallery is written as `category-<name>.png`.
 | GRF | `--mode grf` | The textured look from the game data. Needs `--grf`, or uses `data/data.grf` when that is omitted. |
 
 Fallback mode is the one that matters for the GRF-free redesign. A texture that
-a window still needs from the data files draws as a white box there. Every run
-lists those textures on stderr:
+a window still needs from the data files is not drawn there: the quad is skipped
+and the renderer logs one error per texture name. Every run lists those textures
+on stderr:
 
 ```
-note: emotion draws 64 GRF texture(s) without data (white in fallback):
+note: emotion draws 64 GRF texture(s) without data (skipped in fallback):
   @emo/3
   ...
 ```

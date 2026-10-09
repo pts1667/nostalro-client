@@ -464,6 +464,11 @@ power-of-two sizing and are reused across frames.
 decodes with the `image` crate, converts magenta (`#FF00FF`) to transparent , builds a wgpu texture and bind group, and stores it in
 a map.
 
+A `TextureRef::Named` draw whose texture is not loaded is skipped, not drawn white.
+`TextureCache::get_or_report` returns `None` for it and logs one error per name, so a
+missing game icon leaves an empty slot and a line in the log. Chrome never depends on
+this: chrome is procedural and must not name a GRF texture.
+
 ### Preloading
 
 Windows expose their texture paths via `grf_texture_paths()`. At startup those
@@ -508,6 +513,31 @@ values.
 using the fixtures in `tools/ui-component-hot` through its `Scene` API. Use it to
 check a change visually, or to diff before and after. See
 [docs/ui-snapshots.md](../ui-snapshots.md).
+
+## Text and translations
+
+UI chrome text goes through `rust-i18n`. The locale files live in
+`lib/ui-component/locales/` (English is `en.yml`, with `fallback = "en"`), and each
+crate that calls `t!` imports it with `use rust_i18n::t;`.
+
+- **Translate chrome only.** Titles, labels, buttons, tooltips and notices we write.
+  Never translate protocol text (chat prefixes such as `%` and `$`, slash commands),
+  server data, or names from the game tables (item, skill, map, monster, NPC, player,
+  guild). Pass those in as arguments.
+- **Keys** are `<window>.<element>`, for example `basic_info.title`. Shared words go
+  under `common.*` (`common.ok`, `common.cancel`, `common.close`).
+- **Values** take named placeholders, `"Base Lv. %{level}"`, never `format!` around a
+  translated fragment.
+- **Plurals.** There is no plural framework. Use separate keys (`.one`, `.other`)
+  when the count changes the wording.
+- **Numbers and dates** stay as code (`helper::format`). They are not translated.
+- **Tests** never call `set_locale`. The locale is process-wide and tests run in
+  parallel, so an English-only assertion would race with any test that switched it.
+- **Key check.** The `every_t_key_exists_in_en` test in `ui-component` fails when a
+  `t!` key is missing from `en.yml`. A miss otherwise shows the raw key on screen.
+- **Hot reload.** The cdylib and its host each hold their own rust-i18n state. Only
+  English ships, so both use the fallback. A second locale needs a `hot_set_locale`
+  export and a call from the host after each load.
 
 ## Adding a new window
 

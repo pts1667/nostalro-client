@@ -500,7 +500,7 @@ fn report_grf_textures(stem: &str, calls: &[UiDrawCall]) {
         return;
     }
     eprintln!(
-        "note: {stem} draws {} GRF texture(s) without data (white in fallback):",
+        "note: {stem} draws {} GRF texture(s) without data (skipped in fallback):",
         names.len()
     );
     for name in names {

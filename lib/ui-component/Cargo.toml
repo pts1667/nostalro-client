@@ -9,6 +9,7 @@ ragnarok-resources = { workspace = true }
 ragnarok-game = { workspace = true }
 ragnarok-ai = { workspace = true }
 ragnarok-renderer = { workspace = true }
+rust-i18n = { workspace = true }
 
 [dev-dependencies]
 ragnarok-ui = { workspace = true, features = ["test-support"] }
