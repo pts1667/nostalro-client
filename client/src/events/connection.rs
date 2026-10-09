@@ -8,8 +8,6 @@ use ragnarok_network::{
     build_zone_enter_packet, ip_u32_to_string,
 };
 use ragnarok_ui_component::account::char_select_window::CharSelectWindow;
-use ragnarok_ui_component::game::chat_room_board;
-use ragnarok_ui_component::game::vending_board;
 use winit::event_loop::ActiveEventLoop;
 
 impl App {
@@ -298,9 +296,7 @@ impl App {
         self.char_select_window = None;
 
         if let (Some(grf), Some(renderer)) = (&self.grf, &mut self.renderer) {
-            renderer.preload_textures(&chat_room_board::preload_paths(), grf);
 
-            renderer.preload_textures(&vending_board::preload_paths(), grf);
 
             if let Some(current_map) = &self.game.session.current_map {
                 let minimap_path = ragnarok_resources::ui::minimap::of(current_map);

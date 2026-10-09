@@ -1,3 +1,4 @@
+use crate::helper::fallback;
 use crate::helper::window_chrome::{draw_sys_button, draw_titlebar, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::data_table::map_position_table::WorldMapRect;
@@ -11,7 +12,6 @@ const CLOSE_BTN_ID: WidgetId = WidgetId(5801);
 const MAP_AREA_ID: WidgetId = WidgetId(5802);
 
 pub const WORLD_MAP_TEX: &str = ragnarok_resources::ui::WORLDMAP;
-const PLAYER_ARROW_TEX: &str = ragnarok_resources::ui::minimap::MAP_ARROW;
 
 /// Fallback until the texture is measured; the real image is 1280x1024.
 const IMAGE_W: f32 = 1280.0;
@@ -333,13 +333,7 @@ impl InGameWindow for WorldMapWindow {
                 let angle = crate::game::minimap_window::MinimapWindow::direction_angle(
                     self.player_direction,
                 );
-                let (v, i) =
-                    draw::quad_vertices_rotated(px, py, ARROW_SIZE, angle, [1.0, 1.0, 1.0, 1.0]);
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: TextureRef::Named(PLAYER_ARROW_TEX.to_string()),
-                });
+                fallback::arrow(&mut ui.draw_calls, px, py, ARROW_SIZE, angle, [1.0, 1.0, 1.0, 1.0]);
             }
         }
 

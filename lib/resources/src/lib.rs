@@ -547,8 +547,6 @@ pub mod ui {
         BTN_VIEW = "data/texture/유저인터페이스/btn_view.bmp";
         BTN_VIEW_A = "data/texture/유저인터페이스/btn_view_a.bmp";
         BTN_VIEW_B = "data/texture/유저인터페이스/btn_view_b.bmp";
-        CHAT_CLOSE = "data/texture/유저인터페이스/chat_close.bmp";
-        CHAT_OPEN = "data/texture/유저인터페이스/chat_open.bmp";
         CHECKBOX_0 = "data/texture/유저인터페이스/checkbox_0.bmp";
         CHECKBOX_1 = "data/texture/유저인터페이스/checkbox_1.bmp";
         EMPTY_CARD_SLOT = "data/texture/유저인터페이스/empty_card_slot.bmp";
@@ -589,7 +587,6 @@ pub mod ui {
         SCROLL0UP = "data/texture/유저인터페이스/scroll0up.bmp";
         SCROLL1LEFT = "data/texture/유저인터페이스/scroll1left.bmp";
         SCROLL1RIGHT = "data/texture/유저인터페이스/scroll1right.bmp";
-        SHOP = "data/texture/유저인터페이스/shop.bmp";
         SYSBOX_BG = "data/texture/유저인터페이스/sysbox_bg.bmp";
         SYSBOX_LD = "data/texture/유저인터페이스/sysbox_ld.bmp";
         SYSBOX_LM = "data/texture/유저인터페이스/sysbox_lm.bmp";
@@ -666,8 +663,6 @@ pub mod ui {
             HOMUNINFO_BG = "data/texture/유저인터페이스/basic_interface/homuninfo_bg.bmp";
             ITEMWIN_MID = "data/texture/유저인터페이스/basic_interface/itemwin_mid.bmp";
             ITEM_INVERT = "data/texture/유저인터페이스/basic_interface/item_invert.bmp";
-            LV_UP_OFF = "data/texture/유저인터페이스/basic_interface/lv_up_off.bmp";
-            LV_UP_ON = "data/texture/유저인터페이스/basic_interface/lv_up_on.bmp";
             MAILLIST1_BG = "data/texture/유저인터페이스/basic_interface/maillist1_bg.bmp";
             MAILLIST2_BG = "data/texture/유저인터페이스/basic_interface/maillist2_bg.bmp";
             MAILLIST3_BG = "data/texture/유저인터페이스/basic_interface/maillist3_bg.bmp";
@@ -839,7 +834,6 @@ pub mod ui {
     /// Minimap frame and per-map minimap images.
     pub mod minimap {
         crate::paths! {
-            MAP_ARROW = "data/texture/유저인터페이스/map/map_arrow.bmp";
             MAP_MINUS0 = "data/texture/유저인터페이스/map/map_minus0.bmp";
             MAP_MINUS1 = "data/texture/유저인터페이스/map/map_minus1.bmp";
             MAP_PLUS0 = "data/texture/유저인터페이스/map/map_plus0.bmp";

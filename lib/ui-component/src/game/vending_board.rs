@@ -1,16 +1,9 @@
 use crate::helper::dialog_container::DialogContainer;
-use crate::helper::head_board;
+use crate::helper::head_board::{self, BoardIcon};
 use ragnarok_renderer::font_atlas::FontAtlas;
 use ragnarok_ui::draw::DrawCall;
 
 pub use crate::helper::head_board::board_rect;
-
-pub const VENDING_ICON_TEX: &str = ragnarok_resources::ui::SHOP;
-
-/// Textures needed to render the board with GRF art (frame + bag icon).
-pub fn preload_paths() -> Vec<&'static str> {
-    head_board::preload_paths(&[VENDING_ICON_TEX])
-}
 
 /// Draw the vendor's shop board (frame + bag icon + name) into `draw_calls`.
 pub fn draw_board(
@@ -30,7 +23,7 @@ pub fn draw_board(
         anchor_x,
         anchor_y,
         head_offset,
-        VENDING_ICON_TEX,
+        BoardIcon::Shop,
         &label,
     );
 }

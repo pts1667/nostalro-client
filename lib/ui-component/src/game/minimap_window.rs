@@ -1,3 +1,4 @@
+use crate::helper::fallback;
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
@@ -10,7 +11,6 @@ pub const MINIMAP_WINDOW_ID: WidgetId = WidgetId(1600);
 const ZOOM_IN_BTN_ID: WidgetId = WidgetId(1601);
 const ZOOM_OUT_BTN_ID: WidgetId = WidgetId(1602);
 
-const MAP_ARROW_TEX: &str = ragnarok_resources::ui::minimap::MAP_ARROW;
 
 const MAP_AREA_SIZE: f32 = 128.0;
 const ZOOM_BTN_SIZE: f32 = 12.0;
@@ -335,12 +335,7 @@ impl InGameWindow for MinimapWindow {
         {
             let angle = Self::direction_angle(self.player_direction);
             let color = [1.0, 1.0, 1.0, alpha];
-            let (v, i) = draw::quad_vertices_rotated(sx, sy, ARROW_SIZE, angle, color);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(MAP_ARROW_TEX.to_string()),
-            });
+            fallback::arrow(&mut ui.draw_calls, sx, sy, ARROW_SIZE, angle, color);
         }
 
         let zoom_x = x + MAP_AREA_SIZE - ZOOM_BTN_SIZE;

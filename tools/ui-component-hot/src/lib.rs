@@ -2792,21 +2792,11 @@ mod tests {
 
     /// Scenes whose fallback still draws chrome as a GRF texture. Each entry must
     /// still leak, so a fixed scene has to leave this list (the gate says so).
-    const PENDING_CHROME_LEAKS: &[&str] = &[
-        "minimap",
-        "world_map",
-        // Head-board icons (shop.bmp, chat_open.bmp) until they become procedural glyphs.
-        "vending_board",
-        "chat_room_board",
-    ];
+    const PENDING_CHROME_LEAKS: &[&str] = &[];
 
     /// Game content that a window may draw with no data loaded. The renderer
     /// skips these quads and logs an error. Chrome must not come through here.
     fn is_content_texture(name: &str) -> bool {
-        // Map arrows are a UI glyph. They become procedural shapes, not content.
-        if name == ragnarok_resources::ui::minimap::MAP_ARROW {
-            return false;
-        }
         const CONTENT_PREFIXES: &[&str] = &[
             "@emo/",
             "data/texture/유저인터페이스/item/",

@@ -92,6 +92,52 @@ pub fn panel(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
 }
 
 /// [`panel`] for code that builds its draw calls without a `UiFrame`.
+/// Solid rectangle with the white texture, for glyphs drawn outside a window.
+pub fn fill_into(draw_calls: &mut Vec<DrawCall>, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
+    if w <= 0.0 || h <= 0.0 {
+        return;
+    }
+    let (v, i) = draw::quad_vertices(x, y, w, h, color);
+    draw_calls.push(DrawCall {
+        vertices: v.to_vec(),
+        indices: i.to_vec(),
+        texture: TextureRef::White,
+    });
+}
+
+/// Solid triangle with the white texture.
+pub fn triangle_into(draw_calls: &mut Vec<DrawCall>, points: [(f32, f32); 3], color: [f32; 4]) {
+    let (v, i) = draw::triangle_vertices(points, color);
+    draw_calls.push(DrawCall {
+        vertices: v.to_vec(),
+        indices: i.to_vec(),
+        texture: TextureRef::White,
+    });
+}
+
+/// Map arrow pointing along `angle_rad` (0 is up, positive turns clockwise on
+/// screen), with a dark edge so it reads on the map art.
+pub fn arrow(
+    draw_calls: &mut Vec<DrawCall>,
+    cx: f32,
+    cy: f32,
+    size: f32,
+    angle_rad: f32,
+    color: [f32; 4],
+) {
+    const EDGE: [f32; 3] = [0.10, 0.10, 0.12];
+    let edge = [EDGE[0], EDGE[1], EDGE[2], color[3]];
+    triangle_into(draw_calls, arrow_points(cx, cy, size + 2.0, angle_rad), edge);
+    triangle_into(draw_calls, arrow_points(cx, cy, size, angle_rad), color);
+}
+
+fn arrow_points(cx: f32, cy: f32, size: f32, angle_rad: f32) -> [(f32, f32); 3] {
+    let h = size / 2.0;
+    let (sin, cos) = angle_rad.sin_cos();
+    let at = |x: f32, y: f32| (cx + x * cos - y * sin, cy + x * sin + y * cos);
+    [at(0.0, -h), at(-h * 0.8, h * 0.8), at(h * 0.8, h * 0.8)]
+}
+
 pub fn panel_into(draw_calls: &mut Vec<DrawCall>, x: f32, y: f32, w: f32, h: f32) {
     let (vertices, indices) = draw::rounded_rect(x, y, w, h, CORNER_RADIUS, P::WIN_BORDER);
     draw_calls.push(DrawCall {

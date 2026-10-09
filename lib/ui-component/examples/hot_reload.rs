@@ -127,8 +127,6 @@ const MAP_COMPONENTS: &[&str] = &["world_map", "minimap"];
 
 fn content_texture_paths_single(name: &str) -> Vec<&'static str> {
     match name {
-        "vending_board" => ragnarok_ui_component::game::vending_board::preload_paths(),
-        "chat_room_board" => ragnarok_ui_component::game::chat_room_board::preload_paths(),
         "minimap" => vec![ragnarok_resources::ui::minimap::PRONTERA],
         "world_map" => vec![WORLD_MAP_TEX, ragnarok_resources::ui::minimap::PRONTERA],
         _ => vec![],
