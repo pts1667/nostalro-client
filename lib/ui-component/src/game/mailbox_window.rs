@@ -37,8 +37,6 @@ fn set_input(input: &mut TextInput, text: String) {
     input.text = text;
 }
 
-const BG_INBOX_TEX: &str = ragnarok_resources::ui::basic::MAILLIST1_BG;
-const BG_COMPOSE_TEX: &str = ragnarok_resources::ui::basic::MAILLIST2_BG;
 
 
 
@@ -173,11 +171,6 @@ impl InGameWindow for MailboxWindow {
         let (x, y) = (win.x, win.y);
         ui.interact(MAILBOX_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
 
-        let _bg = if mode == MailboxMode::Inbox {
-            BG_INBOX_TEX
-        } else {
-            BG_COMPOSE_TEX
-        };
         crate::helper::fallback::window_body(ui, x, y, WIN_W, WIN_H);
         crate::helper::fallback::titlebar(ui, x, y, WIN_W, TITLE_H);
         let title = if mode == MailboxMode::Inbox {

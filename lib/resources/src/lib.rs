@@ -484,8 +484,6 @@ pub mod texture {
 /// The `유저인터페이스` tree — every window, button and icon texture.
 pub mod ui {
     crate::paths! {
-        BTN_EXCHANGE_DIS = "data/texture/유저인터페이스/btn_exchange_dis.bmp";
-        BTN_OK_DIS = "data/texture/유저인터페이스/btn_ok_dis.bmp";
         RAG_TITLE = "data/texture/유저인터페이스/rag_title.bmp";
         RAG_TITLE2 = "data/texture/유저인터페이스/rag_title2.bmp";
         RAG_TITLE3 = "data/texture/유저인터페이스/rag_title3.bmp";
@@ -495,13 +493,6 @@ pub mod ui {
     /// Shared window chrome and the in-game HUD.
     pub mod basic {
         crate::paths! {
-            GRP_LEADER = "data/texture/유저인터페이스/basic_interface/grp_leader.bmp";
-            GRP_ONLINE = "data/texture/유저인터페이스/basic_interface/grp_online.bmp";
-            MAILLIST1_BG = "data/texture/유저인터페이스/basic_interface/maillist1_bg.bmp";
-            MAILLIST2_BG = "data/texture/유저인터페이스/basic_interface/maillist2_bg.bmp";
-            TAB_ITM_01 = "data/texture/유저인터페이스/basic_interface/tab_itm_01.bmp";
-            TAB_ITM_02 = "data/texture/유저인터페이스/basic_interface/tab_itm_02.bmp";
-            TAB_ITM_03 = "data/texture/유저인터페이스/basic_interface/tab_itm_03.bmp";
         }
 
         /// Party-recruitment board buttons.

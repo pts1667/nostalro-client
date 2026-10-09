@@ -27,8 +27,6 @@ const OTHER_ROW_BASE: u32 = 4120;
 const NUM_DIALOG_BASE: u32 = 4130;
 
 
-const TRADE_BTN_DIS: &str = ragnarok_resources::ui::BTN_EXCHANGE_DIS;
-const LOCK_BTN_DIS: &str = ragnarok_resources::ui::BTN_OK_DIS;
 const WIN_W: f32 = 500.0;
 const TITLE_H: f32 = 16.0;
 const HEADER_H: f32 = 3.0;
@@ -181,7 +179,7 @@ impl TradeWindow {
     }
 }
 
-fn draw_disabled(ui: &mut UiFrame, rect: Rect, _tex: &str, label: &str, tc: [f32; 4]) {
+fn draw_disabled(ui: &mut UiFrame, rect: Rect, label: &str, tc: [f32; 4]) {
     crate::helper::fallback::cell(ui, rect.x, rect.y, rect.w, rect.h, false);
     let lw = ui.atlas.measure_text(label);
     ui.text(
@@ -327,7 +325,7 @@ impl InGameWindow for TradeWindow {
         let by = footer_y + (FOOTER_H - BTN_H) / 2.0 + 2.0;
         let lock_rect = Rect::new(x + 6.0, by, BTN_W, BTN_H);
         if my_locked {
-            draw_disabled(ui, lock_rect, LOCK_BTN_DIS, &rust_i18n::t!("trade.lock"), tc);
+            draw_disabled(ui, lock_rect, &rust_i18n::t!("trade.lock"), tc);
         } else if ui
             .button(LOCK_BTN_ID, lock_rect, &rust_i18n::t!("trade.lock"))
             .clicked()
@@ -362,7 +360,7 @@ impl InGameWindow for TradeWindow {
                 events.push(GameEvent::RequestExecExchange);
             }
         } else {
-            draw_disabled(ui, trade_rect, TRADE_BTN_DIS, &rust_i18n::t!("trade.trade"), tc);
+            draw_disabled(ui, trade_rect, &rust_i18n::t!("trade.trade"), tc);
         }
 
         let cancel_rect = Rect::new(x + WIN_W - BTN_W - 6.0, by, BTN_W, BTN_H);

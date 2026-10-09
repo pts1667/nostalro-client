@@ -24,8 +24,9 @@ const NAV_LEADER_ID: WidgetId = WidgetId(2016);
 const NAV_ADD_ID: WidgetId = WidgetId(2017);
 const ROW_BASE_ID: u32 = 2030;
 
-const GRP_ONLINE_TEX: &str = ragnarok_resources::ui::basic::GRP_ONLINE;
-const GRP_LEADER_TEX: &str = ragnarok_resources::ui::basic::GRP_LEADER;
+const ONLINE_MARK: [f32; 4] = [0.30, 0.72, 0.36, 1.0];
+const LEADER_MARK: [f32; 4] = [0.90, 0.72, 0.20, 1.0];
+const MARK_SIZE: f32 = 5.0;
 
 
 const WIN_W: f32 = 240.0;
@@ -97,7 +98,9 @@ impl PartyFriendsWindow {
             .unwrap_or(false)
     }
 
-    fn draw_icon(_ui: &mut UiFrame, _x: f32, _y: f32, _tex: &str) {
+    /// Status marker at the left edge of a row.
+    fn draw_icon(ui: &mut UiFrame, x: f32, row_y: f32, color: [f32; 4]) {
+        Self::fill(ui, x, row_y + (ROW_H - MARK_SIZE) / 2.0, MARK_SIZE, MARK_SIZE, color);
     }
 
     fn fill(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
@@ -253,13 +256,9 @@ impl PartyFriendsWindow {
                 );
             }
 
-            let icon = if m.leader {
-                GRP_LEADER_TEX
-            } else {
-                GRP_ONLINE_TEX
-            };
+            let marker = if m.leader { LEADER_MARK } else { ONLINE_MARK };
             if m.online {
-                Self::draw_icon(ui, x + 3.0, row_y, icon);
+                Self::draw_icon(ui, x + 3.0, row_y, marker);
             }
 
             let name_color = if !m.online {
@@ -336,7 +335,7 @@ impl PartyFriendsWindow {
                 );
             }
             if f.online {
-                Self::draw_icon(ui, x + 3.0, row_y, GRP_ONLINE_TEX);
+                Self::draw_icon(ui, x + 3.0, row_y, ONLINE_MARK);
             }
             let color = if f.online {
                 FRIEND_COLOR

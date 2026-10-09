@@ -43,10 +43,6 @@ const MAX_ROWS: usize = 6;
 const DEFAULT_COLS: usize = 7;
 const DEFAULT_ROWS: usize = 2;
 
-pub const TAB_USABLE_TEX: &str = ragnarok_resources::ui::basic::TAB_ITM_01;
-pub const TAB_EQUIP_TEX: &str = ragnarok_resources::ui::basic::TAB_ITM_02;
-pub const TAB_ETC_TEX: &str = ragnarok_resources::ui::basic::TAB_ITM_03;
-
 pub struct InventoryWindow {
     scroll_offset: usize,
     tab_size: (f32, f32),
@@ -429,12 +425,6 @@ impl InGameWindow for InventoryWindow {
             indices: idx.to_vec(),
             texture: TextureRef::White,
         });
-
-        let _tab_tex = match character.inventory.active_tab {
-            InventoryTab::Usable => TAB_USABLE_TEX,
-            InventoryTab::Equip => TAB_EQUIP_TEX,
-            InventoryTab::Etc => TAB_ETC_TEX,
-        };
 
         let tab_btn_h = tab_img_h / 3.0;
         let tab_defs = [

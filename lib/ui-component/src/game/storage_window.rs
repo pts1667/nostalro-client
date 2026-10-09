@@ -1,7 +1,6 @@
 use super::cart_window::CART_WINDOW_ID;
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use super::inventory_window::INV_WINDOW_ID;
-use super::inventory_window::{TAB_EQUIP_TEX, TAB_ETC_TEX, TAB_USABLE_TEX};
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
@@ -28,11 +27,16 @@ const NUM_DIALOG_BASE: u32 = 3806; // uses 3806..3809
 const TAB_BASE_ID: u32 = 3810; // 3810..3816, 7 tabs
 const ROW_BASE_ID: u32 = 3820;
 
-const TAB_DEFS: [(InventoryTab, &str, &str); 3] = [
-    (InventoryTab::Usable, TAB_USABLE_TEX, "Use"),
-    (InventoryTab::Equip, TAB_EQUIP_TEX, "Eqp"),
-    (InventoryTab::Etc, TAB_ETC_TEX, "Etc"),
-];
+const TABS: [InventoryTab; 3] = [InventoryTab::Usable, InventoryTab::Equip, InventoryTab::Etc];
+
+/// Label on a storage tab button.
+fn tab_label(tab: &InventoryTab) -> String {
+    match tab {
+        InventoryTab::Usable => rust_i18n::t!("storage.tab_usable").to_string(),
+        InventoryTab::Equip => rust_i18n::t!("storage.tab_equip").to_string(),
+        InventoryTab::Etc => rust_i18n::t!("storage.tab_etc").to_string(),
+    }
+}
 
 const WIN_W: f32 = 280.0;
 const TITLE_H: f32 = 17.0;
@@ -184,13 +188,9 @@ impl InGameWindow for StorageWindow {
 
         // --- Tab column (left), reusing the inventory 3-tab strip ---
         let (tab_w, tab_img_h) = self.tab_size;
-        let _active_tex = match self.active_tab {
-            InventoryTab::Usable => TAB_USABLE_TEX,
-            InventoryTab::Equip => TAB_EQUIP_TEX,
-            InventoryTab::Etc => TAB_ETC_TEX,
-        };
         let tab_btn_h = tab_img_h / 3.0;
-        for (i, (tab, _, label)) in TAB_DEFS.iter().enumerate() {
+        for (i, tab) in TABS.iter().enumerate() {
+            let label = tab_label(tab);
             let ty = container_y + i as f32 * tab_btn_h;
             let tab_rect = Rect::new(x, ty, tab_w, tab_btn_h);
             let resp = ui.interact(WidgetId(TAB_BASE_ID + i as u32), tab_rect);
@@ -206,11 +206,11 @@ impl InGameWindow for StorageWindow {
                 tab_btn_h,
                 active || resp.hovered(),
             );
-            let tw = ui.atlas.measure_text(label);
+            let tw = ui.atlas.measure_text(&label);
             ui.text(
                 x + (tab_w - tw) / 2.0,
                 ty + tab_btn_h / 2.0 + 4.0,
-                label,
+                &label,
                 tc,
             );
             if resp.clicked() && self.active_tab != *tab {
