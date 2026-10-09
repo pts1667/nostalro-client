@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::window_chrome::{
     SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button,
     draw_titlebar, text_color,
@@ -7,8 +8,26 @@ use ragnarok_game::emotion::EMOTION_TABLE;
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::keybinding::{EmotionKeys, HotkeyAction, KeyBindings, KeyChord};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+const RESET_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_RESET,
+    hover: ragnarok_resources::ui::BTN_RESET_A,
+    pressed: ragnarok_resources::ui::BTN_RESET_B,
+};
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
 
 pub const HOTKEY_CONFIG_WINDOW_ID: WidgetId = WidgetId(4300);
 const CLOSE_BTN_ID: WidgetId = WidgetId(4301);
@@ -23,22 +42,6 @@ const CELL_BASE_ID: u32 = 4350;
 
 const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
 const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-const RESET_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_RESET,
-    hover: ragnarok_resources::ui::BTN_RESET_A,
-    pressed: ragnarok_resources::ui::BTN_RESET_B,
-};
-
 const WIN_W: f32 = 380.0;
 const TITLE_H: f32 = 17.0;
 const TAB_H: f32 = 20.0;
@@ -497,7 +500,7 @@ impl InGameWindow for HotkeyConfigWindow {
         let (rw, rh) = self.reset_size;
         let reset_rect = Rect::new(x + PAD, footer_y + (FOOTER_H - rh) / 2.0, rw, rh);
         if ui
-            .button(RESET_BTN_ID, reset_rect, &RESET_BTN, "reset")
+            .button(RESET_BTN_ID, reset_rect, "reset")
             .clicked()
         {
             self.reset_active_tab();
@@ -515,7 +518,7 @@ impl InGameWindow for HotkeyConfigWindow {
         }
         let cancel_rect = Rect::new(close_rect.x - CELL_GAP - bw, by, bw, bh);
         if ui
-            .button(CANCEL_BTN_ID, cancel_rect, &CANCEL_BTN, "cancel")
+            .button(CANCEL_BTN_ID, cancel_rect, "cancel")
             .clicked()
         {
             self.close();
@@ -523,7 +526,7 @@ impl InGameWindow for HotkeyConfigWindow {
             return events;
         }
         let ok_rect = Rect::new(cancel_rect.x - CELL_GAP - bw, by, bw, bh);
-        if ui.button(OK_BTN_ID, ok_rect, &OK_BTN, "ok").clicked() {
+        if ui.button(OK_BTN_ID, ok_rect, "ok").clicked() {
             self.dirty = true;
             self.close();
         }

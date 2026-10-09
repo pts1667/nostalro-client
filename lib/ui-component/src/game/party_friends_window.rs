@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::window_chrome::{
     FOOTER_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer,
     draw_sys_button, draw_titlebar, text_color,
@@ -7,7 +8,7 @@ use ragnarok_game::event::GameEvent;
 use ragnarok_game::friends::Friend;
 use ragnarok_game::party::{Party, PartyMember};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
 pub const PARTY_FRIENDS_WINDOW_ID: WidgetId = WidgetId(2000);
@@ -143,12 +144,11 @@ impl PartyFriendsWindow {
         id: WidgetId,
         x: f32,
         y: f32,
-        textures: &ButtonTextures,
         label: &str,
         tooltip: &str,
     ) -> bool {
         let rect = Rect::new(x, y, NAV_BTN_W, NAV_H);
-        let resp = ui.button(id, rect, textures, label);
+        let resp = ui.button(id, rect, label);
         if resp.hovered() {
             ui.any_interactive_hovered = true;
             ui.tooltip(ui.ctx.mouse_x, ui.ctx.mouse_y, tooltip);
@@ -422,33 +422,17 @@ impl PartyFriendsWindow {
         let mut events = Vec::new();
         let mut bx = x + 3.0;
         if self.friend_tab {
-            if Self::nav_button(
-                ui,
-                NAV_ADD_ID,
-                bx,
-                nav_y,
-                &MESBTN_CREATE,
-                "Add",
-                "Add Friend",
-            ) {
+            if Self::nav_button(ui, NAV_ADD_ID, bx, nav_y, "Add", "Add Friend") {
                 events.push(GameEvent::ShowPartyHelper { mode: 3 });
             }
             bx += NAV_BTN_W;
-            if Self::nav_button(ui, NAV_CHAT_ID, bx, nav_y, &MESBTN_CHAT, "Chat", "1:1 Chat") {
+            if Self::nav_button(ui, NAV_CHAT_ID, bx, nav_y, "Chat", "1:1 Chat") {
                 if let Some(name) = self.selected_friend_name(friends) {
                     events.push(GameEvent::RequestWhisper { name });
                 }
             }
             bx += NAV_BTN_W;
-            if Self::nav_button(
-                ui,
-                NAV_REMOVE_ID,
-                bx,
-                nav_y,
-                &MESBTN_REMOVE,
-                "Del",
-                "Delete",
-            ) {
+            if Self::nav_button(ui, NAV_REMOVE_ID, bx, nav_y, "Del", "Delete") {
                 if let Some((aid, gid)) = self.selected_friend_ids(friends) {
                     events.push(GameEvent::RequestDeleteFriend { aid, gid });
                 }
@@ -459,63 +443,31 @@ impl PartyFriendsWindow {
         let has_party = party.map(|p| !p.members.is_empty()).unwrap_or(false);
         let is_leader = self.is_leader(party, local_aid);
         if !has_party {
-            if Self::nav_button(
-                ui,
-                NAV_CREATE_ID,
-                bx,
-                nav_y,
-                &MESBTN_CREATE,
-                "New",
-                "Create Party",
-            ) {
+            if Self::nav_button(ui, NAV_CREATE_ID, bx, nav_y, "New", "Create Party") {
                 events.push(GameEvent::ShowPartyHelper { mode: 0 });
             }
             return events;
         }
         if is_leader
-            && Self::nav_button(
-                ui,
-                NAV_INVITE_ID,
-                bx,
-                nav_y,
-                &MESBTN_INVITE,
-                "Inv",
-                "Party Invitation",
-            )
+            && Self::nav_button(ui, NAV_INVITE_ID, bx, nav_y, "Inv", "Party Invitation")
         {
             events.push(GameEvent::ShowPartyHelper { mode: 1 });
         }
         bx += NAV_BTN_W;
         if is_leader
-            && Self::nav_button(
-                ui,
-                NAV_SETUP_ID,
-                bx,
-                nav_y,
-                &MESBTN_SETUP,
-                "Set",
-                "Party Setup",
-            )
+            && Self::nav_button(ui, NAV_SETUP_ID, bx, nav_y, "Set", "Party Setup")
         {
             events.push(GameEvent::ShowPartyHelper { mode: 2 });
         }
         bx += NAV_BTN_W;
-        if Self::nav_button(ui, NAV_CHAT_ID, bx, nav_y, &MESBTN_CHAT, "Chat", "1:1 Chat") {
+        if Self::nav_button(ui, NAV_CHAT_ID, bx, nav_y, "Chat", "1:1 Chat") {
             if let Some(name) = self.selected_member_name(party) {
                 events.push(GameEvent::RequestWhisper { name });
             }
         }
         bx += NAV_BTN_W;
         if is_leader
-            && Self::nav_button(
-                ui,
-                NAV_REMOVE_ID,
-                bx,
-                nav_y,
-                &MESBTN_REMOVE,
-                "Kick",
-                "Expel from party",
-            )
+            && Self::nav_button(ui, NAV_REMOVE_ID, bx, nav_y, "Kick", "Expel from party")
         {
             if let Some((aid, name)) = self.selected_member_kick(party, local_aid) {
                 events.push(GameEvent::RequestExpelMember { aid, name });
@@ -523,15 +475,7 @@ impl PartyFriendsWindow {
         }
         bx += NAV_BTN_W;
         if is_leader
-            && Self::nav_button(
-                ui,
-                NAV_LEADER_ID,
-                bx,
-                nav_y,
-                &MESBTN_SETUP,
-                "Lead",
-                "Delegate leader",
-            )
+            && Self::nav_button(ui, NAV_LEADER_ID, bx, nav_y, "Lead", "Delegate leader")
         {
             if let Some((aid, _)) = self.selected_member_kick(party, local_aid) {
                 events.push(GameEvent::RequestChangePartyLeader { aid });
@@ -544,15 +488,7 @@ impl PartyFriendsWindow {
         } else {
             "Leave Party"
         };
-        if Self::nav_button(
-            ui,
-            NAV_LEAVE_ID,
-            bx,
-            nav_y,
-            &MESBTN_LEAVE,
-            leave_label,
-            leave_tip,
-        ) {
+        if Self::nav_button(ui, NAV_LEAVE_ID, bx, nav_y, leave_label, leave_tip) {
             events.push(GameEvent::RequestLeaveParty);
         }
         events

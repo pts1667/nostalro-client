@@ -35,12 +35,10 @@ const CAT_PAW_TEX: &str = ragnarok_resources::ui::item::CAT_PAW_HAIRPIN;
 
 const COUNT_OUTLINE_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 const ICON_SIZE: f32 = 24.0;
-const SLOT_PAD_X: f32 = 16.0;
 const SLOT_PAD_Y: f32 = 5.0;
 const SLOT_W: f32 = 32.0;
 const SLOT_MARGIN: f32 = 2.0;
 const ROW_H: f32 = 34.0;
-const LABEL_W: f32 = 4.0;
 const CLOSE_SIZE: f32 = 12.0;
 const RESIZE_SIZE: f32 = 13.0;
 const WIN_W: f32 = SLOT_MARGIN + (SLOT_W + SLOT_MARGIN) * HOTKEY_COLS as f32;

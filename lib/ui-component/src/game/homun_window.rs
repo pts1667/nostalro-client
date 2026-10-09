@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::colors;
 use crate::helper::window_chrome::{
     EXP_BAR_FILL, TITLEBAR_TEX, draw_container, draw_exp_bar, draw_gauge, draw_hline,
@@ -8,9 +9,33 @@ use ragnarok_game::companion::{HomunculusState, aspd_display};
 use ragnarok_game::data_table::DataTable;
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+const FEED_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_FEED,
+    hover: ragnarok_resources::ui::BTN_FEED_A,
+    pressed: ragnarok_resources::ui::BTN_FEED_B,
+};
+
+const SKILL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_SKILL,
+    hover: ragnarok_resources::ui::BTN_SKILL_A,
+    pressed: ragnarok_resources::ui::BTN_SKILL_B,
+};
+
+const DEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_DEL,
+    hover: ragnarok_resources::ui::BTN_DEL_A,
+    pressed: ragnarok_resources::ui::BTN_DEL_B,
+};
+
+const RENAME_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_REWRITE,
+    hover: ragnarok_resources::ui::BTN_REWRITE_A,
+    pressed: ragnarok_resources::ui::BTN_REWRITE_B,
+};
 
 pub const HOMUN_WINDOW_ID: WidgetId = WidgetId(2900);
 const CLOSE_BTN_ID: WidgetId = WidgetId(2901);
@@ -19,33 +44,10 @@ const DEL_BTN_ID: WidgetId = WidgetId(2903);
 const RENAME_INPUT_ID: WidgetId = WidgetId(2905);
 const RENAME_BTN_ID: WidgetId = WidgetId(2906);
 const SKILL_BTN_ID: WidgetId = WidgetId(2907);
-const REST_BTN_ID: WidgetId = WidgetId(2908);
-const AI_BTN_ID: WidgetId = WidgetId(2909);
 
 const BG_TEX: &str = ragnarok_resources::ui::basic::HOMUNINFO_BG;
 const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
 const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-
-const RENAME_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_REWRITE,
-    hover: ragnarok_resources::ui::BTN_REWRITE_A,
-    pressed: ragnarok_resources::ui::BTN_REWRITE_B,
-};
-const DEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_DEL,
-    hover: ragnarok_resources::ui::BTN_DEL_A,
-    pressed: ragnarok_resources::ui::BTN_DEL_B,
-};
-const SKILL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_SKILL,
-    hover: ragnarok_resources::ui::BTN_SKILL_A,
-    pressed: ragnarok_resources::ui::BTN_SKILL_B,
-};
-const FEED_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_FEED,
-    hover: ragnarok_resources::ui::BTN_FEED_A,
-    pressed: ragnarok_resources::ui::BTN_FEED_B,
-};
 
 const WIN_W: f32 = 280.0;
 const WIN_H: f32 = 180.0;
@@ -212,7 +214,7 @@ impl HomunWindow {
             let (rw, rh) = self.rename_size;
             let btn_rect = Rect::new(x + 232.0, y + 21.0, rw, rh);
             if ui
-                .button(RENAME_BTN_ID, btn_rect, &RENAME_BTN, "Name")
+                .button(RENAME_BTN_ID, btn_rect, "Name")
                 .clicked()
             {
                 let name = self.rename_input.text.trim().to_string();
@@ -235,23 +237,13 @@ impl HomunWindow {
         let (dw, dh) = self.del_size;
         let (sw, sh) = self.skill_size;
         if ui
-            .button(
-                DEL_BTN_ID,
-                Rect::new(x + 187.0, y + 44.0, dw, dh),
-                &DEL_BTN,
-                "Delete",
-            )
+            .button(DEL_BTN_ID, Rect::new(x + 187.0, y + 44.0, dw, dh), "Delete")
             .clicked()
         {
             events.push(GameEvent::RequestHomunDelete);
         }
         if ui
-            .button(
-                SKILL_BTN_ID,
-                Rect::new(x + 232.0, y + 44.0, sw, sh),
-                &SKILL_BTN,
-                "Skill",
-            )
+            .button(SKILL_BTN_ID, Rect::new(x + 232.0, y + 44.0, sw, sh), "Skill")
             .clicked()
         {
             events.push(GameEvent::ToggleHomunSkillWindow);
@@ -333,12 +325,7 @@ impl HomunWindow {
 
         let (fw, fh) = self.feed_size;
         if ui
-            .button(
-                FEED_BTN_ID,
-                Rect::new(x + 210.0, y + 155.0, fw, fh),
-                &FEED_BTN,
-                "Feed",
-            )
+            .button(FEED_BTN_ID, Rect::new(x + 210.0, y + 155.0, fw, fh), "Feed")
             .clicked()
         {
             events.push(GameEvent::RequestHomunMenu { command: 1 });

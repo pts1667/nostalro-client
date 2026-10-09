@@ -1,10 +1,59 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::window_chrome::{draw_sys_button, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::character::{Character, job_class_name};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+const BTN_CHAT: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::BTN_DIALOG_OFF,
+    hover: ragnarok_resources::ui::basic::BTN_DIALOG_ON,
+    pressed: ragnarok_resources::ui::basic::BTN_DIALOG_ON,
+};
+
+const BTN_PARTY: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::BTN_FRIEND_OFF,
+    hover: ragnarok_resources::ui::basic::BTN_FRIEND_ON,
+    pressed: ragnarok_resources::ui::basic::BTN_FRIEND_ON,
+};
+
+const BTN_SKILL: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::BTN_SKILL_OFF,
+    hover: ragnarok_resources::ui::basic::BTN_SKILL_ON,
+    pressed: ragnarok_resources::ui::basic::BTN_SKILL_ON,
+};
+
+const BTN_MAP: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::BTN_MAP_OFF,
+    hover: ragnarok_resources::ui::basic::BTN_MAP_ON,
+    pressed: ragnarok_resources::ui::basic::BTN_MAP_ON,
+};
+
+const BTN_ITEM: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::BTN_ITEMS_OFF,
+    hover: ragnarok_resources::ui::basic::BTN_ITEMS_ON,
+    pressed: ragnarok_resources::ui::basic::BTN_ITEMS_ON,
+};
+
+const BTN_EQUIP: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::BTN_EQUIP_OFF,
+    hover: ragnarok_resources::ui::basic::BTN_EQUIP_ON,
+    pressed: ragnarok_resources::ui::basic::BTN_EQUIP_ON,
+};
+
+const BTN_STATUS: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::BTN_STATUS_OFF,
+    hover: ragnarok_resources::ui::basic::BTN_STATUS_ON,
+    pressed: ragnarok_resources::ui::basic::BTN_STATUS_ON,
+};
+
+const BTN_OPTION: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::BTN_OPTION_OFF,
+    hover: ragnarok_resources::ui::basic::BTN_OPTION_ON,
+    pressed: ragnarok_resources::ui::basic::BTN_OPTION_ON,
+};
 
 pub const BASIC_INFO_WINDOW_ID: WidgetId = WidgetId(1400);
 const MINI_BTN_ID: WidgetId = WidgetId(1401);
@@ -32,47 +81,6 @@ const SYS_BASE_OFF: &str = ragnarok_resources::ui::basic::SYS_BASE_OFF;
 const SYS_BASE_ON: &str = ragnarok_resources::ui::basic::SYS_BASE_ON;
 const SYS_MINI_OFF: &str = ragnarok_resources::ui::basic::SYS_MINI_OFF;
 const SYS_MINI_ON: &str = ragnarok_resources::ui::basic::SYS_MINI_ON;
-
-const BTN_OPTION: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_OPTION_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_OPTION_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_OPTION_ON,
-};
-const BTN_STATUS: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_STATUS_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_STATUS_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_STATUS_ON,
-};
-const BTN_EQUIP: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_EQUIP_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_EQUIP_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_EQUIP_ON,
-};
-const BTN_ITEM: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_ITEMS_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_ITEMS_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_ITEMS_ON,
-};
-const BTN_MAP: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_MAP_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_MAP_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_MAP_ON,
-};
-const BTN_SKILL: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_SKILL_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_SKILL_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_SKILL_ON,
-};
-const BTN_PARTY: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_FRIEND_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_FRIEND_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_FRIEND_ON,
-};
-const BTN_CHAT: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_DIALOG_OFF,
-    hover: ragnarok_resources::ui::basic::BTN_DIALOG_ON,
-    pressed: ragnarok_resources::ui::basic::BTN_DIALOG_ON,
-};
 
 const WIN_W: f32 = 280.0;
 const WIN_H_LARGE: f32 = 120.0;
@@ -464,38 +472,35 @@ impl BasicInfoWindow {
 
         let row_y = |row: usize| y + BUTTONS_TOP + row as f32 * (btn_h + MENU_BTN_SPACING_Y);
 
-        let menu_buttons: &[(WidgetId, f32, f32, &ButtonTextures, &str)] = &[
-            (BTN_OPTION_ID, col1_x, row_y(0), &BTN_OPTION, "Option"),
-            (BTN_STATUS_ID, col2_x, row_y(0), &BTN_STATUS, "Status"),
+        let menu_buttons: &[(WidgetId, f32, f32, &str)] = &[
+            (BTN_OPTION_ID, col1_x, row_y(0), "Option"),
+            (BTN_STATUS_ID, col2_x, row_y(0), "Status"),
             (
                 BTN_EQUIP_ID,
                 col1_x,
                 row_y(1),
-                &BTN_EQUIP,
                 "Equipment (Alt+Q)",
             ),
             (
                 BTN_INVENTORY_ID,
                 col2_x,
                 row_y(1),
-                &BTN_ITEM,
                 "Inventory (Alt+E)",
             ),
-            (BTN_MAP_ID, col1_x, row_y(2), &BTN_MAP, "Map"),
-            (BTN_SKILL_ID, col2_x, row_y(2), &BTN_SKILL, "Skills (Alt+S)"),
-            (BTN_PARTY_ID, col1_x, row_y(3), &BTN_PARTY, "Party"),
+            (BTN_MAP_ID, col1_x, row_y(2), "Map"),
+            (BTN_SKILL_ID, col2_x, row_y(2), "Skills (Alt+S)"),
+            (BTN_PARTY_ID, col1_x, row_y(3), "Party"),
             (
                 BTN_CHAT_ID,
                 col2_x,
                 row_y(3),
-                &BTN_CHAT,
                 "Chat Room (Alt+C)",
             ),
         ];
 
-        for &(id, bx, by, textures, tooltip_text) in menu_buttons {
+        for &(id, bx, by, tooltip_text) in menu_buttons {
             let rect = Rect::new(bx, by, btn_w, btn_h);
-            let resp = ui.button(id, rect, textures, "");
+            let resp = ui.button(id, rect, "");
             if resp.clicked() {
                 match id {
                     BTN_OPTION_ID => events.push(GameEvent::ToggleSystemMenu),

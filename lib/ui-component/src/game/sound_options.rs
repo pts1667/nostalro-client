@@ -1,4 +1,3 @@
-use crate::helper::CHECKBOX;
 use crate::helper::window_chrome::{
     SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_sys_button, draw_titlebar, text_color,
 };
@@ -194,7 +193,7 @@ impl InGameWindow for SoundOptionsWindow {
             CB_SIZE,
         );
         if ui
-            .checkbox(BGM_MUTE_ID, bgm_cb, &mut self.bgm_enabled, &CHECKBOX)
+            .checkbox(BGM_MUTE_ID, bgm_cb, &mut self.bgm_enabled)
             .clicked()
         {
             events.push(self.changed_event(true));
@@ -223,7 +222,7 @@ impl InGameWindow for SoundOptionsWindow {
             CB_SIZE,
         );
         if ui
-            .checkbox(SFX_MUTE_ID, sfx_cb, &mut self.sfx_enabled, &CHECKBOX)
+            .checkbox(SFX_MUTE_ID, sfx_cb, &mut self.sfx_enabled)
             .clicked()
         {
             events.push(self.changed_event(true));
@@ -252,7 +251,7 @@ impl InGameWindow for SoundOptionsWindow {
                 CB_SIZE,
                 CB_SIZE,
             );
-            if ui.checkbox(id, cb, checked, &CHECKBOX).clicked() {
+            if ui.checkbox(id, cb, checked).clicked() {
                 changed = true;
             }
             ui.text(

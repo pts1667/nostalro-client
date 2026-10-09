@@ -1,9 +1,22 @@
 use crate::Window;
+use crate::helper::{ButtonTextures};
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::skill::SkillEnum;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId, WindowOrder};
+use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
 
 pub const WARP_LIST_WINDOW_ID: WidgetId = WidgetId(4600);
 const OK_ID: WidgetId = WidgetId(4601);
@@ -22,17 +35,6 @@ const BTN_FIRST_RIGHT: f32 = 5.0;
 const BTN_SPACING: f32 = 3.0;
 
 const WIN_TEXTURE: &str = ragnarok_resources::ui::WIN_MSGBOX;
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 const SELECTED_COLOR: [f32; 4] = [0.3, 0.3, 0.5, 0.5];
 
@@ -223,8 +225,8 @@ impl WarpListWindow {
             BTN_FIRST_RIGHT,
             BTN_SPACING,
         );
-        let cancel = ui.button(CANCEL_ID, btns[0], &CANCEL_BTN, "Cancel");
-        let ok = ui.button(OK_ID, btns[1], &OK_BTN, "OK");
+        let cancel = ui.button(CANCEL_ID, btns[0], "Cancel");
+        let ok = ui.button(OK_ID, btns[1], "OK");
 
         if ok.clicked() {
             self.confirm(&mut events);

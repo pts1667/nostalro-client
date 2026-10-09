@@ -1,8 +1,21 @@
 use crate::Window;
+use crate::helper::{ButtonTextures};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
 
 const FALLBACK_WIN_W: f32 = 280.0;
 const FALLBACK_BTN_W: f32 = 42.0;
@@ -25,18 +38,6 @@ const OK_ID: WidgetId = WidgetId(4401);
 const CANCEL_ID: WidgetId = WidgetId(4402);
 
 const WIN_TEXTURE: &str = ragnarok_resources::ui::login::WIN_SERVICE;
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 const SELECTED_COLOR: [f32; 4] = [0.804, 0.878, 1.0, 1.0];
 const LIST_BG_COLOR: [f32; 4] = [0.969, 0.969, 0.969, 1.0];
@@ -197,8 +198,8 @@ impl LoginServerListWindow {
             btn_w,
             btn_h,
         );
-        let ok = ui.button(OK_ID, ok_rect, &OK_BTN, "OK");
-        let cancel = ui.button(CANCEL_ID, cancel_rect, &CANCEL_BTN, "Cancel");
+        let ok = ui.button(OK_ID, ok_rect, "OK");
+        let cancel = ui.button(CANCEL_ID, cancel_rect, "Cancel");
 
         if ok.clicked() && self.selected_index.is_some() {
             events.push(GameEvent::SelectLoginServer {
@@ -310,8 +311,8 @@ impl LoginServerListWindow {
 
         let ok_rect = Rect::new(btn_start_x, btn_y, btn_w, btn_h);
         let cancel_rect = Rect::new(btn_start_x + btn_w + btn_spacing, btn_y, btn_w, btn_h);
-        let ok = ui.button(OK_ID, ok_rect, &OK_BTN, "OK");
-        let cancel = ui.button(CANCEL_ID, cancel_rect, &CANCEL_BTN, "Cancel");
+        let ok = ui.button(OK_ID, ok_rect, "OK");
+        let cancel = ui.button(CANCEL_ID, cancel_rect, "Cancel");
 
         if ok.clicked() && self.selected_index.is_some() {
             events.push(GameEvent::SelectLoginServer {

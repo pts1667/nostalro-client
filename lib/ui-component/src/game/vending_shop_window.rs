@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use crate::helper::colors::draw_price_right;
 use crate::helper::dialog_container::DialogContainer;
@@ -11,8 +12,20 @@ use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::{GameEvent, VendorItem};
 use ragnarok_renderer::font_atlas::FontAtlas;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, RESIZE_HANDLE_TEX, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const BUY_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_BUY,
+    hover: ragnarok_resources::ui::BTN_BUY_A,
+    pressed: ragnarok_resources::ui::BTN_BUY_B,
+};
 
 pub const VENDING_SHOP_WINDOW_ID: WidgetId = WidgetId(2400);
 const SCROLL_UP_ID: WidgetId = WidgetId(2405);
@@ -27,17 +40,6 @@ const CANCEL_ID: WidgetId = WidgetId(2422);
 const RIGHT_RESIZE_ID: WidgetId = WidgetId(2423);
 const STAGED_BASE_ID: u32 = 2430;
 const NUM_DIALOG_BASE: u32 = 2440;
-
-const BUY_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_BUY,
-    hover: ragnarok_resources::ui::BTN_BUY_A,
-    pressed: ragnarok_resources::ui::BTN_BUY_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 const WIN_W: f32 = 280.0;
 const TITLE_H: f32 = 17.0;
@@ -402,8 +404,8 @@ impl VendingShopWindow {
         let win_rect = Rect::new(dx, dy, WIN_W, win_h);
         ui.text(dx + PAD, win_rect.y + win_rect.h - 10.0, &total_str, tc);
         let btns = win_rect.buttons_bottom_right(2, btn_w, btn_h, 5.0, GRIP + 3.0, 3.0);
-        let cancel = ui.button(CANCEL_ID, btns[0], &CANCEL_BTN, "Cancel");
-        let buy = ui.button(BUY_ID, btns[1], &BUY_BTN, "Buy");
+        let cancel = ui.button(CANCEL_ID, btns[0], "Cancel");
+        let buy = ui.button(BUY_ID, btns[1], "Buy");
         if buy.clicked() && !self.staged.is_empty() {
             let items = self.staged.iter().map(|s| (s.count, s.index)).collect();
             events.push(GameEvent::RequestPurchaseFromVendor {
@@ -462,7 +464,7 @@ impl Window for VendingShopWindow {
             CANCEL_BTN.pressed,
         ];
         paths.push(ITEMWIN_MID_TEX);
-        paths.push(RESIZE_HANDLE_TEX);
+        paths.push(ragnarok_resources::ui::BTN_RESIZE);
         paths.extend(scrollbar::grf_texture_paths());
         paths.extend(InputDialog::grf_texture_paths());
         paths
@@ -582,7 +584,7 @@ fn resize_grip(
         *rows = (start_rows as i32 + delta).clamp(MIN_ROWS as i32, MAX_ROWS as i32) as usize;
     }
     if grf {
-        draw_textured_quad(ui, grip.x, grip.y, GRIP, GRIP, RESIZE_HANDLE_TEX);
+        draw_textured_quad(ui, grip.x, grip.y, GRIP, GRIP, ragnarok_resources::ui::BTN_RESIZE);
     } else {
         let c = if hovered {
             [0.6, 0.6, 0.7, 0.9]

@@ -1,18 +1,20 @@
+use crate::helper::{ButtonTextures};
 use crate::Window;
 use crate::helper::dialog_container::DialogContainer;
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+pub const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
 
 pub const OK_BTN: ButtonTextures = ButtonTextures {
     normal: ragnarok_resources::ui::BTN_OK,
     hover: ragnarok_resources::ui::BTN_OK_A,
     pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-pub const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
 };
 
 const FALLBACK_BTN_W: f32 = 42.0;
@@ -257,10 +259,10 @@ impl InputDialog {
         }
 
         ui.text_input(input_id, input_rect, &mut self.input, input_bg);
-        let ok = ui.button(ok_id, ok_rect, &OK_BTN, "OK");
+        let ok = ui.button(ok_id, ok_rect, "OK");
 
         if let Some(cancel_rect) = cancel_rect {
-            let cancel = ui.button(self.cancel_id(), cancel_rect, &CANCEL_BTN, "Cancel");
+            let cancel = ui.button(self.cancel_id(), cancel_rect, "Cancel");
             if cancel.clicked() {
                 return InputDialogResult::Cancel;
             }

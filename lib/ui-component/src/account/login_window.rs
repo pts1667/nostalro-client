@@ -1,9 +1,27 @@
 use crate::Window;
+use crate::helper::{ButtonTextures, CheckboxTextures};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, CheckboxTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+const EXIT_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::login::BTN_EXIT,
+    hover: ragnarok_resources::ui::login::BTN_EXIT_A,
+    pressed: ragnarok_resources::ui::login::BTN_EXIT_B,
+};
+
+const CONNECT_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::login::BTN_CONNECT,
+    hover: ragnarok_resources::ui::login::BTN_CONNECT_A,
+    pressed: ragnarok_resources::ui::login::BTN_CONNECT_B,
+};
+
+const KEEP_CHECKBOX: CheckboxTextures = CheckboxTextures {
+    off: ragnarok_resources::ui::login::CHK_SAVEOFF,
+    on: ragnarok_resources::ui::login::CHK_SAVEON,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LoginFocus {
@@ -50,23 +68,6 @@ const KEEP_ID: WidgetId = WidgetId(4);
 
 const FALLBACK_KEEP_W: f32 = 34.0;
 const FALLBACK_KEEP_H: f32 = 10.0;
-
-const KEEP_CHECKBOX: CheckboxTextures = CheckboxTextures {
-    off: ragnarok_resources::ui::login::CHK_SAVEOFF,
-    on: ragnarok_resources::ui::login::CHK_SAVEON,
-};
-
-const CONNECT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::login::BTN_CONNECT,
-    hover: ragnarok_resources::ui::login::BTN_CONNECT_A,
-    pressed: ragnarok_resources::ui::login::BTN_CONNECT_B,
-};
-
-const EXIT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::login::BTN_EXIT,
-    hover: ragnarok_resources::ui::login::BTN_EXIT_A,
-    pressed: ragnarok_resources::ui::login::BTN_EXIT_B,
-};
 
 impl Default for LoginWindow {
     fn default() -> Self {
@@ -153,11 +154,7 @@ impl LoginWindow {
             }
         }
 
-        let input_bg = if self.has_grf_textures {
-            TextInputBg::Texture(INPUT_TEXTURE)
-        } else {
-            TextInputBg::Default
-        };
+let input_bg = TextInputBg::Default;
         let username_rect = Rect::new(win.x + (FIELD_X), win.y + (USERNAME_Y), field_w, FIELD_H);
         let password_rect = Rect::new(win.x + (FIELD_X), win.y + (PASSWORD_Y), field_w, FIELD_H);
         ui.text_input(USERNAME_ID, username_rect, &mut self.username, input_bg);
@@ -182,8 +179,8 @@ impl LoginWindow {
             btn_w,
             btn_h,
         );
-        let connect = ui.button(CONNECT_ID, connect_rect, &CONNECT_BTN, "Connect");
-        let exit = ui.button(EXIT_ID, exit_rect, &EXIT_BTN, "Exit");
+        let connect = ui.button(CONNECT_ID, connect_rect, "Connect");
+        let exit = ui.button(EXIT_ID, exit_rect, "Exit");
 
         let (keep_w, keep_h) = if self.has_grf_textures {
             self.keep_size
@@ -196,7 +193,7 @@ impl LoginWindow {
             keep_w,
             keep_h,
         );
-        ui.checkbox(KEEP_ID, keep_rect, &mut self.keep_id, &KEEP_CHECKBOX);
+        ui.checkbox(KEEP_ID, keep_rect, &mut self.keep_id);
 
         let submit = ui.enter_pressed() || connect.clicked();
         if submit && !self.username.text.is_empty() && !self.password.text.is_empty() {

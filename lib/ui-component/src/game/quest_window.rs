@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
     FOOTER_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_footer, draw_sys_button,
@@ -9,8 +10,20 @@ use ragnarok_game::event::GameEvent;
 use ragnarok_game::quest::Quest;
 use ragnarok_game::quest::QuestLog;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef, strip_color_codes, word_wrap};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+const CLOSE_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CLOSE,
+    hover: ragnarok_resources::ui::BTN_CLOSE_A,
+    pressed: ragnarok_resources::ui::BTN_CLOSE_B,
+};
+
+const VIEW_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_VIEW,
+    hover: ragnarok_resources::ui::BTN_VIEW_A,
+    pressed: ragnarok_resources::ui::BTN_VIEW_B,
+};
 
 pub const QUEST_WINDOW_ID: WidgetId = WidgetId(3700);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3701);
@@ -35,17 +48,6 @@ const TAB_QUE_TEX: [&str; 3] = [
     ragnarok_resources::ui::basic::TAB_QUE_03,
 ];
 const DETAIL_BG_TEX: &str = ragnarok_resources::ui::basic::QUEST_WINDOW;
-
-const VIEW_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_VIEW,
-    hover: ragnarok_resources::ui::BTN_VIEW_A,
-    pressed: ragnarok_resources::ui::BTN_VIEW_B,
-};
-const CLOSE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CLOSE,
-    hover: ragnarok_resources::ui::BTN_CLOSE_A,
-    pressed: ragnarok_resources::ui::BTN_CLOSE_B,
-};
 
 const WIN_W: f32 = 280.0;
 const WIN_H: f32 = 200.0;
@@ -406,7 +408,7 @@ impl InGameWindow for QuestWindow {
         draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         let view_rect = Rect::new(x + 6.0, footer_y + 2.0, 42.0, 20.0);
         if ui
-            .button(VIEW_BTN_ID, view_rect, &VIEW_BTN, "View")
+            .button(VIEW_BTN_ID, view_rect, "View")
             .clicked()
         {
             if let Some(id) = self.selected {
@@ -415,7 +417,7 @@ impl InGameWindow for QuestWindow {
         }
         let close2_rect = Rect::new(x + WIN_W - 48.0, footer_y + 2.0, 42.0, 20.0);
         if ui
-            .button(FOOTER_CLOSE_BTN_ID, close2_rect, &CLOSE_BTN, "Close")
+            .button(FOOTER_CLOSE_BTN_ID, close2_rect, "Close")
             .clicked()
         {
             self.open = false;

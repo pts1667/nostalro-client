@@ -1,9 +1,10 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::window_chrome::text_color;
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::item::Item;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
 pub const READ_MAIL_WINDOW_ID: WidgetId = WidgetId(3950);
@@ -257,7 +258,7 @@ impl InGameWindow for ReadMailWindow {
         let delete_rect = Rect::new(x + WIN_W - 52.0, btn_y, 43.0, 21.0);
 
         if ui
-            .button(READ_RETURN_BTN_ID, return_rect, &RETURN_BTN, "Return")
+            .button(READ_RETURN_BTN_ID, return_rect, "Return")
             .clicked()
         {
             events.push(GameEvent::RequestMailReturn {
@@ -266,7 +267,7 @@ impl InGameWindow for ReadMailWindow {
             });
         }
         if ui
-            .button(READ_REPLY_BTN_ID, reply_rect, &REPLY_BTN, "Reply")
+            .button(READ_REPLY_BTN_ID, reply_rect, "Reply")
             .clicked()
         {
             let title = character
@@ -280,7 +281,7 @@ impl InGameWindow for ReadMailWindow {
             character.mail.compose_prefill = Some((sender.clone(), format!("RE:{title}")));
         }
         let delete_clicked = ui
-            .button(READ_DELETE_BTN_ID, delete_rect, &DELETE_BTN, "Delete")
+            .button(READ_DELETE_BTN_ID, delete_rect, "Delete")
             .clicked();
         if delete_clicked {
             if has_attachment {
@@ -297,7 +298,7 @@ impl InGameWindow for ReadMailWindow {
         // Close.
         let close_rect = Rect::new(x + WIN_W - 17.0, y + 3.0, 16.0, 11.0);
         if ui
-            .button(READ_CLOSE_BTN_ID, close_rect, &CLOSE_BTN, "x")
+            .button(READ_CLOSE_BTN_ID, close_rect, "x")
             .clicked()
         {
             character.mail.read_open = false;

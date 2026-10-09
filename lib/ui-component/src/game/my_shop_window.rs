@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::format::format_thousands;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
@@ -7,20 +8,20 @@ use crate::helper::window_chrome::{
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::{GameEvent, VendorItem};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
-
-pub const MY_SHOP_WINDOW_ID: WidgetId = WidgetId(2600);
-const CLOSE_ID: WidgetId = WidgetId(2601);
-const SCROLL_UP_ID: WidgetId = WidgetId(2602);
-const SCROLL_DOWN_ID: WidgetId = WidgetId(2603);
-const SCROLL_THUMB_ID: WidgetId = WidgetId(2604);
 
 const CLOSE_BTN: ButtonTextures = ButtonTextures {
     normal: ragnarok_resources::ui::BTN_CANCEL,
     hover: ragnarok_resources::ui::BTN_CANCEL_A,
     pressed: ragnarok_resources::ui::BTN_CANCEL_B,
 };
+
+pub const MY_SHOP_WINDOW_ID: WidgetId = WidgetId(2600);
+const CLOSE_ID: WidgetId = WidgetId(2601);
+const SCROLL_UP_ID: WidgetId = WidgetId(2602);
+const SCROLL_DOWN_ID: WidgetId = WidgetId(2603);
+const SCROLL_THUMB_ID: WidgetId = WidgetId(2604);
 
 const WIN_W: f32 = 300.0;
 const TITLE_H: f32 = 17.0;
@@ -232,7 +233,7 @@ impl InGameWindow for MyShopWindow {
 
         let win_rect = Rect::new(dx, dy, WIN_W, win_h);
         let btns = win_rect.buttons_bottom_right(1, btn_w, btn_h, 5.0, 5.0, 3.0);
-        if ui.button(CLOSE_ID, btns[0], &CLOSE_BTN, "Close").clicked() {
+        if ui.button(CLOSE_ID, btns[0], "Close").clicked() {
             events.push(GameEvent::RequestCloseStore);
         }
 

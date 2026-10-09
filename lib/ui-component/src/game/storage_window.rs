@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use super::cart_window::CART_WINDOW_ID;
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use super::inventory_window::INV_WINDOW_ID;
@@ -14,8 +15,14 @@ use ragnarok_game::display_name::format_equipment_display_name;
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::item::InventoryTab;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, RESIZE_HANDLE_TEX, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+const CLOSE_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::BTN_CLOSE,
+    hover: ragnarok_resources::ui::basic::BTN_CLOSE_A,
+    pressed: ragnarok_resources::ui::basic::BTN_CLOSE_B,
+};
 
 pub const STORAGE_WINDOW_ID: WidgetId = WidgetId(3800);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3801);
@@ -27,11 +34,6 @@ const NUM_DIALOG_BASE: u32 = 3806; // uses 3806..3809
 const TAB_BASE_ID: u32 = 3810; // 3810..3816, 7 tabs
 const ROW_BASE_ID: u32 = 3820;
 
-const CLOSE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_CLOSE,
-    hover: ragnarok_resources::ui::basic::BTN_CLOSE_A,
-    pressed: ragnarok_resources::ui::basic::BTN_CLOSE_B,
-};
 const TAB_DEFS: [(InventoryTab, &str, &str); 3] = [
     (InventoryTab::Usable, TAB_USABLE_TEX, "Use"),
     (InventoryTab::Equip, TAB_EQUIP_TEX, "Eqp"),
@@ -159,7 +161,7 @@ impl Window for StorageWindow {
             TITLEBAR_TEX,
             ITEMWIN_MID_TEX,
             FOOTER_TEX,
-            RESIZE_HANDLE_TEX,
+            ragnarok_resources::ui::BTN_RESIZE,
             CLOSE_BTN.normal,
             CLOSE_BTN.hover,
             CLOSE_BTN.pressed,
@@ -442,7 +444,7 @@ impl InGameWindow for StorageWindow {
             cw,
             ch,
         );
-        let close = ui.button(CLOSE_BTN_ID, close_rect, &CLOSE_BTN, "Close");
+        let close = ui.button(CLOSE_BTN_ID, close_rect, "Close");
 
         let resize_rect = Rect::new(
             x + WIN_W - RESIZE_SIZE,

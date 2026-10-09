@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::window_chrome::{
     FOOTER_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button, draw_titlebar,
@@ -10,8 +11,26 @@ use ragnarok_game::data_table::skill_name_table::format_skill_display_name;
 use ragnarok_game::event::{GameEvent, SkillInfo};
 use ragnarok_game::skill::SkillTargetType;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+const CLOSE_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::BTN_CLOSE,
+    hover: ragnarok_resources::ui::basic::BTN_CLOSE_A,
+    pressed: ragnarok_resources::ui::basic::BTN_CLOSE_B,
+};
+
+const LEVELUP_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::SKILL_UP_A,
+    hover: ragnarok_resources::ui::basic::SKILL_UP_B,
+    pressed: ragnarok_resources::ui::basic::SKILL_UP_C,
+};
+
+const USE_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_USE,
+    hover: ragnarok_resources::ui::BTN_USE_A,
+    pressed: ragnarok_resources::ui::BTN_USE_B,
+};
 
 pub const HOMUN_SKILL_WINDOW_ID: WidgetId = WidgetId(2910);
 const CLOSE_BTN_ID: WidgetId = WidgetId(2911);
@@ -20,21 +39,6 @@ const FOOTER_CLOSE_BTN_ID: WidgetId = WidgetId(2913);
 const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
 const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
-const USE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_USE,
-    hover: ragnarok_resources::ui::BTN_USE_A,
-    pressed: ragnarok_resources::ui::BTN_USE_B,
-};
-const LEVELUP_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::SKILL_UP_A,
-    hover: ragnarok_resources::ui::basic::SKILL_UP_B,
-    pressed: ragnarok_resources::ui::basic::SKILL_UP_C,
-};
-const CLOSE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_CLOSE,
-    hover: ragnarok_resources::ui::basic::BTN_CLOSE_A,
-    pressed: ragnarok_resources::ui::basic::BTN_CLOSE_B,
-};
 const SKILL_ROW_BASE_ID: u32 = 2920;
 const SKILL_LEVELUP_BASE_ID: u32 = 2930;
 
@@ -178,7 +182,7 @@ impl HomunSkillWindow {
                 let btn_y = row_y + (ROW_H - lup_h) * 0.5;
                 let btn_id = WidgetId(SKILL_LEVELUP_BASE_ID + idx as u32);
                 let btn_rect = Rect::new(btn_x, btn_y, lup_w, lup_h);
-                if ui.button(btn_id, btn_rect, &LEVELUP_BTN, "+").clicked() {
+                if ui.button(btn_id, btn_rect, "+").clicked() {
                     events.push(GameEvent::RequestSkillLevelUp { skill: skill.skill });
                 }
                 sp_right = btn_x - 4.0;
@@ -232,7 +236,7 @@ impl HomunSkillWindow {
         let btn_y = footer_y + (FOOTER_H - ch) * 0.5;
         let close_footer = Rect::new(x + WIN_W - PAD - cw, btn_y, cw, ch);
         let use_rect = Rect::new(x + WIN_W - PAD - cw - 4.0 - uw, btn_y, uw, uh);
-        if ui.button(USE_BTN_ID, use_rect, &USE_BTN, "use").clicked()
+        if ui.button(USE_BTN_ID, use_rect, "use").clicked()
             && let Some(skill) = homun.skills.get(self.selected)
         {
             events.push(GameEvent::RequestCompanionUseSkill {
@@ -242,7 +246,7 @@ impl HomunSkillWindow {
             });
         }
         if ui
-            .button(FOOTER_CLOSE_BTN_ID, close_footer, &CLOSE_BTN, "close")
+            .button(FOOTER_CLOSE_BTN_ID, close_footer, "close")
             .clicked()
         {
             self.visible = false;

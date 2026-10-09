@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use super::inventory_window::INV_WINDOW_ID;
 use crate::helper::dialog_container::DialogContainer;
@@ -11,7 +12,7 @@ use ragnarok_game::mail::{
     format_mail_date,
 };
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
 
@@ -240,7 +241,7 @@ impl InGameWindow for MailboxWindow {
         // Close button (top-right).
         let close_rect = Rect::new(x + WIN_W - 17.0, y + 3.0, 16.0, 11.0);
         if ui
-            .button(MAIL_CLOSE_BTN_ID, close_rect, &CLOSE_BTN, "x")
+            .button(MAIL_CLOSE_BTN_ID, close_rect, "x")
             .clicked()
         {
             character.mail.window_open = false;
@@ -558,10 +559,10 @@ impl MailboxWindow {
         let send_rect = Rect::new(x + WIN_W - 100.0, y + WIN_H - 27.0, 43.0, 21.0);
         let cancel_rect = Rect::new(x + WIN_W - 52.0, y + WIN_H - 27.0, 43.0, 21.0);
         let send_clicked = ui
-            .button(SEND_BTN_ID, send_rect, &SEND_BTN, "Send")
+            .button(SEND_BTN_ID, send_rect, "Send")
             .clicked();
         let cancel_clicked = ui
-            .button(CANCEL_BTN_ID, cancel_rect, &CANCEL_BTN, "Cancel")
+            .button(CANCEL_BTN_ID, cancel_rect, "Cancel")
             .clicked();
 
         if send_clicked && !character.mail.send_pending {

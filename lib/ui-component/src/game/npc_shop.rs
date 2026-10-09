@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use super::item_info_window::ITEM_INFO_WINDOW_ID;
 use crate::helper::CHECKBOX;
@@ -11,8 +12,20 @@ use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::npc_shop::{NpcShopData, NpcShopMode};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, RESIZE_HANDLE_TEX, UiFrame, WidgetId, WindowOrder};
+use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
+
+const CANCEL_BTN_TEX: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
 
 pub const INPUT_WIN_ID: WidgetId = WidgetId(701);
 pub const OUTPUT_WIN_ID: WidgetId = WidgetId(702);
@@ -48,17 +61,6 @@ use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 const ICON_SIZE: f32 = 24.0;
 const ICON_OFFSET_X: f32 = 4.0;
 const ICON_OFFSET_Y: f32 = 2.0;
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN_TEX: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 const RESIZE_SIZE: f32 = 13.0;
 const CHECK_SIZE: f32 = 12.0;
@@ -148,7 +150,7 @@ impl Window for NpcShop {
             FOOTER_TEX,
             SYS_BASE_OFF_TEX,
             SYS_BASE_ON_TEX,
-            RESIZE_HANDLE_TEX,
+            ragnarok_resources::ui::BTN_RESIZE,
             CHECKBOX.off,
             CHECKBOX.on,
         ]);
@@ -466,13 +468,13 @@ impl NpcShop {
         if self.shop.mode == Some(NpcShopMode::Sell) {
             let mut checked = self.drag_all;
             if ui
-                .checkbox(DRAG_ALL_CHECK_ID, check_rect, &mut checked, &CHECKBOX)
+                .checkbox(DRAG_ALL_CHECK_ID, check_rect, &mut checked)
                 .clicked()
             {
                 self.drag_all = checked;
             }
         } else {
-            ui.checkbox_display(check_rect, self.drag_all, &CHECKBOX);
+            ui.checkbox_display(check_rect, self.drag_all);
         }
         ui.text(
             check_rect.x + CHECK_SIZE + 4.0,
@@ -696,18 +698,8 @@ impl NpcShop {
             Some(NpcShopMode::Sell) => "Sell",
             None => "",
         };
-        let action_btn = ui.button(
-            BUY_SELL_BTN_ID,
-            Rect::new(action_x, btn_y, btn_w, btn_h),
-            &OK_BTN,
-            action_label,
-        );
-        let cancel_btn = ui.button(
-            CANCEL_BTN_ID,
-            Rect::new(cancel_x, btn_y, btn_w, btn_h),
-            &CANCEL_BTN_TEX,
-            "Cancel",
-        );
+        let action_btn = ui.button(BUY_SELL_BTN_ID, Rect::new(action_x, btn_y, btn_w, btn_h), action_label);
+        let cancel_btn = ui.button(CANCEL_BTN_ID, Rect::new(cancel_x, btn_y, btn_w, btn_h), "Cancel");
 
         if action_btn.clicked() && !self.shop.basket.is_empty() {
             match self.shop.mode {
@@ -1041,7 +1033,7 @@ mod tests {
             100.0 + input_h - output_h + TITLE_H + CONTAINER_PAD_Y + ICON_SIZE / 2.0,
         );
         let list_row = (150.0, 100.0 + TITLE_H + CONTAINER_PAD_Y + ICON_SIZE / 2.0);
-        let mut drag_basket_to_list = |state: &mut StateCache, shop_ui: &mut NpcShop| {
+        let drag_basket_to_list = |state: &mut StateCache, shop_ui: &mut NpcShop| {
             frame(state, shop_ui, basket_row.0, basket_row.1, false);
             {
                 let mut character = Character::new();

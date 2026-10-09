@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::CHECKBOX;
 use crate::helper::colors;
 use crate::helper::dropdown::{self, Dropdown};
@@ -14,8 +15,50 @@ use ragnarok_ai::consts::{
 use ragnarok_ai::tactics::{SkillUse, Tactic};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+const MINUS_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::minimap::MAP_MINUS0,
+    hover: ragnarok_resources::ui::minimap::MAP_MINUS1,
+    pressed: ragnarok_resources::ui::minimap::MAP_MINUS1,
+};
+
+const PLUS_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::minimap::MAP_PLUS0,
+    hover: ragnarok_resources::ui::minimap::MAP_PLUS1,
+    pressed: ragnarok_resources::ui::minimap::MAP_PLUS1,
+};
+
+const NEXT_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::ARW_RIGHT,
+    hover: ragnarok_resources::ui::basic::ARW_RIGHT_ON,
+    pressed: ragnarok_resources::ui::basic::ARW_RIGHT_ON,
+};
+
+const PREV_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::ARW_LEFT,
+    hover: ragnarok_resources::ui::basic::ARW_LEFT,
+    pressed: ragnarok_resources::ui::basic::ARW_LEFT,
+};
+
+const DEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_DEL,
+    hover: ragnarok_resources::ui::BTN_DEL_A,
+    pressed: ragnarok_resources::ui::BTN_DEL_B,
+};
+
+const ADD_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_ADD,
+    hover: ragnarok_resources::ui::BTN_ADD_A,
+    pressed: ragnarok_resources::ui::BTN_ADD_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
 
 pub const COMPANION_AI_CONFIG_WINDOW_ID: WidgetId = WidgetId(3200);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3201);
@@ -32,42 +75,6 @@ const TACT_ADD_ID: WidgetId = WidgetId(3228);
 const TACT_DEL_ID: WidgetId = WidgetId(3229);
 const ROW_WIDGET_BASE: u32 = 3230;
 const ENUM_OPTION_BASE: u32 = 5100;
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const ADD_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_ADD,
-    hover: ragnarok_resources::ui::BTN_ADD_A,
-    pressed: ragnarok_resources::ui::BTN_ADD_B,
-};
-const DEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_DEL,
-    hover: ragnarok_resources::ui::BTN_DEL_A,
-    pressed: ragnarok_resources::ui::BTN_DEL_B,
-};
-const PREV_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::ARW_LEFT,
-    hover: ragnarok_resources::ui::basic::ARW_LEFT,
-    pressed: ragnarok_resources::ui::basic::ARW_LEFT,
-};
-const NEXT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::ARW_RIGHT,
-    hover: ragnarok_resources::ui::basic::ARW_RIGHT_ON,
-    pressed: ragnarok_resources::ui::basic::ARW_RIGHT_ON,
-};
-const PLUS_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::minimap::MAP_PLUS0,
-    hover: ragnarok_resources::ui::minimap::MAP_PLUS1,
-    pressed: ragnarok_resources::ui::minimap::MAP_PLUS1,
-};
-const MINUS_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::minimap::MAP_MINUS0,
-    hover: ragnarok_resources::ui::minimap::MAP_MINUS1,
-    pressed: ragnarok_resources::ui::minimap::MAP_MINUS1,
-};
 
 const BASIC_OPTS: &[(i32, &str)] = &[
     (-2, "Tank Mob"),
@@ -1361,12 +1368,7 @@ impl CompanionAiConfigWindow {
         let bw = 84.0;
         let by = footer_y + 3.0;
         if ui
-            .button(
-                APPLY_BTN_ID,
-                Rect::new(x + PAD, by, 32.0, 18.0),
-                &OK_BTN,
-                "Apply",
-            )
+            .button(APPLY_BTN_ID, Rect::new(x + PAD, by, 32.0, 18.0), "Apply")
             .clicked()
         {
             events.push(GameEvent::SaveCompanionAiConfig);
@@ -1508,7 +1510,7 @@ impl CompanionAiConfigWindow {
         let bw = 22.0;
         let mut cx = x + PAD;
         if ui
-            .button(TACT_PREV_ID, Rect::new(cx, y, bw, 16.0), &PREV_BTN, "<")
+            .button(TACT_PREV_ID, Rect::new(cx, y, bw, 16.0), "<")
             .clicked()
             && self.tactic_sel > 0
         {
@@ -1531,7 +1533,7 @@ impl CompanionAiConfigWindow {
         ui.text(cx + 4.0, y + BASELINE, &label, tc);
         cx += name_w + 2.0;
         if ui
-            .button(TACT_NEXT_ID, Rect::new(cx, y, bw, 16.0), &NEXT_BTN, ">")
+            .button(TACT_NEXT_ID, Rect::new(cx, y, bw, 16.0), ">")
             .clicked()
             && self.tactic_sel + 1 < rows.len()
         {
@@ -1552,7 +1554,7 @@ impl CompanionAiConfigWindow {
         }
         cx += 58.0;
         if ui
-            .button(TACT_DEL_ID, Rect::new(cx, y, 32.0, 18.0), &DEL_BTN, "Del")
+            .button(TACT_DEL_ID, Rect::new(cx, y, 32.0, 18.0), "Del")
             .clicked()
             && rows[self.tactic_sel].id != 0
             && rows[self.tactic_sel].id != 13
@@ -1615,7 +1617,7 @@ impl CompanionAiConfigWindow {
                 let cb = Rect::new(rect.x + rect.w - sz, rect.y + 1.0, sz, sz);
                 let mut on = cur != 0;
                 if ui
-                    .checkbox(WidgetId(base), cb, &mut on, &CHECKBOX)
+                    .checkbox(WidgetId(base), cb, &mut on)
                     .clicked()
                 {
                     return (if cur != 0 { 0 } else { 1 }, false);
@@ -1626,8 +1628,8 @@ impl CompanionAiConfigWindow {
                 let bw = 16.0;
                 let minus = Rect::new(rect.x, rect.y, bw, rect.h);
                 let plus = Rect::new(rect.x + rect.w - bw, rect.y, bw, rect.h);
-                let m = ui.button(WidgetId(base), minus, &MINUS_BTN, "-");
-                let p = ui.button(WidgetId(base + 1), plus, &PLUS_BTN, "+");
+                let m = ui.button(WidgetId(base), minus, "-");
+                let p = ui.button(WidgetId(base + 1), plus, "+");
                 ui.text_centered(
                     rect.x + bw,
                     rect.y + BASELINE - 2.0,

@@ -32,7 +32,7 @@ use ragnarok_game::party::{Party, PartyMember};
 use ragnarok_game::pet::PetState;
 use ragnarok_game::quest::{Quest, QuestLog, QuestObjective};
 use ragnarok_game::skill::{SkillEnum, SkillTargetType};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
 use ragnarok_ui_component::BuildCtx;
@@ -3649,17 +3649,7 @@ fn build_fallback_gallery(ui: &mut UiFrame, name_field: &mut TextInput) {
         "OK",
     );
     ui.text(bx, 96.0, "live:", heading);
-    let btn = ButtonTextures {
-        normal: "",
-        hover: "",
-        pressed: "",
-    };
-    ui.button(
-        WidgetId(60001),
-        Rect::new(bx + 34.0, 88.0, 90.0, 21.0),
-        &btn,
-        "Hover / click",
-    );
+    ui.button(WidgetId(60001), Rect::new(bx + 34.0, 88.0, 90.0, 21.0), "Hover / click");
 
     // Text field
     ui.text(bx, 132.0, "TEXT FIELD  (click to focus)", heading);

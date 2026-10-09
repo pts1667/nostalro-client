@@ -264,7 +264,7 @@ impl InGameWindow for GraphicOptionsWindow {
 
         let fs_cb = Rect::new(win.x + 185.0, cb_y(0), CB_SIZE, CB_SIZE);
         changed |= ui
-            .checkbox(FULLSCREEN_CB_ID, fs_cb, &mut self.fullscreen, &CHECKBOX)
+            .checkbox(FULLSCREEN_CB_ID, fs_cb, &mut self.fullscreen)
             .clicked();
         ui.text(
             fs_cb.x + CB_SIZE + 4.0,
@@ -281,7 +281,7 @@ impl InGameWindow for GraphicOptionsWindow {
                          value: &mut bool|
          -> bool {
             let rect = Rect::new(x, cb_y(n), CB_SIZE, CB_SIZE);
-            let clicked = ui.checkbox(id, rect, value, &CHECKBOX).clicked();
+            let clicked = ui.checkbox(id, rect, value).clicked();
             ui.text(rect.x + CB_SIZE + 4.0, text_y(n), label, label_color);
             clicked
         };

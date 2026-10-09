@@ -5,9 +5,11 @@ use crate::helper::window_chrome::{
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+
 
 pub const PARTY_HELPER_WINDOW_ID: WidgetId = WidgetId(3300);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3301);
@@ -22,17 +24,6 @@ const RADIO_ON_TEX: &str = ragnarok_resources::ui::RADIOBTN_ON;
 const RADIO_OFF_TEX: &str = ragnarok_resources::ui::RADIOBTN_OFF;
 const BTN_OK_TEX: &str = ragnarok_resources::ui::BTN_OK;
 const BTN_CANCEL_TEX: &str = ragnarok_resources::ui::BTN_CANCEL;
-
-const OK_TEX: ButtonTextures = ButtonTextures {
-    normal: BTN_OK_TEX,
-    hover: BTN_OK_TEX,
-    pressed: BTN_OK_TEX,
-};
-const CANCEL_TEX: ButtonTextures = ButtonTextures {
-    normal: BTN_CANCEL_TEX,
-    hover: BTN_CANCEL_TEX,
-    pressed: BTN_CANCEL_TEX,
-};
 
 const WIN_W: f32 = 150.0;
 const TITLE_H: f32 = 17.0;
@@ -377,11 +368,11 @@ impl InGameWindow for PartyHelperWindow {
         draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         let ok_rect = Rect::new(x + WIN_W - 46.0 - 42.0, footer_y + 4.0, 42.0, 20.0);
         let cancel_rect = Rect::new(x + WIN_W - 2.0 - 42.0, footer_y + 4.0, 42.0, 20.0);
-        let ok = ui.button(OK_BTN_ID, ok_rect, &OK_TEX, "OK");
+        let ok = ui.button(OK_BTN_ID, ok_rect, "OK");
         if ok.hovered() {
             ui.any_interactive_hovered = true;
         }
-        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, &CANCEL_TEX, "Cancel");
+        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, "Cancel");
         if cancel.hovered() {
             ui.any_interactive_hovered = true;
         }

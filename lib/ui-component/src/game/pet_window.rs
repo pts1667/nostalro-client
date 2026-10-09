@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::colors;
 use crate::helper::dropdown::{self, Dropdown};
 use crate::helper::window_chrome::{
@@ -7,9 +8,15 @@ use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::pet::PetState;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+const RENAME_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_REWRITE,
+    hover: ragnarok_resources::ui::BTN_REWRITE_A,
+    pressed: ragnarok_resources::ui::BTN_REWRITE_B,
+};
 
 pub const PET_WINDOW_ID: WidgetId = WidgetId(4000);
 const CLOSE_BTN_ID: WidgetId = WidgetId(4001);
@@ -20,12 +27,6 @@ const COMMAND_OPTION_BASE: u32 = 4010;
 
 const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
 const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-
-const RENAME_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_REWRITE,
-    hover: ragnarok_resources::ui::BTN_REWRITE_A,
-    pressed: ragnarok_resources::ui::BTN_REWRITE_B,
-};
 
 const WIN_W: f32 = 280.0;
 const WIN_H: f32 = 160.0;
@@ -155,7 +156,7 @@ impl PetWindow {
             ui.text_input(NAME_INPUT_ID, input_rect, &mut self.name_input, bg);
             let btn_rect = Rect::new(rx + input_w + 4.0, ry, bw, bh.min(16.0));
             if ui
-                .button(RENAME_BTN_ID, btn_rect, &RENAME_BTN, "Name")
+                .button(RENAME_BTN_ID, btn_rect, "Name")
                 .clicked()
             {
                 let name = self.name_input.text.trim().to_string();

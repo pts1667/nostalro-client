@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::format::format_thousands;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
@@ -7,9 +8,27 @@ use crate::helper::window_chrome::{
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+const RESET_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::seekparty::BTN_CLEAR_A,
+    hover: ragnarok_resources::ui::basic::seekparty::BTN_CLEAR_B,
+    pressed: ragnarok_resources::ui::basic::seekparty::BTN_CLEAR_C,
+};
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
 
 pub const VENDING_SETUP_WINDOW_ID: WidgetId = WidgetId(2300);
 const OK_ID: WidgetId = WidgetId(2301);
@@ -22,21 +41,6 @@ const RESET_ID: WidgetId = WidgetId(2307);
 const PRICE_BASE_ID: u32 = 2320;
 const ROW_DRAG_BASE_ID: u32 = 2340;
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-const RESET_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::seekparty::BTN_CLEAR_A,
-    hover: ragnarok_resources::ui::basic::seekparty::BTN_CLEAR_B,
-    pressed: ragnarok_resources::ui::basic::seekparty::BTN_CLEAR_C,
-};
 const FALLBACK_BTN_W: f32 = 42.0;
 const FALLBACK_BTN_H: f32 = 20.0;
 
@@ -566,25 +570,15 @@ impl InGameWindow for VendingSetupWindow {
 
         let mut bx = dx + WIN_W - PAD - btn_w;
         let cancel = ui
-            .button(
-                CANCEL_ID,
-                Rect::new(bx, btn_y, btn_w, btn_h),
-                &CANCEL_BTN,
-                "cancel",
-            )
+            .button(CANCEL_ID, Rect::new(bx, btn_y, btn_w, btn_h), "cancel")
             .clicked();
         bx -= btn_w + 4.0;
         let ok = ui
-            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), &OK_BTN, "OK")
+            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), "OK")
             .clicked();
         bx -= reset_w + 4.0;
         let reset = ui
-            .button(
-                RESET_ID,
-                Rect::new(bx, reset_y, reset_w, reset_h),
-                &RESET_BTN,
-                "Reset",
-            )
+            .button(RESET_ID, Rect::new(bx, reset_y, reset_w, reset_h), "Reset")
             .clicked();
 
         if ok {

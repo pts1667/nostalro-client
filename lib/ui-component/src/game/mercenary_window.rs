@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::game::homun_window::{GaugeKind, bar};
 use crate::helper::window_chrome::{
     TITLEBAR_TEX, draw_container, draw_hline, draw_sys_button, draw_titlebar, gauge_texture_paths,
@@ -6,8 +7,20 @@ use crate::helper::window_chrome::{
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::companion::{MercenaryState, aspd_display};
 use ragnarok_game::event::GameEvent;
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+const SKILL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_SKILL,
+    hover: ragnarok_resources::ui::BTN_SKILL_A,
+    pressed: ragnarok_resources::ui::BTN_SKILL_B,
+};
+
+const FIRED_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_FIRED,
+    hover: ragnarok_resources::ui::BTN_FIRED_A,
+    pressed: ragnarok_resources::ui::BTN_FIRED_B,
+};
 
 pub const MERCENARY_WINDOW_ID: WidgetId = WidgetId(3000);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3001);
@@ -16,17 +29,6 @@ const SKILL_BTN_ID: WidgetId = WidgetId(3003);
 
 const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
 const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-
-const FIRED_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_FIRED,
-    hover: ragnarok_resources::ui::BTN_FIRED_A,
-    pressed: ragnarok_resources::ui::BTN_FIRED_B,
-};
-const SKILL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_SKILL,
-    hover: ragnarok_resources::ui::BTN_SKILL_A,
-    pressed: ragnarok_resources::ui::BTN_SKILL_B,
-};
 
 const WIN_W: f32 = 236.0;
 const TITLE_H: f32 = 17.0;
@@ -149,13 +151,13 @@ impl MercenaryWindow {
         let skill_rect = Rect::new(right_edge - sw, ry, sw, sh);
         let dismiss_rect = Rect::new(right_edge - sw - 4.0 - fw, ry, fw, fh);
         if ui
-            .button(DISMISS_BTN_ID, dismiss_rect, &FIRED_BTN, "Dismiss")
+            .button(DISMISS_BTN_ID, dismiss_rect, "Dismiss")
             .clicked()
         {
             events.push(GameEvent::RequestMercenaryCommand { command: 2 });
         }
         if ui
-            .button(SKILL_BTN_ID, skill_rect, &SKILL_BTN, "Skill")
+            .button(SKILL_BTN_ID, skill_rect, "Skill")
             .clicked()
         {
             events.push(GameEvent::ToggleMercenarySkillWindow);

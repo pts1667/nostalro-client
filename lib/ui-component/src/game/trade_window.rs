@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use super::inventory_window::INV_WINDOW_ID;
 use crate::helper::dialog_container::DialogContainer;
@@ -10,9 +11,27 @@ use ragnarok_game::event::GameEvent;
 use ragnarok_game::item::Item;
 use ragnarok_game::trade::{TRADE_MAX_SLOTS, TRADE_ZENY_INDEX};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const TRADE_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_EXCHANGE,
+    hover: ragnarok_resources::ui::BTN_EXCHANGE_A,
+    pressed: ragnarok_resources::ui::BTN_EXCHANGE_B,
+};
+
+const LOCK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
 
 pub const TRADE_WINDOW_ID: WidgetId = WidgetId(4100);
 const LOCK_BTN_ID: WidgetId = WidgetId(4101);
@@ -26,24 +45,8 @@ const NUM_DIALOG_BASE: u32 = 4130;
 const BG_TEX: &str = ragnarok_resources::ui::basic::EXCHANGE_BG2;
 const BOX_TEX: &str = ragnarok_resources::ui::basic::ITEMWIN_MID;
 
-const LOCK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const TRADE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_EXCHANGE,
-    hover: ragnarok_resources::ui::BTN_EXCHANGE_A,
-    pressed: ragnarok_resources::ui::BTN_EXCHANGE_B,
-};
 const TRADE_BTN_DIS: &str = ragnarok_resources::ui::BTN_EXCHANGE_DIS;
 const LOCK_BTN_DIS: &str = ragnarok_resources::ui::BTN_OK_DIS;
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-
 const WIN_W: f32 = 500.0;
 const TITLE_H: f32 = 16.0;
 const HEADER_H: f32 = 3.0;
@@ -406,7 +409,7 @@ impl InGameWindow for TradeWindow {
         if my_locked {
             draw_disabled(ui, lock_rect, LOCK_BTN_DIS, "Lock", grf, tc);
         } else if ui
-            .button(LOCK_BTN_ID, lock_rect, &LOCK_BTN, "Lock")
+            .button(LOCK_BTN_ID, lock_rect, "Lock")
             .clicked()
         {
             let amount: i64 = self
@@ -433,7 +436,7 @@ impl InGameWindow for TradeWindow {
         let trade_rect = Rect::new(x + (WIN_W - BTN_W) / 2.0, by, BTN_W, BTN_H);
         if character.trade.both_locked() {
             if ui
-                .button(TRADE_BTN_ID, trade_rect, &TRADE_BTN, "Trade")
+                .button(TRADE_BTN_ID, trade_rect, "Trade")
                 .clicked()
             {
                 events.push(GameEvent::RequestExecExchange);
@@ -443,7 +446,7 @@ impl InGameWindow for TradeWindow {
         }
 
         let cancel_rect = Rect::new(x + WIN_W - BTN_W - 6.0, by, BTN_W, BTN_H);
-        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, &CANCEL_BTN, "Cancel");
+        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, "Cancel");
 
         // --- Quantity dialog (modal) ---
         if let Some((index, dialog)) = &mut self.qty_dialog {

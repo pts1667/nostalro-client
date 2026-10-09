@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::scrollbar::{self, ScrollbarIds};
@@ -5,9 +6,45 @@ use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::npc_dialog::{NpcDialogData, NpcDialogState};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef, strip_color_codes, word_wrap};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId, WindowOrder};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+const SELL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_SELL,
+    hover: ragnarok_resources::ui::BTN_SELL_A,
+    pressed: ragnarok_resources::ui::BTN_SELL_B,
+};
+
+const BUY_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_BUY,
+    hover: ragnarok_resources::ui::BTN_BUY_A,
+    pressed: ragnarok_resources::ui::BTN_BUY_B,
+};
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
+
+const CLOSE_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CLOSE,
+    hover: ragnarok_resources::ui::BTN_CLOSE_A,
+    pressed: ragnarok_resources::ui::BTN_CLOSE_B,
+};
+
+const NEXT_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_NEXT,
+    hover: ragnarok_resources::ui::BTN_NEXT_A,
+    pressed: ragnarok_resources::ui::BTN_NEXT_B,
+};
 
 const OVERLAY_ID: WidgetId = WidgetId(600);
 pub const NPC_DIALOG_WINDOW_ID: WidgetId = WidgetId(610);
@@ -41,42 +78,6 @@ const MENU_ITEM_HEIGHT: f32 = 20.0;
 const MENU_VISIBLE_ROWS: usize = 4;
 const FALLBACK_BTN_W: f32 = 42.0;
 const FALLBACK_BTN_H: f32 = 20.0;
-
-const NEXT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_NEXT,
-    hover: ragnarok_resources::ui::BTN_NEXT_A,
-    pressed: ragnarok_resources::ui::BTN_NEXT_B,
-};
-
-const CLOSE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CLOSE,
-    hover: ragnarok_resources::ui::BTN_CLOSE_A,
-    pressed: ragnarok_resources::ui::BTN_CLOSE_B,
-};
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-
-const BUY_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_BUY,
-    hover: ragnarok_resources::ui::BTN_BUY_A,
-    pressed: ragnarok_resources::ui::BTN_BUY_B,
-};
-
-const SELL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_SELL,
-    hover: ragnarok_resources::ui::BTN_SELL_A,
-    pressed: ragnarok_resources::ui::BTN_SELL_B,
-};
 
 const WIN_TEXTURE: &str = ragnarok_resources::ui::WIN_MSGBOX;
 const BTN_BOTTOM: f32 = 4.0;
@@ -369,7 +370,7 @@ impl InGameWindow for NpcDialog {
 
                 let ok_rect = Rect::new(dx + dialog_w - padding - btn_w, input_y, btn_w, btn_h);
                 cancel_drag_on_press(ui, NPC_DIALOG_WINDOW_ID, &[input_rect, ok_rect]);
-                let ok = ui.button(OK_BTN_ID, ok_rect, &OK_BTN, "OK");
+                let ok = ui.button(OK_BTN_ID, ok_rect, "OK");
                 if ok.clicked() {
                     let text = self.string_input.text.clone();
                     events.push(GameEvent::RequestNpcInputString {
@@ -401,7 +402,7 @@ impl InGameWindow for NpcDialog {
             }
 
             if self.dialog.next_button {
-                let response = ui.button(NEXT_BTN_ID, btns[0], &NEXT_BTN, "Next");
+                let response = ui.button(NEXT_BTN_ID, btns[0], "Next");
                 if response.clicked() {
                     events.push(GameEvent::RequestNpcNext {
                         npc_id: self.dialog.npc_id,
@@ -415,7 +416,7 @@ impl InGameWindow for NpcDialog {
                 } else {
                     btns[0]
                 };
-                let response = ui.button(CLOSE_BTN_ID, slot, &CLOSE_BTN, "Close");
+                let response = ui.button(CLOSE_BTN_ID, slot, "Close");
                 if response.clicked() {
                     events.push(GameEvent::RequestNpcClose {
                         npc_id: self.dialog.npc_id,
@@ -594,8 +595,8 @@ impl NpcDialog {
 
         cancel_drag_on_press(ui, NPC_MENU_WINDOW_ID, &menu_btns);
 
-        let cancel = ui.button(CANCEL_BTN_ID, menu_btns[0], &CANCEL_BTN, "Cancel");
-        let ok = ui.button(MENU_OK_BTN_ID, menu_btns[1], &OK_BTN, "OK");
+        let cancel = ui.button(CANCEL_BTN_ID, menu_btns[0], "Cancel");
+        let ok = ui.button(MENU_OK_BTN_ID, menu_btns[1], "OK");
 
         if ok.clicked() || submit {
             let choice = (self.dialog.selected_menu_index + 1) as u8;
@@ -678,9 +679,9 @@ impl NpcDialog {
         };
         ui.text(text_x, text_y, message, text_color);
 
-        let cancel = ui.button(DEAL_CANCEL_BTN_ID, btns[0], &CANCEL_BTN, "Cancel");
-        let sell = ui.button(SELL_BTN_ID, btns[1], &SELL_BTN, "Sell");
-        let buy = ui.button(BUY_BTN_ID, btns[2], &BUY_BTN, "Buy");
+        let cancel = ui.button(DEAL_CANCEL_BTN_ID, btns[0], "Cancel");
+        let sell = ui.button(SELL_BTN_ID, btns[1], "Sell");
+        let buy = ui.button(BUY_BTN_ID, btns[2], "Buy");
 
         if buy.clicked() {
             events.push(GameEvent::RequestNpcDealType {

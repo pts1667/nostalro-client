@@ -139,7 +139,6 @@ mod tests {
     use ragnarok_game::data_table::DataTable;
 
     use ragnarok_ui::context::UiContext;
-    use ragnarok_ui::frame::TextInputBg::Default;
 
     use ragnarok_ui::state::StateCache;
     use ragnarok_ui::test_support::TestFrame;

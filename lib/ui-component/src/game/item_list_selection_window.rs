@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::Window;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
@@ -7,8 +8,20 @@ use crate::helper::window_chrome::{
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::skill::SkillEnum;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId, WindowOrder};
+use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
 
 pub const ITEM_LIST_SELECTION_WINDOW_ID: WidgetId = WidgetId(2100);
 const OK_ID: WidgetId = WidgetId(2101);
@@ -19,17 +32,6 @@ const SCROLL_DOWN_ID: WidgetId = WidgetId(2105);
 const SCROLL_THUMB_ID: WidgetId = WidgetId(2106);
 const RESIZE_ID: WidgetId = WidgetId(2107);
 const ROW_BASE_ID: u32 = 2110;
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 const WIN_W: f32 = 200.0;
 const TITLE_H: f32 = 17.0;
@@ -300,8 +302,8 @@ impl ItemListSelectionWindow {
 
         let win_rect = Rect::new(dx, dy, WIN_W, win_h);
         let btns = win_rect.buttons_bottom_right(2, btn_w, btn_h, 5.0, 5.0, 3.0);
-        let cancel = ui.button(CANCEL_ID, btns[0], &CANCEL_BTN, "Cancel");
-        let ok = ui.button(OK_ID, btns[1], &OK_BTN, "OK");
+        let cancel = ui.button(CANCEL_ID, btns[0], "Cancel");
+        let ok = ui.button(OK_ID, btns[1], "OK");
         if ok.clicked() {
             self.confirm(&mut events);
         } else if cancel.clicked() {

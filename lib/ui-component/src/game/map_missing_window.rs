@@ -1,8 +1,9 @@
 use crate::Window;
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
 
 pub const MAP_MISSING_WINDOW_ID: WidgetId = WidgetId(2700);
 const WARP_BTN_ID: WidgetId = WidgetId(2701);
@@ -13,12 +14,6 @@ const WIN_H: f32 = 150.0;
 const BTN_W: f32 = 300.0;
 const BTN_H: f32 = 26.0;
 const BTN_SPACING: f32 = 8.0;
-
-const DUMMY_BTN: ButtonTextures = ButtonTextures {
-    normal: "",
-    hover: "",
-    pressed: "",
-};
 
 pub struct MapMissingWindow {
     pub has_grf_textures: bool,
@@ -89,23 +84,13 @@ impl MapMissingWindow {
         let charselect_y = warp_y + BTN_H + BTN_SPACING;
 
         if ui
-            .button(
-                WARP_BTN_ID,
-                Rect::new(btn_x, warp_y, BTN_W, BTN_H),
-                &DUMMY_BTN,
-                "Warp to Prontera",
-            )
+            .button(WARP_BTN_ID, Rect::new(btn_x, warp_y, BTN_W, BTN_H), "Warp to Prontera")
             .clicked()
         {
             events.push(GameEvent::RequestMapRecoveryWarp);
         }
         if ui
-            .button(
-                CHARSELECT_BTN_ID,
-                Rect::new(btn_x, charselect_y, BTN_W, BTN_H),
-                &DUMMY_BTN,
-                "Return to Character Select",
-            )
+            .button(CHARSELECT_BTN_ID, Rect::new(btn_x, charselect_y, BTN_W, BTN_H), "Return to Character Select")
             .clicked()
         {
             events.push(GameEvent::BackToCharacterSelect);

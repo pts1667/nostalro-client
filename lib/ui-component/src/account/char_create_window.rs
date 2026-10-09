@@ -1,13 +1,29 @@
+use crate::helper::{ButtonTextures};
 use crate::Window;
 use crate::helper::window_chrome;
 use ragnarok_game::event::GameEvent;
 use ragnarok_renderer::ui_renderer::UiVertex;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
 
 // ---- v1 (stat-allocation) layout: login_interface/win_make.bmp, 576x342 ----
+
+
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const MAKE_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_MAKE,
+    hover: ragnarok_resources::ui::BTN_MAKE_A,
+    pressed: ragnarok_resources::ui::BTN_MAKE_B,
+};
+
 const WIN_W: f32 = 576.0;
 const WIN_H: f32 = 342.0;
 const TITLE_BAR_H: f32 = 22.0;
@@ -103,32 +119,6 @@ const NAME_EDIT_TEXTURE: &str = ragnarok_resources::ui::login::NAME_EDIT;
 const ARROW_L_TEXTURE: &str = ragnarok_resources::ui::SCROLL1LEFT;
 const ARROW_R_TEXTURE: &str = ragnarok_resources::ui::SCROLL1RIGHT;
 const ARROW_UP_TEXTURE: &str = ragnarok_resources::ui::SCROLL0UP;
-
-const MAKE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_MAKE,
-    hover: ragnarok_resources::ui::BTN_MAKE_A,
-    pressed: ragnarok_resources::ui::BTN_MAKE_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-const ARROW_L_BTN: ButtonTextures = ButtonTextures {
-    normal: ARROW_L_TEXTURE,
-    hover: ARROW_L_TEXTURE,
-    pressed: ARROW_L_TEXTURE,
-};
-const ARROW_R_BTN: ButtonTextures = ButtonTextures {
-    normal: ARROW_R_TEXTURE,
-    hover: ARROW_R_TEXTURE,
-    pressed: ARROW_R_TEXTURE,
-};
-const ARROW_UP_BTN: ButtonTextures = ButtonTextures {
-    normal: ARROW_UP_TEXTURE,
-    hover: ARROW_UP_TEXTURE,
-    pressed: ARROW_UP_TEXTURE,
-};
 
 const STAT_ARROWS: [ButtonTextures; 6] = [
     ButtonTextures {
@@ -313,7 +303,7 @@ impl CharCreateWindow {
         // regardless of the active skin's GRF state.
         let prev = ui.has_grf_textures;
         ui.has_grf_textures = false;
-        let clicked = ui.button(SKIN_TOGGLE_ID, rect, &MAKE_BTN, label).clicked();
+        let clicked = ui.button(SKIN_TOGGLE_ID, rect, label).clicked();
         ui.has_grf_textures = prev;
         if clicked {
             self.with_stats = !self.with_stats;
@@ -358,19 +348,19 @@ impl CharCreateWindow {
         let head_prev = Rect::new(ox + HEAD_PREV_X, oy + HEAD_ARROW_Y, ARROW_W, ARROW_H);
         let head_next = Rect::new(ox + HEAD_NEXT_X, oy + HEAD_ARROW_Y, ARROW_W, ARROW_H);
         if ui
-            .button(STYLE_L_ID, head_prev, &ARROW_L_BTN, "<")
+            .button(STYLE_L_ID, head_prev, "<")
             .clicked()
         {
             self.cycle_head(-1);
         }
         if ui
-            .button(STYLE_R_ID, head_next, &ARROW_R_BTN, ">")
+            .button(STYLE_R_ID, head_next, ">")
             .clicked()
         {
             self.cycle_head(1);
         }
         let hair_up = Rect::new(ox + HAIR_UP_X, oy + HAIR_UP_Y, ARROW_W, ARROW_H);
-        if ui.button(COLOR_L_ID, hair_up, &ARROW_UP_BTN, "^").clicked() {
+        if ui.button(COLOR_L_ID, hair_up, "^").clicked() {
             self.cycle_color(1);
         }
 
@@ -388,10 +378,10 @@ impl CharCreateWindow {
         let btn_y = oy + WIN_H - BTN_BOTTOM - BTN_H;
         let make = Rect::new(ox + WIN_W - MAKE_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
         let cancel = Rect::new(ox + WIN_W - CANCEL_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
-        let submit = ui.button(MAKE_ID, make, &MAKE_BTN, "Make").clicked() || ui.ctx.key_enter;
+        let submit = ui.button(MAKE_ID, make, "Make").clicked() || ui.ctx.key_enter;
         self.try_submit(submit, events);
         if ui
-            .button(CANCEL_ID, cancel, &CANCEL_BTN, "Cancel")
+            .button(CANCEL_ID, cancel, "Cancel")
             .clicked()
             || ui.ctx.key_escape
         {
@@ -404,12 +394,7 @@ impl CharCreateWindow {
         for (i, &(sx, sy)) in STAT_POS.iter().enumerate() {
             let rect = Rect::new(ox + sx, oy + sy, STAT_ARROW_W, STAT_ARROW_H);
             if ui
-                .button(
-                    WidgetId(STAT_ARROW_BASE + i as u32),
-                    rect,
-                    &STAT_ARROWS[i],
-                    "+",
-                )
+                .button(WidgetId(STAT_ARROW_BASE + i as u32), rect, "+")
                 .clicked()
             {
                 self.raise_stat(i);
@@ -489,11 +474,7 @@ impl CharCreateWindow {
         }
         window_chrome::draw_footer(ui, ox, footer_y, V2_W, V2_FOOTER_H);
 
-        let name_bg = if has_grf {
-            TextInputBg::Texture(NAME_EDIT_TEXTURE)
-        } else {
-            TextInputBg::Default
-        };
+let name_bg = TextInputBg::Default;
         let name_rect = Rect::new(
             ox + V2_NAME_X,
             content_y + V2_NAME_Y - V2_NAME_H,
@@ -514,10 +495,10 @@ impl CharCreateWindow {
             ARROW_W,
             ARROW_H,
         );
-        if ui.button(STYLE_L_ID, style_l, &ARROW_L_BTN, "<").clicked() {
+        if ui.button(STYLE_L_ID, style_l, "<").clicked() {
             self.cycle_head(-1);
         }
-        if ui.button(STYLE_R_ID, style_r, &ARROW_R_BTN, ">").clicked() {
+        if ui.button(STYLE_R_ID, style_r, ">").clicked() {
             self.cycle_head(1);
         }
         let color_l = Rect::new(
@@ -532,10 +513,10 @@ impl CharCreateWindow {
             ARROW_W,
             ARROW_H,
         );
-        if ui.button(COLOR_L_ID, color_l, &ARROW_L_BTN, "<").clicked() {
+        if ui.button(COLOR_L_ID, color_l, "<").clicked() {
             self.cycle_color(-1);
         }
-        if ui.button(COLOR_R_ID, color_r, &ARROW_R_BTN, ">").clicked() {
+        if ui.button(COLOR_R_ID, color_r, ">").clicked() {
             self.cycle_color(1);
         }
 
@@ -551,10 +532,10 @@ impl CharCreateWindow {
         let btn_y = footer_y + V2_FOOTER_H - BTN_BOTTOM - BTN_H;
         let make = Rect::new(ox + V2_W - MAKE_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
         let cancel = Rect::new(ox + V2_W - CANCEL_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
-        let submit = ui.button(MAKE_ID, make, &MAKE_BTN, "Make").clicked() || ui.ctx.key_enter;
+        let submit = ui.button(MAKE_ID, make, "Make").clicked() || ui.ctx.key_enter;
         self.try_submit(submit, events);
         if ui
-            .button(CANCEL_ID, cancel, &CANCEL_BTN, "Cancel")
+            .button(CANCEL_ID, cancel, "Cancel")
             .clicked()
             || ui.ctx.key_escape
         {

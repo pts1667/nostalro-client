@@ -1,8 +1,10 @@
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId, WindowOrder};
+use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
+
+
 
 pub const MINIMAP_WINDOW_ID: WidgetId = WidgetId(1600);
 const ZOOM_IN_BTN_ID: WidgetId = WidgetId(1601);
@@ -13,17 +15,6 @@ const MAP_PLUS_OFF: &str = ragnarok_resources::ui::minimap::MAP_PLUS0;
 const MAP_PLUS_ON: &str = ragnarok_resources::ui::minimap::MAP_PLUS1;
 const MAP_MINUS_OFF: &str = ragnarok_resources::ui::minimap::MAP_MINUS0;
 const MAP_MINUS_ON: &str = ragnarok_resources::ui::minimap::MAP_MINUS1;
-
-const BTN_ZOOM_IN: ButtonTextures = ButtonTextures {
-    normal: MAP_PLUS_OFF,
-    hover: MAP_PLUS_ON,
-    pressed: MAP_PLUS_ON,
-};
-const BTN_ZOOM_OUT: ButtonTextures = ButtonTextures {
-    normal: MAP_MINUS_OFF,
-    hover: MAP_MINUS_ON,
-    pressed: MAP_MINUS_ON,
-};
 
 const MAP_AREA_SIZE: f32 = 128.0;
 const ZOOM_BTN_SIZE: f32 = 12.0;
@@ -376,13 +367,13 @@ impl InGameWindow for MinimapWindow {
 
         let zoom_x = x + MAP_AREA_SIZE - ZOOM_BTN_SIZE;
         let zoom_in_rect = Rect::new(zoom_x, y, ZOOM_BTN_SIZE, ZOOM_BTN_SIZE);
-        let zoom_in_resp = ui.button(ZOOM_IN_BTN_ID, zoom_in_rect, &BTN_ZOOM_IN, "+");
+        let zoom_in_resp = ui.button(ZOOM_IN_BTN_ID, zoom_in_rect, "+");
         if zoom_in_resp.clicked() && self.zoom_level < ZOOM_LEVELS.len() - 1 {
             self.zoom_level += 1;
         }
 
         let zoom_out_rect = Rect::new(zoom_x, y + ZOOM_BTN_SIZE, ZOOM_BTN_SIZE, ZOOM_BTN_SIZE);
-        let zoom_out_resp = ui.button(ZOOM_OUT_BTN_ID, zoom_out_rect, &BTN_ZOOM_OUT, "-");
+        let zoom_out_resp = ui.button(ZOOM_OUT_BTN_ID, zoom_out_rect, "-");
         if zoom_out_resp.clicked() && self.zoom_level > 0 {
             self.zoom_level -= 1;
         }

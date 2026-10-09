@@ -1,12 +1,25 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::window_chrome::{
     SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button,
     draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
 
 pub const STORAGE_PASSWORD_WINDOW_ID: WidgetId = WidgetId(5000);
 const CLOSE_BTN_ID: WidgetId = WidgetId(5001);
@@ -18,17 +31,6 @@ const CANCEL_ID: WidgetId = WidgetId(5006);
 
 const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
 const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-
 const WIN_W: f32 = 240.0;
 const TITLE_H: f32 = 17.0;
 const FOOTER_H: f32 = 30.0;
@@ -363,16 +365,11 @@ impl InGameWindow for StoragePasswordWindow {
         let btn_y = footer_y + (FOOTER_H - btn_h) / 2.0;
         let mut bx = x + WIN_W - PAD - btn_w;
         let cancel = ui
-            .button(
-                CANCEL_ID,
-                Rect::new(bx, btn_y, btn_w, btn_h),
-                &CANCEL_BTN,
-                "cancel",
-            )
+            .button(CANCEL_ID, Rect::new(bx, btn_y, btn_w, btn_h), "cancel")
             .clicked();
         bx -= btn_w + 4.0;
         let ok = ui
-            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), &OK_BTN, "OK")
+            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), "OK")
             .clicked();
 
         if cancel {

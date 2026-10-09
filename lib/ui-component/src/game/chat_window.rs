@@ -1,10 +1,17 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::fallback;
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::state::StateCache;
 use ragnarok_ui::text_input::TextInput;
+
+const LIST_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::DIALOG_BTN0,
+    hover: ragnarok_resources::ui::basic::DIALOG_BTN1,
+    pressed: ragnarok_resources::ui::basic::DIALOG_BTN2,
+};
 
 pub const CHAT_WINDOW_ID: WidgetId = WidgetId(300);
 const INPUT_ID: WidgetId = WidgetId(301);
@@ -149,11 +156,6 @@ fn effective_channel(
 const DIALOG_BG: &str = ragnarok_resources::ui::basic::DIALOG_BG;
 const SCROLL_UP: &str = ragnarok_resources::ui::basic::DIALSCR_UP;
 const SCROLL_DOWN: &str = ragnarok_resources::ui::basic::DIALSCR_DOWN;
-const LIST_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::DIALOG_BTN0,
-    hover: ragnarok_resources::ui::basic::DIALOG_BTN1,
-    pressed: ragnarok_resources::ui::basic::DIALOG_BTN2,
-};
 const BUBBLE_TEX: &str = ragnarok_resources::ui::basic::SYS_BASE_OFF;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -587,7 +589,7 @@ impl ChatWindow {
         use ragnarok_ui::draw;
         let has_history = !self.whisper_history.is_empty();
         let clicked = ui
-            .button(WHISPER_MENU_BTN_ID, btn_rect, &LIST_BTN, "\u{25BC}")
+            .button(WHISPER_MENU_BTN_ID, btn_rect, "\u{25BC}")
             .clicked();
         if clicked && has_history {
             self.whisper_menu_open = !self.whisper_menu_open;

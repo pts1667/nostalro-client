@@ -1,4 +1,4 @@
-use crate::helper::CHECKBOX;
+use crate::helper::{ButtonTextures};
 use crate::helper::dropdown::{self, Dropdown};
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
@@ -13,9 +13,39 @@ use ragnarok_game::guild::{GUILD_PERM_EXPEL, GUILD_PERM_INVITE, Guild, GuildPosi
 use ragnarok_game::job_class::job_class_name;
 use ragnarok_game::skill::{SkillEnum, skill_icon_path};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+const SKILL_UP_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::SKILL_UP_A,
+    hover: ragnarok_resources::ui::basic::SKILL_UP_B,
+    pressed: ragnarok_resources::ui::basic::SKILL_UP_C,
+};
+
+const RESET_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_RESET,
+    hover: ragnarok_resources::ui::BTN_RESET_A,
+    pressed: ragnarok_resources::ui::BTN_RESET_B,
+};
+
+const APPLY_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_APPLY,
+    hover: ragnarok_resources::ui::BTN_APPLY_A,
+    pressed: ragnarok_resources::ui::BTN_APPLY_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
+
+const EDIT_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_EDIT,
+    hover: ragnarok_resources::ui::BTN_EDIT_A,
+    pressed: ragnarok_resources::ui::BTN_EDIT_B,
+};
 
 pub const GUILD_WINDOW_ID: WidgetId = WidgetId(3400);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3401);
@@ -48,39 +78,12 @@ const POS_TAX_INPUT_BASE: u32 = 5420;
 const POS_INVITE_BASE: u32 = 5440;
 const POS_PUNISH_BASE: u32 = 5460;
 const SKILL_UP_BASE: u32 = 5500;
-const SKILL_DOWN_BASE: u32 = 5520;
 const MEMBER_POS_DROPDOWN_BASE: u32 = 5600;
 const MEMBER_POS_OPTION_BASE: u32 = 5700;
 
 const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
 const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 const GRP_ONLINE_TEX: &str = ragnarok_resources::ui::basic::GRP_ONLINE;
-
-const EDIT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_EDIT,
-    hover: ragnarok_resources::ui::BTN_EDIT_A,
-    pressed: ragnarok_resources::ui::BTN_EDIT_B,
-};
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const APPLY_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_APPLY,
-    hover: ragnarok_resources::ui::BTN_APPLY_A,
-    pressed: ragnarok_resources::ui::BTN_APPLY_B,
-};
-const RESET_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_RESET,
-    hover: ragnarok_resources::ui::BTN_RESET_A,
-    pressed: ragnarok_resources::ui::BTN_RESET_B,
-};
-const SKILL_UP_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::SKILL_UP_A,
-    hover: ragnarok_resources::ui::basic::SKILL_UP_B,
-    pressed: ragnarok_resources::ui::basic::SKILL_UP_C,
-};
 
 const WIN_W: f32 = 500.0;
 const TITLE_H: f32 = 17.0;
@@ -533,7 +536,7 @@ impl GuildWindow {
             return events;
         }
         let ok_rect = Rect::new(x + WIN_W - 46.0, footer_y + 4.0, 42.0, 20.0);
-        let resp = ui.button(FOOTER_OK_BTN, ok_rect, &OK_BTN, "OK");
+        let resp = ui.button(FOOTER_OK_BTN, ok_rect, "OK");
         if resp.hovered() {
             ui.any_interactive_hovered = true;
         }
@@ -632,7 +635,7 @@ impl GuildWindow {
         }
         if is_master {
             let edit_rect = Rect::new(x + 444.0, cy + 36.0, 42.0, 20.0);
-            let resp = ui.button(EMBLEM_EDIT_BTN, edit_rect, &EDIT_BTN, "Edit");
+            let resp = ui.button(EMBLEM_EDIT_BTN, edit_rect, "Edit");
             if resp.hovered() {
                 ui.any_interactive_hovered = true;
             }
@@ -1037,12 +1040,7 @@ impl GuildWindow {
             if is_master && !is_rank0 {
                 let mut inv = invite_on;
                 if ui
-                    .checkbox(
-                        WidgetId(POS_INVITE_BASE + idx as u32),
-                        inv_rect,
-                        &mut inv,
-                        &CHECKBOX,
-                    )
+                    .checkbox(WidgetId(POS_INVITE_BASE + idx as u32), inv_rect, &mut inv)
                     .clicked()
                 {
                     self.pos_edits[idx].right ^= GUILD_PERM_INVITE;
@@ -1050,20 +1048,15 @@ impl GuildWindow {
                 }
                 let mut pun = punish_on;
                 if ui
-                    .checkbox(
-                        WidgetId(POS_PUNISH_BASE + idx as u32),
-                        pun_rect,
-                        &mut pun,
-                        &CHECKBOX,
-                    )
+                    .checkbox(WidgetId(POS_PUNISH_BASE + idx as u32), pun_rect, &mut pun)
                     .clicked()
                 {
                     self.pos_edits[idx].right ^= GUILD_PERM_EXPEL;
                     self.pos_dirty = true;
                 }
             } else {
-                ui.checkbox_display(inv_rect, invite_on, &CHECKBOX);
-                ui.checkbox_display(pun_rect, punish_on, &CHECKBOX);
+                ui.checkbox_display(inv_rect, invite_on);
+                ui.checkbox_display(pun_rect, punish_on);
             }
 
             if editable {
@@ -1166,12 +1159,7 @@ impl GuildWindow {
 
             if remaining > 0 && s.upgradable {
                 let up_rect = Rect::new(x + WIN_W - 76.0, row_y + 4.0, 18.0, 18.0);
-                let up = ui.button(
-                    WidgetId(SKILL_UP_BASE + row as u32),
-                    up_rect,
-                    &SKILL_UP_BTN,
-                    "+",
-                );
+                let up = ui.button(WidgetId(SKILL_UP_BASE + row as u32), up_rect, "+");
                 if up.hovered() {
                     ui.any_interactive_hovered = true;
                 }
@@ -1191,7 +1179,7 @@ impl GuildWindow {
         );
         if is_master && pending_total > 0 {
             let apply_rect = Rect::new(x + WIN_W - 100.0, footer_y + 4.0, 42.0, 20.0);
-            let apply = ui.button(SKILL_APPLY_BTN, apply_rect, &APPLY_BTN, "Apply");
+            let apply = ui.button(SKILL_APPLY_BTN, apply_rect, "Apply");
             if apply.hovered() {
                 ui.any_interactive_hovered = true;
             }
@@ -1203,7 +1191,7 @@ impl GuildWindow {
                 }
             }
             let reset_rect = Rect::new(x + WIN_W - 50.0, footer_y + 4.0, 42.0, 20.0);
-            let reset = ui.button(SKILL_RESET_BTN, reset_rect, &RESET_BTN, "Reset");
+            let reset = ui.button(SKILL_RESET_BTN, reset_rect, "Reset");
             if reset.hovered() {
                 ui.any_interactive_hovered = true;
             }

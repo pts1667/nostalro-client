@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
     FOOTER_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer,
@@ -6,8 +7,20 @@ use crate::helper::window_chrome::{
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
 
 pub const EMBLEM_PICKER_WINDOW_ID: WidgetId = WidgetId(3480);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3481);
@@ -22,17 +35,6 @@ const THUMB_BASE_ID: u32 = 3490;
 
 const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
 const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 const WIN_W: f32 = 322.0;
 const TITLE_H: f32 = 17.0;
@@ -310,7 +312,7 @@ impl EmblemPickerWindow {
             .unwrap_or(false);
 
         let cancel_rect = Rect::new(x + WIN_W - 50.0, footer_y + 4.0, 42.0, 20.0);
-        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, &CANCEL_BTN, "Cancel");
+        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, "Cancel");
         if cancel.hovered() {
             ui.any_interactive_hovered = true;
         }
@@ -321,7 +323,7 @@ impl EmblemPickerWindow {
 
         if can_ok {
             let ok_rect = Rect::new(x + WIN_W - 96.0, footer_y + 4.0, 42.0, 20.0);
-            let ok = ui.button(OK_BTN_ID, ok_rect, &OK_BTN, "OK");
+            let ok = ui.button(OK_BTN_ID, ok_rect, "OK");
             if ok.hovered() {
                 ui.any_interactive_hovered = true;
             }

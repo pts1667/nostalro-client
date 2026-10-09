@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::window_chrome::{
     SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_sys_button, draw_titlebar, text_color,
 };
@@ -5,8 +6,20 @@ use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::book::BookContent;
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef, strip_color_codes, word_wrap};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+const NEXT_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_NEXT,
+    hover: ragnarok_resources::ui::BTN_NEXT_A,
+    pressed: ragnarok_resources::ui::BTN_NEXT_B,
+};
+
+const PREV_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_BACK,
+    hover: ragnarok_resources::ui::BTN_BACK_A,
+    pressed: ragnarok_resources::ui::BTN_BACK_B,
+};
 
 pub const BOOK_WINDOW_ID: WidgetId = WidgetId(2500);
 const PREV_BTN_ID: WidgetId = WidgetId(2501);
@@ -15,17 +28,6 @@ const CLOSE_BTN_ID: WidgetId = WidgetId(2503);
 
 const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
 const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-
-const PREV_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_BACK,
-    hover: ragnarok_resources::ui::BTN_BACK_A,
-    pressed: ragnarok_resources::ui::BTN_BACK_B,
-};
-const NEXT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_NEXT,
-    hover: ragnarok_resources::ui::BTN_NEXT_A,
-    pressed: ragnarok_resources::ui::BTN_NEXT_B,
-};
 
 const WIN_W: f32 = 555.0;
 const WIN_H: f32 = 455.0;
@@ -218,13 +220,13 @@ impl InGameWindow for BookWindow {
         let next_x = win.x + WIN_W - 20.0 - NAV_BTN_W;
         if self.page > 0 {
             let rect = Rect::new(prev_x, footer_y, NAV_BTN_W, NAV_BTN_H);
-            if ui.button(PREV_BTN_ID, rect, &PREV_BTN, "Prev").clicked() {
+            if ui.button(PREV_BTN_ID, rect, "Prev").clicked() {
                 self.page -= 1;
             }
         }
         if self.page + 1 < total_pages {
             let rect = Rect::new(next_x, footer_y, NAV_BTN_W, NAV_BTN_H);
-            if ui.button(NEXT_BTN_ID, rect, &NEXT_BTN, "Next").clicked() {
+            if ui.button(NEXT_BTN_ID, rect, "Next").clicked() {
                 self.page += 1;
             }
         }

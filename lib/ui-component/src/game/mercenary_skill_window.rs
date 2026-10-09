@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::game::homun_skill_window::draw_companion_skill_tooltip;
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::window_chrome::{
@@ -10,8 +11,20 @@ use ragnarok_game::data_table::DataTable;
 use ragnarok_game::data_table::skill_name_table::format_skill_display_name;
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+const CLOSE_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::basic::BTN_CLOSE,
+    hover: ragnarok_resources::ui::basic::BTN_CLOSE_A,
+    pressed: ragnarok_resources::ui::basic::BTN_CLOSE_B,
+};
+
+const USE_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_USE,
+    hover: ragnarok_resources::ui::BTN_USE_A,
+    pressed: ragnarok_resources::ui::BTN_USE_B,
+};
 
 pub const MERCENARY_SKILL_WINDOW_ID: WidgetId = WidgetId(3100);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3101);
@@ -20,16 +33,6 @@ const FOOTER_CLOSE_BTN_ID: WidgetId = WidgetId(3103);
 const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
 const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
-const USE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_USE,
-    hover: ragnarok_resources::ui::BTN_USE_A,
-    pressed: ragnarok_resources::ui::BTN_USE_B,
-};
-const CLOSE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::BTN_CLOSE,
-    hover: ragnarok_resources::ui::basic::BTN_CLOSE_A,
-    pressed: ragnarok_resources::ui::basic::BTN_CLOSE_B,
-};
 const SKILL_ROW_BASE_ID: u32 = 3110;
 
 const WIN_W: f32 = 232.0;
@@ -213,7 +216,7 @@ impl MercenarySkillWindow {
         let btn_y = footer_y + (FOOTER_H - ch) * 0.5;
         let close_footer = Rect::new(x + WIN_W - PAD - cw, btn_y, cw, ch);
         let use_rect = Rect::new(x + WIN_W - PAD - cw - 4.0 - uw, btn_y, uw, uh);
-        if ui.button(USE_BTN_ID, use_rect, &USE_BTN, "use").clicked()
+        if ui.button(USE_BTN_ID, use_rect, "use").clicked()
             && let Some(skill) = merc.skills.get(self.selected)
         {
             events.push(GameEvent::RequestCompanionUseSkill {
@@ -223,7 +226,7 @@ impl MercenarySkillWindow {
             });
         }
         if ui
-            .button(FOOTER_CLOSE_BTN_ID, close_footer, &CLOSE_BTN, "close")
+            .button(FOOTER_CLOSE_BTN_ID, close_footer, "close")
             .clicked()
         {
             self.visible = false;

@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::game::inventory_window::INV_WINDOW_ID;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
@@ -9,8 +10,26 @@ use ragnarok_game::character::Character;
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::item::{Item, is_forge_element_item, is_forge_material_item};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
+
+const MAKE_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_MAKE,
+    hover: ragnarok_resources::ui::BTN_MAKE_A,
+    pressed: ragnarok_resources::ui::BTN_MAKE_B,
+};
 
 pub const MAKE_ITEM_WINDOW_ID: WidgetId = WidgetId(2200);
 const MAKE_ID: WidgetId = WidgetId(2201);
@@ -22,21 +41,6 @@ const SCROLL_THUMB_ID: WidgetId = WidgetId(2206);
 const SLOT_BASE_ID: u32 = 2220;
 const ROW_BASE_ID: u32 = 2230;
 
-const MAKE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_MAKE,
-    hover: ragnarok_resources::ui::BTN_MAKE_A,
-    pressed: ragnarok_resources::ui::BTN_MAKE_B,
-};
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 const SLOT_BG_TEX: &str = ITEMWIN_MID_TEX;
 
 const LIST_TITLE: &str = "Item list you can craft";
@@ -250,8 +254,8 @@ impl MakeItemWindow {
 
         let win_rect = Rect::new(dx, dy, WIN_W, win_h);
         let btns = win_rect.buttons_bottom_right(2, btn_w, btn_h, 5.0, 5.0, 3.0);
-        let cancel = ui.button(CANCEL_ID, btns[0], &CANCEL_BTN, "Cancel");
-        let ok = ui.button(OK_ID, btns[1], &OK_BTN, "OK");
+        let cancel = ui.button(CANCEL_ID, btns[0], "Cancel");
+        let ok = ui.button(OK_ID, btns[1], "OK");
         if ok.clicked() || ui.ctx.key_enter {
             if self.rows.get(self.selected).is_some() {
                 self.phase = Phase::Process;
@@ -377,8 +381,8 @@ impl MakeItemWindow {
 
         let win_rect = Rect::new(dx, dy, WIN_W, win_h);
         let btns = win_rect.buttons_bottom_right(2, btn_w, btn_h, 5.0, 5.0, 3.0);
-        let cancel = ui.button(CANCEL_ID, btns[0], &CANCEL_BTN, "Cancel");
-        let make = ui.button(MAKE_ID, btns[1], &MAKE_BTN, "Make");
+        let cancel = ui.button(CANCEL_ID, btns[0], "Cancel");
+        let make = ui.button(MAKE_ID, btns[1], "Make");
         if make.clicked() || ui.ctx.key_enter {
             let materials = std::array::from_fn(|i| {
                 self.slots[i].as_ref().map(|s| s.item.item_id).unwrap_or(0)

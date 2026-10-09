@@ -1,12 +1,62 @@
 use std::cell::Cell;
+use crate::helper::{ButtonTextures};
 use std::rc::Rc;
 
 use super::confirm_dialog::{ConfirmDialog, ConfirmResult};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId, WindowOrder};
+use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
+
+
+const SHORTCUT_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::ESC_08A,
+    hover: ragnarok_resources::ui::ESC_08B,
+    pressed: ragnarok_resources::ui::ESC_08C,
+};
+
+const SOUND_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::ESC_07A,
+    hover: ragnarok_resources::ui::ESC_07B,
+    pressed: ragnarok_resources::ui::ESC_07C,
+};
+
+const GRAPHICS_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::ESC_06A,
+    hover: ragnarok_resources::ui::ESC_06B,
+    pressed: ragnarok_resources::ui::ESC_06C,
+};
+
+const RESURRECT_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::ESC_05A,
+    hover: ragnarok_resources::ui::ESC_05B,
+    pressed: ragnarok_resources::ui::ESC_05C,
+};
+
+const RESTART_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::ESC_04A,
+    hover: ragnarok_resources::ui::ESC_04B,
+    pressed: ragnarok_resources::ui::ESC_04C,
+};
+
+const QUIT_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::ESC_03A,
+    hover: ragnarok_resources::ui::ESC_03B,
+    pressed: ragnarok_resources::ui::ESC_03C,
+};
+
+const CHARSELECT_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::ESC_01A,
+    hover: ragnarok_resources::ui::ESC_01B,
+    pressed: ragnarok_resources::ui::ESC_01C,
+};
+
+const RESUME_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::ESC_02A,
+    hover: ragnarok_resources::ui::ESC_02B,
+    pressed: ragnarok_resources::ui::ESC_02C,
+};
 
 const BG_ID: WidgetId = WidgetId(510);
 const WINDOW_ID: WidgetId = WidgetId(511);
@@ -29,52 +79,6 @@ const PADDING_BOTTOM: f32 = 12.0;
 const MENU_H: f32 = PADDING_TOP + 4.0 * FALLBACK_BTN_H + 3.0 * BTN_SPACING + PADDING_BOTTOM;
 
 const WIN_TEXTURE: &str = ragnarok_resources::ui::basic::TITLEBAR_FIX;
-
-const RESUME_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_02A,
-    hover: ragnarok_resources::ui::ESC_02B,
-    pressed: ragnarok_resources::ui::ESC_02C,
-};
-const CHARSELECT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_01A,
-    hover: ragnarok_resources::ui::ESC_01B,
-    pressed: ragnarok_resources::ui::ESC_01C,
-};
-const QUIT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_03A,
-    hover: ragnarok_resources::ui::ESC_03B,
-    pressed: ragnarok_resources::ui::ESC_03C,
-};
-const RESTART_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_04A,
-    hover: ragnarok_resources::ui::ESC_04B,
-    pressed: ragnarok_resources::ui::ESC_04C,
-};
-const RESURRECT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_05A,
-    hover: ragnarok_resources::ui::ESC_05B,
-    pressed: ragnarok_resources::ui::ESC_05C,
-};
-const GRAPHICS_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_06A,
-    hover: ragnarok_resources::ui::ESC_06B,
-    pressed: ragnarok_resources::ui::ESC_06C,
-};
-const SOUND_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_07A,
-    hover: ragnarok_resources::ui::ESC_07B,
-    pressed: ragnarok_resources::ui::ESC_07C,
-};
-const SHORTCUT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_08A,
-    hover: ragnarok_resources::ui::ESC_08B,
-    pressed: ragnarok_resources::ui::ESC_08C,
-};
-const DUMMY_BTN: ButtonTextures = ButtonTextures {
-    normal: "",
-    hover: "",
-    pressed: "",
-};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PendingConfirm {
@@ -264,20 +268,6 @@ impl MenuButton {
         }
     }
 
-    fn textures(self) -> &'static ButtonTextures {
-        match self {
-            MenuButton::Resume => &RESUME_BTN,
-            MenuButton::Graphics => &GRAPHICS_BTN,
-            MenuButton::Sound => &SOUND_BTN,
-            MenuButton::Shortcut => &SHORTCUT_BTN,
-            MenuButton::Hotkeys => &DUMMY_BTN,
-            MenuButton::CharSelect => &CHARSELECT_BTN,
-            MenuButton::Quit => &QUIT_BTN,
-            MenuButton::Restart => &RESTART_BTN,
-            MenuButton::Resurrect => &RESURRECT_BTN,
-        }
-    }
-
     fn label(self) -> &'static str {
         match self {
             MenuButton::Resume => "Resume",
@@ -412,7 +402,7 @@ impl SystemMenu {
             let clicked = if button == MenuButton::Hotkeys {
                 ui.text_button(button.id(), rect, button.label()).clicked()
             } else {
-                ui.button(button.id(), rect, button.textures(), button.label())
+                ui.button(button.id(), rect, button.label())
                     .clicked()
             };
             if clicked {
@@ -457,7 +447,7 @@ impl SystemMenu {
         for (idx, &button) in buttons.iter().enumerate() {
             let rect = Rect::new(btn_x, btn_y(idx), FALLBACK_BTN_W, FALLBACK_BTN_H);
             if ui
-                .button(button.id(), rect, &DUMMY_BTN, button.label())
+                .button(button.id(), rect, button.label())
                 .clicked()
             {
                 self.on_button_click(button, events);

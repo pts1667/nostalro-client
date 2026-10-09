@@ -1,7 +1,20 @@
 use crate::Window;
+use crate::helper::{ButtonTextures};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId, WindowOrder};
+use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
 
 const OVERLAY_ID: WidgetId = WidgetId(410);
 const WINDOW_ID: WidgetId = WidgetId(411);
@@ -18,17 +31,6 @@ const FALLBACK_BTN_W: f32 = 42.0;
 const FALLBACK_BTN_H: f32 = 20.0;
 
 const WIN_TEXTURE: &str = ragnarok_resources::ui::WIN_MSGBOX;
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConfirmResult {
@@ -249,10 +251,10 @@ impl ConfirmDialog {
 
         let mut cancelled = false;
         if state.show_cancel {
-            let cancel = ui.button(CANCEL_BTN_ID, btns[0], &CANCEL_BTN, "Cancel");
+            let cancel = ui.button(CANCEL_BTN_ID, btns[0], "Cancel");
             cancelled = cancel.clicked();
         }
-        let ok = ui.button(OK_BTN_ID, btns[num_buttons - 1], &OK_BTN, "OK");
+        let ok = ui.button(OK_BTN_ID, btns[num_buttons - 1], "OK");
         let confirmed = ok.clicked() || enter;
 
         if cancelled {

@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
     SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button,
@@ -7,9 +8,21 @@ use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::chat_room::ChatRoomMember;
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef, word_wrap};
-use ragnarok_ui::frame::{ButtonTextures, RESIZE_HANDLE_TEX, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
 
 pub const CHAT_ROOM_MEMBER_WINDOW_ID: WidgetId = WidgetId(4800);
 const CLOSE_BTN_ID: WidgetId = WidgetId(4801);
@@ -24,17 +37,6 @@ const MEMBER_ROW_BASE_ID: u32 = 4830;
 
 const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
 const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-
 pub const OWN_MSG_COLOR: [f32; 4] = [0.192, 0.349, 0.216, 1.0];
 pub const OTHER_MSG_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 pub const JOIN_MSG_COLOR: [f32; 4] = [0.255, 0.427, 0.424, 1.0];
@@ -246,7 +248,7 @@ impl Window for ChatRoomMemberWindow {
             CANCEL_BTN.normal,
             CANCEL_BTN.hover,
             CANCEL_BTN.pressed,
-            RESIZE_HANDLE_TEX,
+            ragnarok_resources::ui::BTN_RESIZE,
         ];
         paths.extend(scrollbar::grf_texture_paths());
         paths
@@ -407,22 +409,12 @@ impl InGameWindow for ChatRoomMemberWindow {
         let btn_y = footer_y + (FOOTER_H - btn_h) / 2.0;
         let mut bx = x + win_w - PAD - RESIZE_SIZE - btn_w;
         let leave = ui
-            .button(
-                LEAVE_BTN_ID,
-                Rect::new(bx, btn_y, btn_w, btn_h),
-                &CANCEL_BTN,
-                "Leave",
-            )
+            .button(LEAVE_BTN_ID, Rect::new(bx, btn_y, btn_w, btn_h), "Leave")
             .clicked();
         if i_am_owner {
             bx -= btn_w + 4.0;
             let edit = ui
-                .button(
-                    EDIT_BTN_ID,
-                    Rect::new(bx, btn_y, btn_w, btn_h),
-                    &OK_BTN,
-                    "Edit",
-                )
+                .button(EDIT_BTN_ID, Rect::new(bx, btn_y, btn_w, btn_h), "Edit")
                 .clicked();
             if edit {
                 events.push(GameEvent::RequestEditChatRoomSettings);

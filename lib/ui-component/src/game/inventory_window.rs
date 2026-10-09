@@ -9,7 +9,7 @@ use ragnarok_game::display_name::format_equipment_display_name;
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::item::{InventoryTab, Item};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{RESIZE_HANDLE_TEX, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
 pub const INV_WINDOW_ID: WidgetId = WidgetId(800);
@@ -159,7 +159,7 @@ impl Window for InventoryWindow {
             TAB_ETC_TEX,
             MINI_OFF_TEX,
             MINI_ON_TEX,
-            RESIZE_HANDLE_TEX,
+            ragnarok_resources::ui::BTN_RESIZE,
             SYS_BASE_OFF_TEX,
             SYS_BASE_ON_TEX,
             CLOSE_OFF_TEX,

@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::scrollbar::{self, ScrollbarIds};
 use crate::helper::window_chrome::{draw_sys_button, draw_titlebar, text_color};
@@ -10,8 +11,14 @@ use ragnarok_game::display_name::{
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::item::Item;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef, strip_color_codes, word_wrap};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId, WindowOrder};
+use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
+
+const VIEW_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_VIEW,
+    hover: ragnarok_resources::ui::BTN_VIEW_B,
+    pressed: ragnarok_resources::ui::BTN_VIEW_A,
+};
 
 pub const ITEM_INFO_WINDOW_ID: WidgetId = WidgetId(1000);
 const CLOSE_BTN_ID: WidgetId = WidgetId(1001);
@@ -24,7 +31,6 @@ const CARD_INFO_CLOSE_ID: WidgetId = WidgetId(1011);
 const CARD_INFO_SCROLL_UP_ID: WidgetId = WidgetId(1012);
 const CARD_INFO_SCROLL_DOWN_ID: WidgetId = WidgetId(1013);
 const CARD_INFO_SCROLL_THUMB_ID: WidgetId = WidgetId(1014);
-const VIEW_BTN_ID: WidgetId = WidgetId(1015);
 const CARD_INFO_VIEW_BTN_ID: WidgetId = WidgetId(1016);
 const READ_BTN_ID: WidgetId = WidgetId(1017);
 const CARD_ILLUST_WINDOW_ID: WidgetId = WidgetId(1020);
@@ -55,11 +61,6 @@ const DISABLED_SLOT_TEX: &str = ragnarok_resources::ui::basic::COPARISON_DISABLE
 const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
 const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
-const VIEW_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_VIEW,
-    hover: ragnarok_resources::ui::BTN_VIEW_B,
-    pressed: ragnarok_resources::ui::BTN_VIEW_A,
-};
 const VIEW_BTN_W: f32 = 42.0;
 const VIEW_BTN_H: f32 = 20.0;
 const VIEW_SECTION_H: f32 = 28.0;
@@ -324,7 +325,7 @@ impl ItemInfoWindow {
         let btn_x = info_window.win_x + 6.0;
         let btn_y = info_window.win_y + 6.0;
         let btn_rect = Rect::new(btn_x, btn_y, VIEW_BTN_W, VIEW_BTN_H);
-        let btn_resp = ui.button(CARD_INFO_VIEW_BTN_ID, btn_rect, &VIEW_BTN, "View");
+        let btn_resp = ui.button(CARD_INFO_VIEW_BTN_ID, btn_rect, "View");
         if btn_resp.clicked() {
             events.push(GameEvent::ShowCardIllustration {
                 item_id: card_data.item_id,
@@ -340,7 +341,7 @@ impl ItemInfoWindow {
         item_id: u16,
     ) {
         let rect = Rect::new(x, y, VIEW_BTN_W, VIEW_BTN_H);
-        if ui.button(READ_BTN_ID, rect, &VIEW_BTN, "Read").clicked() {
+        if ui.button(READ_BTN_ID, rect, "Read").clicked() {
             events.push(GameEvent::ReadBook { item_id });
         }
     }

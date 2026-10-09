@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::Window;
 use crate::helper::window_chrome::{
     FOOTER_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer,
@@ -6,9 +7,35 @@ use crate::helper::window_chrome::{
 use ragnarok_game::event::{CharacterInfo, GameEvent};
 use ragnarok_game::job_class::job_class_name;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+
+
+const DEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_DEL,
+    hover: ragnarok_resources::ui::BTN_DEL_A,
+    pressed: ragnarok_resources::ui::BTN_DEL_B,
+};
+
+const MAKE_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_MAKE,
+    hover: ragnarok_resources::ui::BTN_MAKE_A,
+    pressed: ragnarok_resources::ui::BTN_MAKE_B,
+};
+
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
 
 const WIN_W: f32 = 576.0;
 const WIN_H: f32 = 342.0;
@@ -67,37 +94,6 @@ const WIN_TEXTURE: &str = ragnarok_resources::ui::login::WIN_SELECT;
 const BOX_TEXTURE: &str = ragnarok_resources::ui::login::BOX_SELECT;
 const ARROW_L_TEXTURE: &str = ragnarok_resources::ui::SCROLL1LEFT;
 const ARROW_R_TEXTURE: &str = ragnarok_resources::ui::SCROLL1RIGHT;
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-const MAKE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_MAKE,
-    hover: ragnarok_resources::ui::BTN_MAKE_A,
-    pressed: ragnarok_resources::ui::BTN_MAKE_B,
-};
-const DEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_DEL,
-    hover: ragnarok_resources::ui::BTN_DEL_A,
-    pressed: ragnarok_resources::ui::BTN_DEL_B,
-};
-const ARROW_L_BTN: ButtonTextures = ButtonTextures {
-    normal: ARROW_L_TEXTURE,
-    hover: ARROW_L_TEXTURE,
-    pressed: ARROW_L_TEXTURE,
-};
-const ARROW_R_BTN: ButtonTextures = ButtonTextures {
-    normal: ARROW_R_TEXTURE,
-    hover: ARROW_R_TEXTURE,
-    pressed: ARROW_R_TEXTURE,
-};
 
 const TEXT_COLOR: [f32; 4] = [0.15, 0.16, 0.32, 1.0];
 const SLOT_BORDER_COLOR: [f32; 4] = [0.78, 0.80, 0.86, 1.0];
@@ -393,10 +389,10 @@ impl CharSelectWindow {
             ARROW_W,
             ARROW_H,
         );
-        if ui.button(ARROW_L_ID, left, &ARROW_L_BTN, "<").clicked() {
+        if ui.button(ARROW_L_ID, left, "<").clicked() {
             self.move_selection(-(SLOTS_PER_PAGE as i32));
         }
-        if ui.button(ARROW_R_ID, right, &ARROW_R_BTN, ">").clicked() {
+        if ui.button(ARROW_R_ID, right, ">").clicked() {
             self.move_selection(SLOTS_PER_PAGE as i32);
         }
     }
@@ -438,7 +434,7 @@ impl CharSelectWindow {
 
         let cancel = Rect::new(ox + WIN_W - CANCEL_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
         if ui
-            .button(CANCEL_ID, cancel, &CANCEL_BTN, "Cancel")
+            .button(CANCEL_ID, cancel, "Cancel")
             .clicked()
             && !modal
         {
@@ -447,17 +443,17 @@ impl CharSelectWindow {
 
         let action = Rect::new(ox + WIN_W - OK_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
         if occupied {
-            if ui.button(OK_ID, action, &OK_BTN, "OK").clicked() && !modal {
+            if ui.button(OK_ID, action, "OK").clicked() && !modal {
                 events.push(GameEvent::RequestSelectCharacter { slot: slot as u8 });
             }
             let del = Rect::new(ox + DEL_LEFT, btn_y, BTN_W, BTN_H);
-            if ui.button(DEL_ID, del, &DEL_BTN, "del").clicked() && !modal {
+            if ui.button(DEL_ID, del, "del").clicked() && !modal {
                 if let Some(gid) = selected_gid {
                     self.open_delete_dialog(gid, 0);
                     events.push(GameEvent::RequestDeleteCharacterReserve { gid });
                 }
             }
-        } else if ui.button(MAKE_ID, action, &MAKE_BTN, "Make").clicked() && !modal {
+        } else if ui.button(MAKE_ID, action, "Make").clicked() && !modal {
             events.push(GameEvent::RequestCreateCharacter { slot: slot as u8 });
         }
 
@@ -526,12 +522,12 @@ impl CharSelectWindow {
         let cancel = Rect::new(dx + DIALOG_W - CANCEL_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
 
         let submit =
-            ui.button(DEL_CONFIRM_ID, confirm, &OK_BTN, "OK").clicked() || ui.ctx.key_enter;
+            ui.button(DEL_CONFIRM_ID, confirm, "OK").clicked() || ui.ctx.key_enter;
         if submit {
             events.push(GameEvent::RequestDeleteCharacterConfirm { gid, birthdate });
         }
         if ui
-            .button(DEL_CANCEL_ID, cancel, &CANCEL_BTN, "Cancel")
+            .button(DEL_CANCEL_ID, cancel, "Cancel")
             .clicked()
             || ui.ctx.key_escape
         {

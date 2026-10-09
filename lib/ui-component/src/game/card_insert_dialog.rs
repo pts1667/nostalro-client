@@ -1,3 +1,4 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
     FOOTER_TEX, ITEMWIN_MID_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_titlebar,
@@ -6,10 +7,21 @@ use crate::helper::window_chrome::{
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
-const OVERLAY_ID: WidgetId = WidgetId(1100);
+const CANCEL_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_CANCEL,
+    hover: ragnarok_resources::ui::BTN_CANCEL_A,
+    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
+};
+
+const OK_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_OK,
+    hover: ragnarok_resources::ui::BTN_OK_A,
+    pressed: ragnarok_resources::ui::BTN_OK_B,
+};
+
 pub const CARD_INSERT_WINDOW_ID: WidgetId = WidgetId(1101);
 const OK_BTN_ID: WidgetId = WidgetId(1102);
 const CANCEL_BTN_ID: WidgetId = WidgetId(1103);
@@ -33,17 +45,6 @@ const BTN_FIRST_RIGHT: f32 = 5.0;
 const BTN_SPACING: f32 = 3.0;
 const FALLBACK_BTN_W: f32 = 42.0;
 const FALLBACK_BTN_H: f32 = 20.0;
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 pub struct EligibleItem {
     pub inventory_index: u16,
@@ -310,8 +311,8 @@ impl InGameWindow for CardInsertDialog {
             BTN_SPACING,
         );
 
-        let cancel = ui.button(CANCEL_BTN_ID, btns[0], &CANCEL_BTN, "Cancel");
-        let ok = ui.button(OK_BTN_ID, btns[1], &OK_BTN, "OK");
+        let cancel = ui.button(CANCEL_BTN_ID, btns[0], "Cancel");
+        let ok = ui.button(OK_BTN_ID, btns[1], "OK");
 
         if cancel.clicked() {
             self.close();

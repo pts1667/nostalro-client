@@ -1,12 +1,19 @@
+use crate::helper::{ButtonTextures};
 use crate::helper::window_chrome::{
     SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button,
     draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+const VIEW_BTN: ButtonTextures = ButtonTextures {
+    normal: ragnarok_resources::ui::BTN_VIEW,
+    hover: ragnarok_resources::ui::BTN_VIEW_B,
+    pressed: ragnarok_resources::ui::BTN_VIEW_A,
+};
 
 pub const SHORTCUT_LIST_WINDOW_ID: WidgetId = WidgetId(3600);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3601);
@@ -15,12 +22,6 @@ const ROW_INPUT_BASE: u32 = 3610;
 
 const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
 const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const VIEW_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_VIEW,
-    hover: ragnarok_resources::ui::BTN_VIEW_B,
-    pressed: ragnarok_resources::ui::BTN_VIEW_A,
-};
-
 pub const SLOT_COUNT: usize = 10;
 const WIN_W: f32 = 230.0;
 const TITLE_H: f32 = 17.0;
@@ -206,7 +207,7 @@ impl InGameWindow for ShortcutListWindow {
             bw,
             bh,
         );
-        if ui.button(VIEW_BTN_ID, ok_rect, &VIEW_BTN, "view").clicked() {
+        if ui.button(VIEW_BTN_ID, ok_rect, "view").clicked() {
             events.push(GameEvent::ToggleEmotionWindow);
         }
 
