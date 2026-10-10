@@ -98,46 +98,6 @@ impl BasicInfoWindow {
         }
     }
 
-    fn draw_bar_fallback(
-        ui: &mut UiFrame,
-        x: f32,
-        y: f32,
-        w: f32,
-        h: f32,
-        fill_pct: f32,
-        shadow_pct: f32,
-        fill_color: [f32; 4],
-        shadow_color: [f32; 4],
-    ) {
-        let bg_color = [0.15, 0.15, 0.15, 0.9];
-        let (v, i) = draw::quad_vertices(x, y, w, h, bg_color);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::White,
-        });
-
-        if shadow_pct > 0.0 {
-            let sw = (w * shadow_pct.clamp(0.0, 1.0)).max(0.0);
-            let (v, i) = draw::quad_vertices(x, y, sw, h, shadow_color);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
-        }
-
-        if fill_pct > 0.0 {
-            let fw = (w * fill_pct.clamp(0.0, 1.0)).max(0.0);
-            let (v, i) = draw::quad_vertices(x, y, fw, h, fill_color);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
-        }
-    }
-
     fn draw_exp_bar(ui: &mut UiFrame, x: f32, y: f32, fill_pct: f32) {
         crate::helper::window_chrome::draw_exp_bar(ui, x, y, EXP_BAR_W, EXP_BAR_H, fill_pct);
     }
@@ -205,15 +165,9 @@ impl BasicInfoWindow {
 
         let hp_pct = character.hp_percentage();
         Self::update_shadow(&mut self.hp_shadow, hp_pct, delta);
-        let is_red = hp_pct < 0.25;
 
         ui.text(x + 90.0, y + 39.0, &rust_i18n::t!("basic_info.hp"), tc);
-        let hp_fill = if is_red {
-            [0.8, 0.2, 0.2, 1.0]
-        } else {
-            [0.2, 0.4, 0.8, 1.0]
-        };
-        Self::draw_bar_fallback(
+        crate::helper::fallback::gloss_bar(
             ui,
             x + HP_BAR_X,
             y + HP_BAR_Y,
@@ -221,8 +175,7 @@ impl BasicInfoWindow {
             BAR_H,
             hp_pct,
             self.hp_shadow,
-            hp_fill,
-            [0.4, 0.4, 0.6, 0.7],
+            false,
         );
         let hp_text = format!("{} / {}", character.hp, character.max_hp);
         ui.text_centered(
@@ -246,8 +199,7 @@ impl BasicInfoWindow {
         Self::update_shadow(&mut self.sp_shadow, sp_pct, delta);
 
         ui.text(x + 90.0, y + 59.0, &rust_i18n::t!("basic_info.sp"), tc);
-        let sp_fill = [0.2, 0.7, 0.3, 1.0];
-        Self::draw_bar_fallback(
+        crate::helper::fallback::gloss_bar(
             ui,
             x + HP_BAR_X,
             y + SP_BAR_Y,
@@ -255,8 +207,7 @@ impl BasicInfoWindow {
             BAR_H,
             sp_pct,
             self.sp_shadow,
-            sp_fill,
-            [0.3, 0.5, 0.3, 0.7],
+            false,
         );
         let sp_text = format!("{} / {}", character.sp, character.max_sp);
         ui.text_centered(

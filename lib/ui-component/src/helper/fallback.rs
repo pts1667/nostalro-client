@@ -1,7 +1,7 @@
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::UiFrame;
 use ragnarok_ui::rect::Rect;
-use ragnarok_ui::theme::{CORNER_RADIUS, FallbackPalette as P, gloss_disc, lift, line};
+use ragnarok_ui::theme::{CORNER_RADIUS, FallbackPalette as P, gloss_disc, lift, line, mix};
 
 fn fill(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
     if w <= 0.0 || h <= 0.0 {
@@ -245,20 +245,69 @@ pub fn slot_cell(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
     fill(ui, x + w - 1.0, y, 1.0, h, P::WIN_BORDER);
 }
 
-/// Rounded HP/SP fill bar with a glossy vertical gradient.
-pub fn gauge(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, fill_pct: f32, is_red: bool) {
-    let pct = fill_pct.clamp(0.0, 1.0);
-    fill(ui, x, y, w, h, P::WIN_BODY_ALT);
-    if pct <= 0.0 {
-        return;
-    }
+/// Glossy capsule gauge, blue or red. A rimmed pale trough holds a rounded fill
+/// (dark above, light below) with a white highlight across its upper half. The
+/// optional pale `shadow_pct` shows the part that has just drained away.
+pub fn gloss_bar(
+    ui: &mut UiFrame,
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+    fill_pct: f32,
+    shadow_pct: f32,
+    is_red: bool,
+) {
     let (top, bot) = if is_red {
-        ([0.82, 0.44, 0.55, 1.0], [0.90, 0.58, 0.69, 1.0])
+        ([0.72, 0.22, 0.30, 1.0], [0.96, 0.62, 0.68, 1.0])
     } else {
-        ([0.44, 0.55, 0.82, 1.0], [0.61, 0.71, 0.92, 1.0])
+        (P::GLOSS_UP_BOT, [0.46, 0.66, 0.96, 1.0])
     };
-    let (v, i) = draw::rounded_rect_vgrad(x, y, w * pct, h, 2.0, top, bot);
+    let r = h / 2.0;
+    let (v, i) = draw::rounded_rect(x, y, w, h, r, P::FIELD_RIM);
     rounded(ui, v, i);
+    let (v, i) = draw::rounded_rect_vgrad(
+        x + 1.0,
+        y + 1.0,
+        w - 2.0,
+        h - 2.0,
+        r - 1.0,
+        P::SLOT_INSET,
+        P::SLOT_FILL,
+    );
+    rounded(ui, v, i);
+
+    // A capsule never gets narrower than its own height, so a nearly empty bar
+    // still reads as a small bead.
+    let inner_w = w - 2.0;
+    let capsule = |ui: &mut UiFrame, pct: f32, top: [f32; 4], bot: [f32; 4], shine: bool| {
+        if pct <= 0.0 {
+            return;
+        }
+        let fw = (inner_w * pct.clamp(0.0, 1.0)).max(h - 2.0).min(inner_w);
+        let (v, i) = draw::rounded_rect_vgrad(x + 1.0, y + 1.0, fw, h - 2.0, r - 1.0, top, bot);
+        rounded(ui, v, i);
+        if shine && fw > 4.0 {
+            let sh = ((h - 2.0) * 0.45).max(1.0);
+            let (v, i) = draw::rounded_rect_vgrad(
+                x + 2.0,
+                y + 1.5,
+                fw - 2.0,
+                sh,
+                sh / 2.0,
+                [1.0, 1.0, 1.0, 0.55],
+                [1.0, 1.0, 1.0, 0.15],
+            );
+            rounded(ui, v, i);
+        }
+    };
+    capsule(ui, shadow_pct, mix(top, [1.0; 4], 0.6), mix(bot, [1.0; 4], 0.6), false);
+    capsule(ui, fill_pct, top, bot, true);
+}
+
+/// HP/SP style gauge without a drain trail.
+pub fn gauge(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, fill_pct: f32, is_red: bool) {
+    gloss_bar(ui, x, y, w, h, fill_pct, 0.0, is_red);
 }
 
 /// Scrollbar arrow button: a round glossy disc with a white triangle drawn from
