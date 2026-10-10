@@ -1,9 +1,11 @@
+use crate::helper::fallback;
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::state::StateCache;
 use ragnarok_ui::text_input::TextInput;
+
 
 pub const CHAT_WINDOW_ID: WidgetId = WidgetId(300);
 const INPUT_ID: WidgetId = WidgetId(301);
@@ -145,15 +147,6 @@ fn effective_channel(
     }
 }
 
-const DIALOG_BG: &str = ragnarok_resources::ui::basic::DIALOG_BG;
-const SCROLL_UP: &str = ragnarok_resources::ui::basic::DIALSCR_UP;
-const SCROLL_DOWN: &str = ragnarok_resources::ui::basic::DIALSCR_DOWN;
-const LIST_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::DIALOG_BTN0,
-    hover: ragnarok_resources::ui::basic::DIALOG_BTN1,
-    pressed: ragnarok_resources::ui::basic::DIALOG_BTN2,
-};
-const BUBBLE_TEX: &str = ragnarok_resources::ui::basic::SYS_BASE_OFF;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChatChannel {
@@ -194,7 +187,6 @@ pub struct ChatWindow {
     pub whisper_target: TextInput,
     pub messages: Vec<ChatLine>,
     pub active: bool,
-    pub has_grf_textures: bool,
     pub focused_input: WidgetId,
     bounding_rect: Option<Rect>,
     sent_history: Vec<String>,
@@ -219,7 +211,6 @@ impl ChatWindow {
             whisper_target: TextInput::new(MAX_WHISPER_NAME_LEN, false),
             messages: Vec::new(),
             active: false,
-            has_grf_textures: false,
             focused_input: INPUT_ID,
             bounding_rect: None,
             sent_history: Vec::new(),
@@ -381,52 +372,29 @@ impl ChatWindow {
         scroll_offset: usize,
         total: usize,
     ) {
-        use ragnarok_ui::draw;
+        
         let scrollbar_w = SCROLLBAR_W;
         let scroll_btn_h = SCROLL_BTN_H;
 
         let max_lines = visible_line_count(h);
         let max_scroll = total.saturating_sub(max_lines);
 
-        let track_color = [0.0, 0.0, 0.0, 0.3];
-        let (v, i) = draw::quad_vertices(x, y, scrollbar_w, h, track_color);
-        ui.draw_calls.push(draw::DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: draw::TextureRef::White,
-        });
+        fallback::scroll_track(ui, x, y, scrollbar_w, h);
 
         let up_rect = Rect::new(x, y, scrollbar_w, scroll_btn_h);
         let up_response = ui.interact(SCROLL_UP_ID, up_rect);
         if up_response.hovered() {
             ui.any_interactive_hovered = true;
         }
-        if self.has_grf_textures {
-            let (v, i) = draw::quad_vertices(x, y, scrollbar_w, scroll_btn_h, [1.0, 1.0, 1.0, 1.0]);
-            ui.draw_calls.push(draw::DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: draw::TextureRef::Named(SCROLL_UP.to_string()),
-            });
-        } else {
-            let color = if up_response.hovered() {
-                [0.5, 0.5, 0.6, 1.0]
-            } else {
-                [0.3, 0.3, 0.4, 1.0]
-            };
-            let (v, i) = draw::quad_vertices(x, y, scrollbar_w, scroll_btn_h, color);
-            ui.draw_calls.push(draw::DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: draw::TextureRef::White,
-            });
-            ui.text(
-                x + (3.0),
-                y + ui.atlas.line_height,
-                "\u{25B2}",
-                [0.8, 0.8, 0.8, 1.0],
-            );
-        }
+        fallback::scroll_button(
+            ui,
+            x,
+            y,
+            scrollbar_w,
+            scroll_btn_h,
+            true,
+            up_response.hovered(),
+        );
 
         let down_y = y + h - scroll_btn_h;
         let down_rect = Rect::new(x, down_y, scrollbar_w, scroll_btn_h);
@@ -434,33 +402,15 @@ impl ChatWindow {
         if down_response.hovered() {
             ui.any_interactive_hovered = true;
         }
-        if self.has_grf_textures {
-            let (v, i) =
-                draw::quad_vertices(x, down_y, scrollbar_w, scroll_btn_h, [1.0, 1.0, 1.0, 1.0]);
-            ui.draw_calls.push(draw::DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: draw::TextureRef::Named(SCROLL_DOWN.to_string()),
-            });
-        } else {
-            let color = if down_response.hovered() {
-                [0.5, 0.5, 0.6, 1.0]
-            } else {
-                [0.3, 0.3, 0.4, 1.0]
-            };
-            let (v, i) = draw::quad_vertices(x, down_y, scrollbar_w, scroll_btn_h, color);
-            ui.draw_calls.push(draw::DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: draw::TextureRef::White,
-            });
-            ui.text(
-                x + (3.0),
-                down_y + ui.atlas.line_height,
-                "\u{25BC}",
-                [0.8, 0.8, 0.8, 1.0],
-            );
-        }
+        fallback::scroll_button(
+            ui,
+            x,
+            down_y,
+            scrollbar_w,
+            scroll_btn_h,
+            false,
+            down_response.hovered(),
+        );
 
         if up_response.clicked() || down_response.clicked() {
             let delta: isize = if up_response.clicked() { 1 } else { -1 };
@@ -498,23 +448,14 @@ impl ChatWindow {
             }
 
             let thumb_active = t.dragging || t.hovered;
-            let thumb_color = if thumb_active {
-                [0.6, 0.6, 0.7, 0.9]
-            } else {
-                [0.5, 0.5, 0.6, 0.8]
-            };
-            let (v, i) = draw::quad_vertices(
-                x + (2.0),
+            fallback::scroll_thumb(
+                ui,
+                x + 2.0,
                 thumb_y,
-                scrollbar_w - (4.0),
+                scrollbar_w - 4.0,
                 thumb_h,
-                thumb_color,
+                thumb_active,
             );
-            ui.draw_calls.push(draw::DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: draw::TextureRef::White,
-            });
         }
     }
 
@@ -534,11 +475,7 @@ impl ChatWindow {
         } else {
             tint
         };
-        let tex = if self.has_grf_textures {
-            draw::TextureRef::Named(BUBBLE_TEX.to_string())
-        } else {
-            draw::TextureRef::White
-        };
+        let tex = draw::TextureRef::White;
         let (v, i) = draw::quad_vertices(rect.x, rect.y, rect.w, rect.h, color);
         ui.draw_calls.push(draw::DrawCall {
             vertices: v.to_vec(),
@@ -617,7 +554,7 @@ impl ChatWindow {
         use ragnarok_ui::draw;
         let has_history = !self.whisper_history.is_empty();
         let clicked = ui
-            .button(WHISPER_MENU_BTN_ID, btn_rect, &LIST_BTN, "\u{25BC}")
+            .button(WHISPER_MENU_BTN_ID, btn_rect, "\u{25BC}")
             .clicked();
         if clicked && has_history {
             self.whisper_menu_open = !self.whisper_menu_open;
@@ -713,24 +650,6 @@ impl ChatWindow {
 }
 
 impl Window for ChatWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            DIALOG_BG,
-            SCROLL_UP,
-            SCROLL_DOWN,
-            LIST_BTN.normal,
-            LIST_BTN.hover,
-            LIST_BTN.pressed,
-            BUBBLE_TEX,
-        ]
-    }
 }
 
 impl InGameWindow for ChatWindow {
@@ -1086,30 +1005,19 @@ impl InGameWindow for ChatWindow {
         let msg_rect = Rect::new(msg_x, input_y, (msg_right - msg_x).max(20.0), input_h);
 
         if self.active {
-            let input_bg = if self.has_grf_textures {
-                let (v, i) =
-                    ragnarok_ui::draw::quad_vertices(chat_x, input_y, chat_w, input_h, [1.0; 4]);
-                ui.draw_calls.push(ragnarok_ui::draw::DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: ragnarok_ui::draw::TextureRef::Named(DIALOG_BG.to_string()),
-                });
-                TextInputBg::Transparent
-            } else {
-                let (v, i) = ragnarok_ui::draw::quad_vertices(
-                    chat_x,
-                    input_y,
-                    chat_w,
-                    input_h,
-                    [0.0, 0.0, 0.0, 0.6],
-                );
-                ui.draw_calls.push(ragnarok_ui::draw::DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: ragnarok_ui::draw::TextureRef::White,
-                });
-                TextInputBg::Gray
-            };
+            let (v, i) = ragnarok_ui::draw::quad_vertices(
+                chat_x,
+                input_y,
+                chat_w,
+                input_h,
+                [0.0, 0.0, 0.0, 0.6],
+            );
+            ui.draw_calls.push(ragnarok_ui::draw::DrawCall {
+                vertices: v.to_vec(),
+                indices: i.to_vec(),
+                texture: ragnarok_ui::draw::TextureRef::White,
+            });
+            let input_bg = TextInputBg::Gray;
 
             if self.pending_focus {
                 self.pending_focus = false;

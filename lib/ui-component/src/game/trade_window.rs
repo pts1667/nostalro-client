@@ -10,9 +10,12 @@ use ragnarok_game::event::GameEvent;
 use ragnarok_game::item::Item;
 use ragnarok_game::trade::{TRADE_MAX_SLOTS, TRADE_ZENY_INDEX};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+
+
 
 pub const TRADE_WINDOW_ID: WidgetId = WidgetId(4100);
 const LOCK_BTN_ID: WidgetId = WidgetId(4101);
@@ -23,26 +26,6 @@ const MY_ROW_BASE: u32 = 4110;
 const OTHER_ROW_BASE: u32 = 4120;
 const NUM_DIALOG_BASE: u32 = 4130;
 
-const BG_TEX: &str = ragnarok_resources::ui::basic::EXCHANGE_BG2;
-const BOX_TEX: &str = ragnarok_resources::ui::basic::ITEMWIN_MID;
-
-const LOCK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const TRADE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_EXCHANGE,
-    hover: ragnarok_resources::ui::BTN_EXCHANGE_A,
-    pressed: ragnarok_resources::ui::BTN_EXCHANGE_B,
-};
-const TRADE_BTN_DIS: &str = ragnarok_resources::ui::BTN_EXCHANGE_DIS;
-const LOCK_BTN_DIS: &str = ragnarok_resources::ui::BTN_OK_DIS;
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 const WIN_W: f32 = 500.0;
 const TITLE_H: f32 = 16.0;
@@ -72,7 +55,6 @@ fn win_h() -> f32 {
 }
 
 pub struct TradeWindow {
-    pub has_grf_textures: bool,
     zeny_input: TextInput,
     container: DialogContainer,
     qty_dialog: Option<(u16, InputDialog)>,
@@ -87,7 +69,6 @@ impl Default for TradeWindow {
 impl TradeWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             zeny_input: TextInput::new(10, false).with_numeric_only(true),
             container: DialogContainer::new(),
             qty_dialog: None,
@@ -127,7 +108,6 @@ impl TradeWindow {
         row_base: u32,
         data: &DataTable,
         producers: &CharNameCache,
-        grf: bool,
         tc: [f32; 4],
         locked: bool,
     ) {
@@ -150,14 +130,7 @@ impl TradeWindow {
         for row in 0..TRADE_MAX_SLOTS {
             let ry = top_y + row as f32 * ROW_H;
             let icon_y = ry + (ROW_H - ICON) / 2.0;
-            if !locked && grf {
-                let (v, i) = draw::quad_vertices(col_x + 2.0, icon_y, ICON, ICON, [1.0; 4]);
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: TextureRef::Named(BOX_TEX.to_string()),
-                });
-            } else if !locked {
+            if !locked {
                 crate::helper::fallback::slot_cell(ui, col_x + 2.0, icon_y, ICON, ICON);
             }
             let Some(item) = items.get(row) else {
@@ -206,58 +179,20 @@ impl TradeWindow {
     }
 }
 
-fn draw_disabled(ui: &mut UiFrame, rect: Rect, tex: &str, label: &str, grf: bool, tc: [f32; 4]) {
-    if grf {
-        let (v, i) = draw::quad_vertices(rect.x, rect.y, rect.w, rect.h, [1.0; 4]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::Named(tex.to_string()),
-        });
-    } else {
-        crate::helper::fallback::cell(ui, rect.x, rect.y, rect.w, rect.h, false);
-        let lw = ui.atlas.measure_text(label);
-        ui.text(
-            rect.x + (rect.w - lw) / 2.0,
-            rect.y + rect.h / 2.0 + 4.0,
-            label,
-            tc,
-        );
-    }
+fn draw_disabled(ui: &mut UiFrame, rect: Rect, label: &str, tc: [f32; 4]) {
+    crate::helper::fallback::cell(ui, rect.x, rect.y, rect.w, rect.h, false);
+    let lw = ui.atlas.measure_text(label);
+    ui.text(
+        rect.x + (rect.w - lw) / 2.0,
+        rect.y + rect.h / 2.0 + 4.0,
+        label,
+        tc,
+    );
 }
 
 impl Window for TradeWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-        self.container.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        self.container.set_texture_sizes(size_fn);
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, win_h())
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            BG_TEX,
-            BOX_TEX,
-            LOCK_BTN.normal,
-            LOCK_BTN.hover,
-            LOCK_BTN.pressed,
-            LOCK_BTN_DIS,
-            TRADE_BTN.normal,
-            TRADE_BTN.hover,
-            TRADE_BTN.pressed,
-            TRADE_BTN_DIS,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ];
-        paths.extend(InputDialog::grf_texture_paths());
-        paths
     }
 }
 
@@ -288,10 +223,7 @@ impl InGameWindow for TradeWindow {
             return Vec::new();
         }
         let mut events = Vec::new();
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         if let Some((_, dialog)) = &self.qty_dialog {
             ui.set_modal(&[dialog.win_id()]);
@@ -302,7 +234,7 @@ impl InGameWindow for TradeWindow {
         let (x, y) = (win.x, win.y);
         ui.interact(TRADE_WINDOW_ID, Rect::new(x, y, WIN_W, h));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         let title = format!(
             "Trade : {}  Lv{} ({})",
             character.trade.partner_name(),
@@ -313,16 +245,7 @@ impl InGameWindow for TradeWindow {
 
         let body_y = y + TITLE_H;
         let body_h = HEADER_H + TRADE_MAX_SLOTS as f32 * ROW_H + ZENY_H + FOOTER_H;
-        if grf {
-            let (v, i) = draw::quad_vertices(x, body_y, WIN_W, body_h, [1.0; 4]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(BG_TEX.to_string()),
-            });
-        } else {
-            draw_container(ui, x, body_y, WIN_W, body_h, grf);
-        }
+        draw_container(ui, x, body_y, WIN_W, body_h);
 
         let right_x = x + COL_W;
         let my_locked = character.trade.my_locked();
@@ -341,7 +264,6 @@ impl InGameWindow for TradeWindow {
             MY_ROW_BASE,
             data,
             producers,
-            grf,
             tc,
             my_locked,
         );
@@ -353,7 +275,6 @@ impl InGameWindow for TradeWindow {
             OTHER_ROW_BASE,
             data,
             producers,
-            grf,
             tc,
             other_locked,
         );
@@ -404,9 +325,9 @@ impl InGameWindow for TradeWindow {
         let by = footer_y + (FOOTER_H - BTN_H) / 2.0 + 2.0;
         let lock_rect = Rect::new(x + 6.0, by, BTN_W, BTN_H);
         if my_locked {
-            draw_disabled(ui, lock_rect, LOCK_BTN_DIS, "Lock", grf, tc);
+            draw_disabled(ui, lock_rect, &rust_i18n::t!("trade.lock"), tc);
         } else if ui
-            .button(LOCK_BTN_ID, lock_rect, &LOCK_BTN, "Lock")
+            .button(LOCK_BTN_ID, lock_rect, &rust_i18n::t!("trade.lock"))
             .clicked()
         {
             let amount: i64 = self
@@ -433,17 +354,17 @@ impl InGameWindow for TradeWindow {
         let trade_rect = Rect::new(x + (WIN_W - BTN_W) / 2.0, by, BTN_W, BTN_H);
         if character.trade.both_locked() {
             if ui
-                .button(TRADE_BTN_ID, trade_rect, &TRADE_BTN, "Trade")
+                .button(TRADE_BTN_ID, trade_rect, &rust_i18n::t!("trade.trade"))
                 .clicked()
             {
                 events.push(GameEvent::RequestExecExchange);
             }
         } else {
-            draw_disabled(ui, trade_rect, TRADE_BTN_DIS, "Trade", grf, tc);
+            draw_disabled(ui, trade_rect, &rust_i18n::t!("trade.trade"), tc);
         }
 
         let cancel_rect = Rect::new(x + WIN_W - BTN_W - 6.0, by, BTN_W, BTN_H);
-        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, &CANCEL_BTN, "Cancel");
+        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, &rust_i18n::t!("common.cancel"));
 
         // --- Quantity dialog (modal) ---
         if let Some((index, dialog)) = &mut self.qty_dialog {
@@ -472,7 +393,6 @@ impl InGameWindow for TradeWindow {
             self.zeny_input.cursor_pos = 0;
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

@@ -241,10 +241,7 @@ impl App {
                 detail: format!("{}:{}", s.host, s.port),
             })
             .collect();
-        let mut win = LoginServerListWindow::new(entries);
-        if let (Some(grf), Some(renderer)) = (&self.grf, &mut self.renderer) {
-            events::preload_window(&mut win, renderer, grf);
-        }
+        let win = LoginServerListWindow::new(entries);
         self.login_server_list_window = Some(win);
         self.game.session.app_state = AppState::LoginServerSelect;
     }
@@ -509,7 +506,6 @@ impl App {
                         &renderer.font_atlas,
                         &mut self.ui_state_cache,
                         elapsed,
-                        server_win.has_grf_textures,
                         None,
                         &self.saved_window_positions,
                     );
@@ -535,7 +531,6 @@ impl App {
                         &renderer.font_atlas,
                         &mut self.ui_state_cache,
                         elapsed,
-                        self.login_window.has_grf_textures,
                         initial_focus,
                         &self.saved_window_positions,
                     );
@@ -561,7 +556,6 @@ impl App {
                         &renderer.font_atlas,
                         &mut self.ui_state_cache,
                         elapsed,
-                        server_win.has_grf_textures,
                         None,
                         &self.saved_window_positions,
                     );
@@ -587,7 +581,6 @@ impl App {
                         &renderer.font_atlas,
                         &mut self.ui_state_cache,
                         elapsed,
-                        char_win.has_grf_textures,
                         None,
                         &self.saved_window_positions,
                     );
@@ -613,7 +606,6 @@ impl App {
                         &renderer.font_atlas,
                         &mut self.ui_state_cache,
                         elapsed,
-                        create_win.has_grf_textures,
                         None,
                         &self.saved_window_positions,
                     );
@@ -636,7 +628,6 @@ impl App {
                         &renderer.font_atlas,
                         &mut self.ui_state_cache,
                         elapsed,
-                        self.windows.system_menu.has_grf_textures,
                         None,
                         &self.saved_window_positions,
                     );
@@ -759,8 +750,6 @@ impl ApplicationHandler for App {
 
                     if let Some(renderer) = &mut self.renderer {
                         renderer.try_load_grf_font(&grf);
-                        events::preload_window(&mut self.login_window, renderer, &grf);
-                        events::preload_window(&mut self.account_dialog, renderer, &grf);
                         self.account_background = pick_account_background(
                             &self.config.account_backgrounds,
                         )

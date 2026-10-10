@@ -160,6 +160,17 @@ pub fn quad_vertices_vgrad(
     (verts, [0, 1, 2, 2, 1, 3])
 }
 
+/// Filled triangle in one colour. Points are in screen space, in winding order
+/// of the caller's choosing.
+pub fn triangle_vertices(points: [(f32, f32); 3], color: [f32; 4]) -> ([UiVertex; 3], [u32; 3]) {
+    let verts = points.map(|(x, y)| UiVertex {
+        position: [x, y],
+        tex_coord: [0.0, 0.0],
+        color,
+    });
+    (verts, [0, 1, 2])
+}
+
 pub fn rounded_rect(
     x: f32,
     y: f32,

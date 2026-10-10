@@ -1,7 +1,4 @@
-use crate::helper::CHECKBOX;
-use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_sys_button, draw_titlebar, text_color,
-};
+use crate::helper::window_chrome::{draw_sys_button, draw_titlebar, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::frame::{UiFrame, WidgetId};
@@ -15,9 +12,6 @@ const SFX_MUTE_ID: WidgetId = WidgetId(2804);
 const CLOSE_BTN_ID: WidgetId = WidgetId(2805);
 const UNFOCUSED_ID: WidgetId = WidgetId(2806);
 const STEREO_ID: WidgetId = WidgetId(2807);
-
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
 const WIN_W: f32 = 260.0;
 const WIN_H: f32 = 180.0;
@@ -33,7 +27,6 @@ const CB_ROW_H: f32 = 24.0;
 #[derive(Default)]
 pub struct SoundOptionsWindow {
     pub open: bool,
-    pub has_grf_textures: bool,
     bgm_volume: f32,
     sfx_volume: f32,
     bgm_enabled: bool,
@@ -46,7 +39,6 @@ impl SoundOptionsWindow {
     pub fn new() -> Self {
         Self {
             open: false,
-            has_grf_textures: false,
             bgm_volume: 0.8,
             sfx_volume: 0.8,
             bgm_enabled: true,
@@ -91,23 +83,7 @@ impl SoundOptionsWindow {
     }
 }
 
-impl Window for SoundOptionsWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-        ]
-    }
-}
+impl Window for SoundOptionsWindow {}
 
 impl InGameWindow for SoundOptionsWindow {
     fn wants_escape(&self, _ctx: &BuildCtx) -> bool {
@@ -126,9 +102,6 @@ impl InGameWindow for SoundOptionsWindow {
             return Vec::new();
         }
         let mut events = Vec::new();
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
 
         let default_x = (ui.ctx.screen_width - WIN_W) / 2.0;
         let default_y = (ui.ctx.screen_height - WIN_H) / 2.0;
@@ -147,12 +120,12 @@ impl InGameWindow for SoundOptionsWindow {
 
         crate::helper::fallback::window_body(ui, win.x, win.y + TITLE_H, WIN_W, WIN_H - TITLE_H);
 
-        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H);
         ui.text(
             win.x + 20.0,
             win.y + TITLE_H - 5.0,
-            "Sound",
-            text_color(grf),
+            &rust_i18n::t!("sound_options.sound"),
+            text_color(),
         );
 
         let close_rect = Rect::new(
@@ -170,24 +143,25 @@ impl InGameWindow for SoundOptionsWindow {
             close_rect,
             (CLOSE_SIZE, CLOSE_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
             self.open = false;
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
-        let label_color = text_color(grf);
+        let label_color = text_color();
         let row = |n: usize| win.y + TITLE_H + 12.0 + n as f32 * ROW_H;
         let slider_x = win.x + 60.0;
         let mute_x = win.x + 60.0 + SLIDER_W + 8.0;
 
         // BGM row
-        ui.text(win.x + 12.0, row(0) + SLIDER_H - 4.0, "BGM", label_color);
+        ui.text(
+            win.x + 12.0,
+            row(0) + SLIDER_H - 4.0,
+            &rust_i18n::t!("sound_options.bgm"),
+            label_color,
+        );
         let bgm_rect = Rect::new(slider_x, row(0), SLIDER_W, SLIDER_H);
         let bgm_resp = ui.slider(BGM_SLIDER_ID, bgm_rect, &mut self.bgm_volume, 0.0, 1.0);
         if bgm_resp.changed {
@@ -203,7 +177,7 @@ impl InGameWindow for SoundOptionsWindow {
             CB_SIZE,
         );
         if ui
-            .checkbox(BGM_MUTE_ID, bgm_cb, &mut self.bgm_enabled, &CHECKBOX)
+            .checkbox(BGM_MUTE_ID, bgm_cb, &mut self.bgm_enabled)
             .clicked()
         {
             events.push(self.changed_event(true));
@@ -211,12 +185,17 @@ impl InGameWindow for SoundOptionsWindow {
         ui.text(
             bgm_cb.x + CB_SIZE + 4.0,
             row(0) + SLIDER_H - 4.0,
-            "On",
+            &rust_i18n::t!("sound_options.on"),
             label_color,
         );
 
         // SFX row
-        ui.text(win.x + 12.0, row(1) + SLIDER_H - 4.0, "SFX", label_color);
+        ui.text(
+            win.x + 12.0,
+            row(1) + SLIDER_H - 4.0,
+            &rust_i18n::t!("sound_options.sfx"),
+            label_color,
+        );
         let sfx_rect = Rect::new(slider_x, row(1), SLIDER_W, SLIDER_H);
         let sfx_resp = ui.slider(SFX_SLIDER_ID, sfx_rect, &mut self.sfx_volume, 0.0, 1.0);
         if sfx_resp.changed {
@@ -232,7 +211,7 @@ impl InGameWindow for SoundOptionsWindow {
             CB_SIZE,
         );
         if ui
-            .checkbox(SFX_MUTE_ID, sfx_cb, &mut self.sfx_enabled, &CHECKBOX)
+            .checkbox(SFX_MUTE_ID, sfx_cb, &mut self.sfx_enabled)
             .clicked()
         {
             events.push(self.changed_event(true));
@@ -240,7 +219,7 @@ impl InGameWindow for SoundOptionsWindow {
         ui.text(
             sfx_cb.x + CB_SIZE + 4.0,
             row(1) + SLIDER_H - 4.0,
-            "On",
+            &rust_i18n::t!("sound_options.on"),
             label_color,
         );
 
@@ -261,7 +240,7 @@ impl InGameWindow for SoundOptionsWindow {
                 CB_SIZE,
                 CB_SIZE,
             );
-            if ui.checkbox(id, cb, checked, &CHECKBOX).clicked() {
+            if ui.checkbox(id, cb, checked).clicked() {
                 changed = true;
             }
             ui.text(
@@ -275,7 +254,6 @@ impl InGameWindow for SoundOptionsWindow {
             events.push(self.changed_event(true));
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

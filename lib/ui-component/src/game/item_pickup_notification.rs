@@ -18,7 +18,6 @@ struct PickupEntry {
 }
 
 pub struct ItemPickupNotification {
-    pub has_grf_textures: bool,
     pub container: DialogContainer,
     entry: Option<PickupEntry>,
 }
@@ -32,7 +31,6 @@ impl Default for ItemPickupNotification {
 impl ItemPickupNotification {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             container: DialogContainer::new(),
             entry: None,
         }
@@ -114,23 +112,7 @@ impl InGameWindow for ItemPickupNotification {
     }
 }
 
-impl Window for ItemPickupNotification {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        self.container.has_grf_textures = true;
-        self.container.set_texture_sizes(size_fn);
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        DialogContainer::grf_texture_paths()
-    }
-}
+impl Window for ItemPickupNotification {}
 
 #[cfg(test)]
 mod tests {
@@ -139,7 +121,6 @@ mod tests {
     use ragnarok_game::data_table::DataTable;
 
     use ragnarok_ui::context::UiContext;
-    use ragnarok_ui::frame::TextInputBg::Default;
 
     use ragnarok_ui::state::StateCache;
     use ragnarok_ui::test_support::TestFrame;

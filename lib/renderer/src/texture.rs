@@ -1,9 +1,17 @@
 use ragnarok_formats::grf::GrfArchive;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Mutex, OnceLock};
 
 mod emotion;
 
 pub use emotion::EMOTION_ICON_PREFIX;
+
+/// Texture names already reported as missing, so each one logs once rather
+/// than once per frame.
+fn missing_names() -> &'static Mutex<HashSet<String>> {
+    static MISSING: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+    MISSING.get_or_init(|| Mutex::new(HashSet::new()))
+}
 
 pub struct TextureCache {
     textures: HashMap<String, wgpu::BindGroup>,
@@ -192,6 +200,22 @@ impl TextureCache {
 
     pub fn get(&self, name: &str) -> Option<&wgpu::BindGroup> {
         self.textures.get(name)
+    }
+
+    /// Like [`get`](Self::get), but a miss logs an error once per name. UI draws
+    /// use this and skip the quad on a miss, instead of drawing it white.
+    pub fn get_or_report(&self, name: &str) -> Option<&wgpu::BindGroup> {
+        let found = self.textures.get(name);
+        if found.is_none() {
+            let first = missing_names()
+                .lock()
+                .map(|mut set| set.insert(name.to_string()))
+                .unwrap_or(false);
+            if first {
+                tracing::error!("UI texture not loaded, skipping its draws: {name}");
+            }
+        }
+        found
     }
 
     pub fn texture_size(&self, name: &str) -> Option<(u32, u32)> {

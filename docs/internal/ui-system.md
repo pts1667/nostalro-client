@@ -223,7 +223,7 @@ world picking for that frame without either side knowing about the other.
 
 `UiFrame` (`frame.rs`) is constructed once per frame and borrowed by windows and
 widgets to build their UI. It is created with `UiFrame::new(ctx, atlas, state,
-elapsed_secs, has_grf_textures, initial_focus, saved_positions)`.
+elapsed_secs, initial_focus, saved_positions)`.
 
 Key fields:
 
@@ -231,8 +231,6 @@ Key fields:
 - `state: &mut StateCache` - the retained widget state, owned by `App`.
 - `draw_calls: Vec<DrawCall>` and `tooltip_draw_calls: Vec<DrawCall>` - widgets
   append geometry here.
-- `has_grf_textures: bool` - whether GRF UI textures loaded, so widgets pick
-  textured or fallback rendering.
 - `saved_positions` - the map of saved window positions applied on a window's
   first appearance (see [Layout persistence](#layout-persistence)).
 
@@ -258,12 +256,13 @@ duplicating hover and click logic.
 Ids must be unique within a screen or window. Define them as constants. All
 interactive widgets (`button`, `text_input`, `interact`) take an id.
 
-### Dual rendering
+### One look
 
-Widgets support both GRF-textured and plain fallback rendering by checking
-`self.has_grf_textures`. Textured mode draws quads with `TextureRef::Named(path)`;
-fallback mode draws a solid color plus border with `TextureRef::White` using the
-palette in `theme.rs`. The client is usable without GRF data files.
+Chrome is procedural. Widgets draw solid colour, borders and rounded corners with
+`TextureRef::White` using the palette in `theme.rs`, so the UI renders without any
+game data files. Only game content draws textures: item, skill and card icons,
+emotes, the minimap and world map images, and the character portraits. Content that
+is missing is skipped (see [Loading](#loading)).
 
 ## StateCache
 
@@ -301,8 +300,8 @@ frame.
   batching.
 - `rect.rs` is the `Rect` type (`x`, `y`, `w`, `h`) plus layout helpers
   (`contains`, `centered_in`, button and dialog alignment).
-- `theme.rs` is the fallback palette (`FallbackPalette` color constants and
-  `CORNER_RADIUS`) used when GRF textures are absent.
+- `theme.rs` is the palette (`FallbackPalette` color constants and
+  `CORNER_RADIUS`) that every procedural widget and window chrome uses.
 - `text_input.rs` is `TextInput`, the retained text-editing state for a field
   (buffer, cursor, password masking): `process_keys` consumes the frame's key
   pulses, `display_text` and `display_cursor_offset` drive rendering.
@@ -313,11 +312,8 @@ frame.
 
 `Window` is the base:
 
-- `has_grf_textures` / `set_has_grf_textures` - GRF texture availability.
-- `set_texture_sizes(size_fn)` - adopt real GRF texture dimensions for layout.
 - `window_size()` - nominal outer size; the default `(0.0, 0.0)` marks a window
   that positions itself (bars, dialogs, full-screen screens).
-- `grf_texture_paths()` - the static list of GRF textures to preload.
 
 `InGameWindow: Window` adds the per-frame behavior:
 
@@ -464,18 +460,24 @@ power-of-two sizing and are reused across frames.
 decodes with the `image` crate, converts magenta (`#FF00FF`) to transparent , builds a wgpu texture and bind group, and stores it in
 a map.
 
+A `TextureRef::Named` draw whose texture is not loaded is skipped, not drawn white.
+`TextureCache::get_or_report` returns `None` for it and logs one error per name, so a
+missing game icon leaves an empty slot and a line in the log. Chrome never depends on
+this: chrome is procedural and must not name a GRF texture.
+
 ### Preloading
 
-Windows expose their texture paths via `grf_texture_paths()`. At startup those
-paths are preloaded through `texture_cache.get_or_load()` so the first frame does
-not stall. If all load, `has_grf_textures` is set true.
+The renderer reads only textures already in its cache. Content textures are
+therefore loaded by the client with `renderer.preload_textures()` when they are
+needed: the minimap image on entering a map, card and item art for the windows that
+show them, and so on. Windows do not list their own textures, because their chrome
+is procedural. A missing file is logged once and skipped.
 
 ### Sizing and filtering
 
-GRF textures have arbitrary dimensions. After loading, query sizes through
-`set_texture_sizes()` so layout adapts to the real asset size; fallback
-constants apply when GRF textures are absent. BMP textures use `Nearest`
-filtering (pixel-perfect UI sprites); other formats use `Linear`.
+Layout uses fixed constants. Nothing reads the size of a texture, so a missing
+texture cannot change a window's layout. BMP textures use `Nearest` filtering
+(pixel-perfect UI sprites); other formats use `Linear`.
 
 ### Font atlas
 
@@ -509,15 +511,42 @@ using the fixtures in `tools/ui-component-hot` through its `Scene` API. Use it t
 check a change visually, or to diff before and after. See
 [docs/ui-snapshots.md](../ui-snapshots.md).
 
+## Text and translations
+
+UI chrome text goes through `rust-i18n`. The locale files live in
+`lib/ui-component/locales/` (English is `en.yml`, with `fallback = "en"`), and each
+crate that calls `t!` imports it with `use rust_i18n::t;`.
+
+- **Translate chrome only.** Titles, labels, buttons, tooltips and notices we write.
+  Never translate protocol text (chat prefixes such as `%` and `$`, slash commands),
+  server data, or names from the game tables (item, skill, map, monster, NPC, player,
+  guild). Pass those in as arguments.
+- **Keys** are `<window>.<element>`, for example `basic_info.title`. Shared words go
+  under `common.*` (`common.ok`, `common.cancel`, `common.close`).
+- **Values** take named placeholders, `"Base Lv. %{level}"`, never `format!` around a
+  translated fragment.
+- **Plurals.** There is no plural framework. Use separate keys (`.one`, `.other`)
+  when the count changes the wording.
+- **Numbers and dates** stay as code (`helper::format`). They are not translated.
+- **Tests** never call `set_locale`. The locale is process-wide and tests run in
+  parallel, so an English-only assertion would race with any test that switched it.
+- **Key check.** The `every_t_key_exists_in_en` test in `ui-component` fails when a
+  `t!` key is missing from `en.yml`. A miss otherwise shows the raw key on screen.
+- **Hot reload.** The cdylib and its host each hold their own rust-i18n state. Only
+  English ships, so both use the fallback. A second locale needs a `hot_set_locale`
+  export and a call from the host after each load.
+
 ## Adding a new window
 
-1. Define texture paths as constants; return them from `grf_texture_paths()`.
-2. Define widget ids as constants (`WidgetId(N)`), unique within the window.
+1. Draw the chrome with `helper::fallback` and `helper::window_chrome` (titlebar,
+   container, footer, buttons). Do not add textures for chrome. Define widget ids as
+   constants (`WidgetId(N)`), unique within the window.
 3. Create a struct holding the window's own retained fields (`TextInput`, open
    flag, selection).
 4. Implement `Window` and `InGameWindow`, building the UI in `build(&mut self,
    ui, ctx)` with `UiFrame` methods and returning `GameEvent`s.
 5. Add the instance to `Windows` and an entry to `REGISTRY` in
    `client/src/ui/windows.rs`.
-6. Preload textures at startup and query their sizes for layout.
+6. Write user-visible text with `rust_i18n::t!` and add its key to `locales/en.yml`
+   (see [Text and translations](#text-and-translations)).
 7. Write tests with `UiContext` plus `StateCache` plus `UiFrame`, no GPU.

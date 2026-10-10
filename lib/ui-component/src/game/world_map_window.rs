@@ -1,6 +1,5 @@
-use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_sys_button, draw_titlebar, text_color,
-};
+use crate::helper::fallback;
+use crate::helper::window_chrome::{draw_sys_button, draw_titlebar, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::data_table::map_position_table::WorldMapRect;
 use ragnarok_game::event::GameEvent;
@@ -13,9 +12,6 @@ const CLOSE_BTN_ID: WidgetId = WidgetId(5801);
 const MAP_AREA_ID: WidgetId = WidgetId(5802);
 
 pub const WORLD_MAP_TEX: &str = ragnarok_resources::ui::WORLDMAP;
-const PLAYER_ARROW_TEX: &str = ragnarok_resources::ui::minimap::MAP_ARROW;
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
 /// Fallback until the texture is measured; the real image is 1280x1024.
 const IMAGE_W: f32 = 1280.0;
@@ -37,7 +33,6 @@ const PANEL_BG: [f32; 4] = [0.04, 0.04, 0.06, 0.92];
 const PANEL_BORDER: [f32; 4] = [0.55, 0.5, 0.4, 1.0];
 
 pub struct WorldMapWindow {
-    pub has_grf_textures: bool,
     open: bool,
     /// Map the local player is on, without extension.
     pub current_map: Option<String>,
@@ -64,7 +59,6 @@ impl Default for WorldMapWindow {
 impl WorldMapWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             open: false,
             current_map: None,
             map_width: 1,
@@ -205,36 +199,8 @@ impl WorldMapWindow {
 }
 
 impl Window for WorldMapWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(WORLD_MAP_TEX)
-            && w > 0
-            && h > 0
-        {
-            self.image_size = (w as f32, h as f32);
-        }
-    }
-
     fn window_size(&self) -> (f32, f32) {
         self.size
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            PLAYER_ARROW_TEX,
-        ]
     }
 }
 
@@ -257,10 +223,6 @@ impl InGameWindow for WorldMapWindow {
         if !image_loaded {
             self.request(WORLD_MAP_TEX.to_string(), &mut events);
         }
-
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
 
         let (scale, map_w, map_h) = self.layout(ui.ctx.screen_width, ui.ctx.screen_height);
         let win_w = map_w;
@@ -304,7 +266,7 @@ impl InGameWindow for WorldMapWindow {
         }
         Self::outline(ui, map_x, map_y, map_w, map_h, PANEL_BORDER);
 
-        draw_titlebar(ui, win.x, win.y, win_w, TITLE_H, grf);
+        draw_titlebar(ui, win.x, win.y, win_w, TITLE_H);
         let current_name = self
             .current_map
             .as_deref()
@@ -322,7 +284,7 @@ impl InGameWindow for WorldMapWindow {
         } else {
             format!("World Map - {current_name}")
         };
-        ui.text(win.x + 20.0, win.y + TITLE_H - 5.0, &title, text_color(grf));
+        ui.text(win.x + 20.0, win.y + TITLE_H - 5.0, &title, text_color());
 
         let close_rect = Rect::new(
             win.x + win_w - CLOSE_SIZE - 4.0,
@@ -339,19 +301,14 @@ impl InGameWindow for WorldMapWindow {
             close_rect,
             (CLOSE_SIZE, CLOSE_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
         let Some(positions) = ctx.data.map_position.as_ref() else {
-            ui.has_grf_textures = prev_grf;
             return events;
         };
 
@@ -376,13 +333,7 @@ impl InGameWindow for WorldMapWindow {
                 let angle = crate::game::minimap_window::MinimapWindow::direction_angle(
                     self.player_direction,
                 );
-                let (v, i) =
-                    draw::quad_vertices_rotated(px, py, ARROW_SIZE, angle, [1.0, 1.0, 1.0, 1.0]);
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: TextureRef::Named(PLAYER_ARROW_TEX.to_string()),
-                });
+                fallback::arrow(&mut ui.draw_calls, px, py, ARROW_SIZE, angle, [1.0, 1.0, 1.0, 1.0]);
             }
         }
 
@@ -507,7 +458,7 @@ impl InGameWindow for WorldMapWindow {
                         img_x,
                         img_y + PREVIEW_SIZE / 2.0,
                         PREVIEW_SIZE,
-                        "no minimap",
+                        &rust_i18n::t!("world_map.no_minimap"),
                         [0.6, 0.6, 0.6, 1.0],
                     );
                 }
@@ -527,7 +478,6 @@ impl InGameWindow for WorldMapWindow {
             );
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

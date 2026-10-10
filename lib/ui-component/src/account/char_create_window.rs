@@ -1,13 +1,17 @@
 use crate::Window;
+use crate::helper::fallback;
 use crate::helper::window_chrome;
 use ragnarok_game::event::GameEvent;
 use ragnarok_renderer::ui_renderer::UiVertex;
-use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::draw::{DrawCall, TextureRef};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
 
 // ---- v1 (stat-allocation) layout: login_interface/win_make.bmp, 576x342 ----
+
+
+
 const WIN_W: f32 = 576.0;
 const WIN_H: f32 = 342.0;
 const TITLE_BAR_H: f32 = 22.0;
@@ -45,8 +49,8 @@ const V2_COLOR_Y: f32 = 225.0;
 const V2_ARROW_L_X: f32 = 15.0;
 const V2_ARROW_R_X: f32 = 125.0;
 
-const ARROW_W: f32 = 13.0;
-const ARROW_H: f32 = 13.0;
+const ARROW_W: f32 = 18.0;
+const ARROW_H: f32 = 18.0;
 
 const BTN_W: f32 = 42.0;
 const BTN_H: f32 = 20.0;
@@ -84,7 +88,7 @@ const STAT_ROW_H: f32 = 16.0;
 // Perimeter order (clockwise from the top vertex) so the triangle fan winds cleanly.
 const STAT_HEX_ORDER: [usize; 6] = [0, 2, 5, 3, 4, 1];
 const STAT_HEX_MAX: f32 = 10.0;
-const STAT_HEX_COLOR: [f32; 4] = [0.5, 0.5, 0.5, 0.7];
+const STAT_HEX_COLOR: [f32; 4] = [0.36, 0.52, 0.86, 0.35];
 
 pub const CHAR_CREATE_WINDOW_ID: WidgetId = WidgetId(4500);
 const NAME_ID: WidgetId = WidgetId(4501);
@@ -97,71 +101,7 @@ const COLOR_R_ID: WidgetId = WidgetId(4507);
 const SKIN_TOGGLE_ID: WidgetId = WidgetId(4508);
 const STAT_ARROW_BASE: u32 = 4520;
 
-const WIN_TEXTURE: &str = ragnarok_resources::ui::login::WIN_MAKE;
-const WIN2_TEXTURE: &str = ragnarok_resources::ui::login::WIN_MAKE2;
-const NAME_EDIT_TEXTURE: &str = ragnarok_resources::ui::login::NAME_EDIT;
-const ARROW_L_TEXTURE: &str = ragnarok_resources::ui::SCROLL1LEFT;
-const ARROW_R_TEXTURE: &str = ragnarok_resources::ui::SCROLL1RIGHT;
-const ARROW_UP_TEXTURE: &str = ragnarok_resources::ui::SCROLL0UP;
 
-const MAKE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_MAKE,
-    hover: ragnarok_resources::ui::BTN_MAKE_A,
-    pressed: ragnarok_resources::ui::BTN_MAKE_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-const ARROW_L_BTN: ButtonTextures = ButtonTextures {
-    normal: ARROW_L_TEXTURE,
-    hover: ARROW_L_TEXTURE,
-    pressed: ARROW_L_TEXTURE,
-};
-const ARROW_R_BTN: ButtonTextures = ButtonTextures {
-    normal: ARROW_R_TEXTURE,
-    hover: ARROW_R_TEXTURE,
-    pressed: ARROW_R_TEXTURE,
-};
-const ARROW_UP_BTN: ButtonTextures = ButtonTextures {
-    normal: ARROW_UP_TEXTURE,
-    hover: ARROW_UP_TEXTURE,
-    pressed: ARROW_UP_TEXTURE,
-};
-
-const STAT_ARROWS: [ButtonTextures; 6] = [
-    ButtonTextures {
-        normal: ragnarok_resources::ui::login::ARW_STR0,
-        hover: ragnarok_resources::ui::login::ARW_STR0,
-        pressed: ragnarok_resources::ui::login::ARW_STR1,
-    },
-    ButtonTextures {
-        normal: ragnarok_resources::ui::login::ARW_AGI0,
-        hover: ragnarok_resources::ui::login::ARW_AGI0,
-        pressed: ragnarok_resources::ui::login::ARW_AGI1,
-    },
-    ButtonTextures {
-        normal: ragnarok_resources::ui::login::ARW_VIT0,
-        hover: ragnarok_resources::ui::login::ARW_VIT0,
-        pressed: ragnarok_resources::ui::login::ARW_VIT1,
-    },
-    ButtonTextures {
-        normal: ragnarok_resources::ui::login::ARW_INT0,
-        hover: ragnarok_resources::ui::login::ARW_INT0,
-        pressed: ragnarok_resources::ui::login::ARW_INT1,
-    },
-    ButtonTextures {
-        normal: ragnarok_resources::ui::login::ARW_DEX0,
-        hover: ragnarok_resources::ui::login::ARW_DEX0,
-        pressed: ragnarok_resources::ui::login::ARW_DEX1,
-    },
-    ButtonTextures {
-        normal: ragnarok_resources::ui::login::ARW_LUK0,
-        hover: ragnarok_resources::ui::login::ARW_LUK0,
-        pressed: ragnarok_resources::ui::login::ARW_LUK1,
-    },
-];
 
 const TEXT_COLOR: [f32; 4] = [0.15, 0.16, 0.32, 1.0];
 const ERROR_COLOR: [f32; 4] = [0.8, 0.2, 0.2, 1.0];
@@ -180,8 +120,15 @@ pub struct CharCreateWindow {
     /// Dev aid: draw a small button that flips the skin (v1 hexagon ↔ v2 compact).
     /// Off in the real client, where the packetver fixes the skin.
     pub show_skin_toggle: bool,
-    pub has_grf_textures: bool,
     win_origin: (f32, f32),
+}
+
+/// Draws `label` centred in the gap between two arrow buttons on one row.
+fn label_between_arrows(ui: &mut UiFrame, left: &Rect, right: &Rect, label: &str) {
+    let label_w = ui.atlas.measure_text(label);
+    let centre_x = (left.x + left.w + right.x) / 2.0;
+    let text_y = left.y + (left.h + ui.atlas.line_height) / 2.0 - 2.0;
+    ui.text(centre_x - label_w / 2.0, text_y, label, window_chrome::text_color());
 }
 
 impl CharCreateWindow {
@@ -195,7 +142,6 @@ impl CharCreateWindow {
             with_stats,
             error_message: None,
             show_skin_toggle: false,
-            has_grf_textures: false,
             win_origin: (0.0, 0.0),
         }
     }
@@ -211,45 +157,6 @@ impl CharCreateWindow {
             )
         };
         [self.win_origin.0 + px, self.win_origin.1 + py]
-    }
-
-    /// Textures for the active skin, so a GRF missing the other skin's background
-    /// doesn't force the whole window to fallback rendering.
-    pub fn layout_texture_paths(&self) -> Vec<&'static str> {
-        let mut paths = vec![
-            ARROW_L_TEXTURE,
-            ARROW_R_TEXTURE,
-            MAKE_BTN.normal,
-            MAKE_BTN.hover,
-            MAKE_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ];
-        if self.with_stats {
-            paths.extend([WIN_TEXTURE, ARROW_UP_TEXTURE]);
-        } else {
-            paths.extend([
-                WIN2_TEXTURE,
-                NAME_EDIT_TEXTURE,
-                window_chrome::TITLEBAR_TEX,
-                window_chrome::FOOTER_TEX,
-                window_chrome::SYS_BASE_OFF_TEX,
-                window_chrome::SYS_BASE_ON_TEX,
-            ]);
-        }
-        paths
-    }
-
-    /// Hexagon stat arrows are preloaded best-effort (kept out of the layout set so a
-    /// newer GRF lacking them doesn't drop the window to fallback).
-    pub fn stat_arrow_texture_paths() -> Vec<&'static str> {
-        let mut paths = Vec::with_capacity(12);
-        for arrow in &STAT_ARROWS {
-            paths.push(arrow.normal);
-            paths.push(arrow.pressed);
-        }
-        paths
     }
 
     fn cycle_head(&mut self, delta: i32) {
@@ -290,15 +197,12 @@ impl CharCreateWindow {
 
     pub fn build(&mut self, ui: &mut UiFrame) -> Vec<GameEvent> {
         let mut events = Vec::new();
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
         if self.with_stats {
             self.build_stat_layout(ui, &mut events);
         } else {
             self.build_compact_layout(ui, &mut events);
         }
         self.maybe_draw_skin_toggle(ui);
-        ui.has_grf_textures = prev_grf;
         events
     }
 
@@ -309,12 +213,7 @@ impl CharCreateWindow {
         let (ox, oy) = self.win_origin;
         let rect = Rect::new(ox + 2.0, oy + 2.0, 40.0, 14.0);
         let label = if self.with_stats { "v1" } else { "v2" };
-        // Force the fallback (labelled box) look so the dev toggle reads the same
-        // regardless of the active skin's GRF state.
-        let prev = ui.has_grf_textures;
-        ui.has_grf_textures = false;
-        let clicked = ui.button(SKIN_TOGGLE_ID, rect, &MAKE_BTN, label).clicked();
-        ui.has_grf_textures = prev;
+        let clicked = ui.button(SKIN_TOGGLE_ID, rect, label).clicked();
         if clicked {
             self.with_stats = !self.with_stats;
             self.error_message = None;
@@ -326,51 +225,46 @@ impl CharCreateWindow {
         self.win_origin = (win.x, win.y);
         let (ox, oy) = (win.x, win.y);
 
-        if self.has_grf_textures {
-            push_quad(
-                ui,
-                ox,
-                oy,
-                WIN_W,
-                WIN_H,
-                TextureRef::Named(WIN_TEXTURE.to_string()),
-            );
-        } else {
-            push_color_quad(ui, ox, oy, WIN_W, WIN_H, [0.08, 0.08, 0.12, 0.95]);
-            let title = "Create Character";
-            let tw = ui.atlas.measure_text(title);
-            ui.text(
-                ox + (WIN_W - tw) / 2.0,
-                oy + ui.atlas.line_height,
-                title,
-                [1.0; 4],
-            );
-        }
+        window_chrome::draw_titlebar(ui, ox, oy, WIN_W, TITLE_BAR_H);
+        window_chrome::draw_container(ui, ox, oy + TITLE_BAR_H, WIN_W, WIN_H - TITLE_BAR_H);
+        let title = rust_i18n::t!("char_create.title");
+        let tw = ui.atlas.measure_text(&title);
+        ui.text(
+            ox + (WIN_W - tw) / 2.0,
+            oy + (TITLE_BAR_H + ui.atlas.line_height) / 2.0 - 3.0,
+            &title,
+            window_chrome::text_color(),
+        );
 
-        let name_bg = if self.has_grf_textures {
-            TextInputBg::Transparent
-        } else {
-            TextInputBg::Default
-        };
+        // Framed preview area: the body sprite is drawn over it when available.
+        fallback::slot_cell(ui, ox + 44.0, oy + 98.0, 104.0, 128.0);
+        ui.text(
+            ox + NAME_X,
+            oy + NAME_Y - 6.0,
+            &rust_i18n::t!("char_create.name"),
+            window_chrome::label_color(),
+        );
+
+        let name_bg = TextInputBg::Default;
         let name_rect = Rect::new(ox + NAME_X, oy + NAME_Y, NAME_W, NAME_H);
         ui.text_input(NAME_ID, name_rect, &mut self.name, name_bg);
 
         let head_prev = Rect::new(ox + HEAD_PREV_X, oy + HEAD_ARROW_Y, ARROW_W, ARROW_H);
         let head_next = Rect::new(ox + HEAD_NEXT_X, oy + HEAD_ARROW_Y, ARROW_W, ARROW_H);
         if ui
-            .button(STYLE_L_ID, head_prev, &ARROW_L_BTN, "<")
+            .button(STYLE_L_ID, head_prev, "<")
             .clicked()
         {
             self.cycle_head(-1);
         }
         if ui
-            .button(STYLE_R_ID, head_next, &ARROW_R_BTN, ">")
+            .button(STYLE_R_ID, head_next, ">")
             .clicked()
         {
             self.cycle_head(1);
         }
         let hair_up = Rect::new(ox + HAIR_UP_X, oy + HAIR_UP_Y, ARROW_W, ARROW_H);
-        if ui.button(COLOR_L_ID, hair_up, &ARROW_UP_BTN, "^").clicked() {
+        if ui.button(COLOR_L_ID, hair_up, "^").clicked() {
             self.cycle_color(1);
         }
 
@@ -388,10 +282,10 @@ impl CharCreateWindow {
         let btn_y = oy + WIN_H - BTN_BOTTOM - BTN_H;
         let make = Rect::new(ox + WIN_W - MAKE_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
         let cancel = Rect::new(ox + WIN_W - CANCEL_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
-        let submit = ui.button(MAKE_ID, make, &MAKE_BTN, "Make").clicked() || ui.ctx.key_enter;
+        let submit = ui.button(MAKE_ID, make, &rust_i18n::t!("char_create.make")).clicked() || ui.ctx.key_enter;
         self.try_submit(submit, events);
         if ui
-            .button(CANCEL_ID, cancel, &CANCEL_BTN, "Cancel")
+            .button(CANCEL_ID, cancel, &rust_i18n::t!("common.cancel"))
             .clicked()
             || ui.ctx.key_escape
         {
@@ -404,19 +298,23 @@ impl CharCreateWindow {
         for (i, &(sx, sy)) in STAT_POS.iter().enumerate() {
             let rect = Rect::new(ox + sx, oy + sy, STAT_ARROW_W, STAT_ARROW_H);
             if ui
-                .button(
-                    WidgetId(STAT_ARROW_BASE + i as u32),
-                    rect,
-                    &STAT_ARROWS[i],
-                    "+",
-                )
+                .button(WidgetId(STAT_ARROW_BASE + i as u32), rect, "+")
                 .clicked()
             {
                 self.raise_stat(i);
             }
         }
-        for i in 0..6 {
+        let labels = [
+            rust_i18n::t!("char_create.str"),
+            rust_i18n::t!("char_create.agi"),
+            rust_i18n::t!("char_create.vit"),
+            rust_i18n::t!("char_create.int"),
+            rust_i18n::t!("char_create.dex"),
+            rust_i18n::t!("char_create.luk"),
+        ];
+        for (i, label) in labels.iter().enumerate() {
             let y = oy + STAT_INFO_Y + i as f32 * STAT_ROW_H + ui.atlas.line_height / 1.5;
+            ui.text(ox + STAT_INFO_X - 36.0, y, label, window_chrome::label_color());
             ui.text(ox + STAT_INFO_X, y, &self.stats[i].to_string(), TEXT_COLOR);
         }
     }
@@ -470,35 +368,34 @@ impl CharCreateWindow {
         let win = ui.window_account(CHAR_CREATE_WINDOW_ID, V2_W, V2_H, V2_HEADER_H);
         self.win_origin = (win.x, win.y);
         let (ox, oy) = (win.x, win.y);
-        let has_grf = self.has_grf_textures;
         let content_y = oy + V2_HEADER_H;
         let footer_y = content_y + V2_CONTENT_H;
 
-        window_chrome::draw_titlebar(ui, ox, oy, V2_W, V2_HEADER_H, has_grf);
+        window_chrome::draw_titlebar(ui, ox, oy, V2_W, V2_HEADER_H);
         ui.text(
             ox + 18.0,
             oy + 2.0 + ui.atlas.ascent,
-            "New Character",
-            window_chrome::text_color(has_grf),
+            &rust_i18n::t!("char_create.new_character"),
+            window_chrome::text_color(),
         );
 
-        if has_grf {
-            window_chrome::draw_textured_quad(ui, ox, content_y, V2_W, V2_CONTENT_H, WIN2_TEXTURE);
-        } else {
-            window_chrome::draw_container(ui, ox, content_y, V2_W, V2_CONTENT_H, has_grf);
-        }
-        window_chrome::draw_footer(ui, ox, footer_y, V2_W, V2_FOOTER_H, has_grf);
+        window_chrome::draw_container(ui, ox, content_y, V2_W, V2_CONTENT_H);
+        window_chrome::draw_footer(ui, ox, footer_y, V2_W, V2_FOOTER_H);
 
-        let name_bg = if has_grf {
-            TextInputBg::Texture(NAME_EDIT_TEXTURE)
-        } else {
-            TextInputBg::Default
-        };
+        let name_bg = TextInputBg::Default;
         let name_rect = Rect::new(
             ox + V2_NAME_X,
             content_y + V2_NAME_Y - V2_NAME_H,
             V2_NAME_W,
             V2_NAME_H,
+        );
+        let name_label = rust_i18n::t!("char_create.name");
+        let name_label_w = ui.atlas.measure_text(&name_label);
+        ui.text(
+            name_rect.x + (name_rect.w - name_label_w) / 2.0,
+            name_rect.y - 4.0,
+            &name_label,
+            window_chrome::text_color(),
         );
         ui.text_input(NAME_ID, name_rect, &mut self.name, name_bg);
 
@@ -514,10 +411,11 @@ impl CharCreateWindow {
             ARROW_W,
             ARROW_H,
         );
-        if ui.button(STYLE_L_ID, style_l, &ARROW_L_BTN, "<").clicked() {
+        label_between_arrows(ui, &style_l, &style_r, &rust_i18n::t!("char_create.hair"));
+        if ui.button(STYLE_L_ID, style_l, "<").clicked() {
             self.cycle_head(-1);
         }
-        if ui.button(STYLE_R_ID, style_r, &ARROW_R_BTN, ">").clicked() {
+        if ui.button(STYLE_R_ID, style_r, ">").clicked() {
             self.cycle_head(1);
         }
         let color_l = Rect::new(
@@ -532,10 +430,11 @@ impl CharCreateWindow {
             ARROW_W,
             ARROW_H,
         );
-        if ui.button(COLOR_L_ID, color_l, &ARROW_L_BTN, "<").clicked() {
+        label_between_arrows(ui, &color_l, &color_r, &rust_i18n::t!("char_create.color"));
+        if ui.button(COLOR_L_ID, color_l, "<").clicked() {
             self.cycle_color(-1);
         }
-        if ui.button(COLOR_R_ID, color_r, &ARROW_R_BTN, ">").clicked() {
+        if ui.button(COLOR_R_ID, color_r, ">").clicked() {
             self.cycle_color(1);
         }
 
@@ -551,10 +450,10 @@ impl CharCreateWindow {
         let btn_y = footer_y + V2_FOOTER_H - BTN_BOTTOM - BTN_H;
         let make = Rect::new(ox + V2_W - MAKE_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
         let cancel = Rect::new(ox + V2_W - CANCEL_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
-        let submit = ui.button(MAKE_ID, make, &MAKE_BTN, "Make").clicked() || ui.ctx.key_enter;
+        let submit = ui.button(MAKE_ID, make, &rust_i18n::t!("char_create.make")).clicked() || ui.ctx.key_enter;
         self.try_submit(submit, events);
         if ui
-            .button(CANCEL_ID, cancel, &CANCEL_BTN, "Cancel")
+            .button(CANCEL_ID, cancel, &rust_i18n::t!("common.cancel"))
             .clicked()
             || ui.ctx.key_escape
         {
@@ -563,57 +462,13 @@ impl CharCreateWindow {
     }
 }
 
-fn push_quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, texture: TextureRef) {
-    let (v, i) = draw::quad_vertices(x, y, w, h, [1.0, 1.0, 1.0, 1.0]);
-    ui.draw_calls.push(DrawCall {
-        vertices: v.to_vec(),
-        indices: i.to_vec(),
-        texture,
-    });
-}
-
-fn push_color_quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
-    let (v, i) = draw::quad_vertices(x, y, w, h, color);
-    ui.draw_calls.push(DrawCall {
-        vertices: v.to_vec(),
-        indices: i.to_vec(),
-        texture: TextureRef::White,
-    });
-}
-
 impl Window for CharCreateWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
     fn window_size(&self) -> (f32, f32) {
         if self.with_stats {
             (WIN_W, WIN_H)
         } else {
             (V2_W, V2_H)
         }
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            WIN_TEXTURE,
-            WIN2_TEXTURE,
-            NAME_EDIT_TEXTURE,
-            ARROW_L_TEXTURE,
-            ARROW_R_TEXTURE,
-            ARROW_UP_TEXTURE,
-            window_chrome::TITLEBAR_TEX,
-            window_chrome::FOOTER_TEX,
-            MAKE_BTN.normal,
-            MAKE_BTN.hover,
-            MAKE_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ]
     }
 }
 

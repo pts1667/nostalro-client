@@ -1,14 +1,10 @@
 use crate::Window;
-use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
 pub const LEVELUP_NOTIFY_WINDOW_ID: WidgetId = WidgetId(2710);
 const BASE_BTN_ID: WidgetId = WidgetId(2711);
 const JOB_BTN_ID: WidgetId = WidgetId(2712);
-
-const LV_UP_OFF: &str = ragnarok_resources::ui::basic::LV_UP_OFF;
-const LV_UP_ON: &str = ragnarok_resources::ui::basic::LV_UP_ON;
 
 const MARGIN: f32 = 0.0;
 const BOTTOM_MARGIN: f32 = 8.0;
@@ -22,7 +18,6 @@ pub enum LevelUpClick {
 }
 
 pub struct LevelUpNotificationWindow {
-    pub has_grf_textures: bool,
     show_base: bool,
     show_job: bool,
     icon_size: (f32, f32),
@@ -37,7 +32,6 @@ impl Default for LevelUpNotificationWindow {
 impl LevelUpNotificationWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             show_base: false,
             show_job: false,
             icon_size: DEFAULT_SIZE,
@@ -52,16 +46,6 @@ impl LevelUpNotificationWindow {
         self.show_job = true;
     }
 
-    fn draw_icon(&self, ui: &mut UiFrame, rect: Rect, hovered: bool) {
-        let path = if hovered { LV_UP_ON } else { LV_UP_OFF };
-        let (v, idx) = draw::quad_vertices(rect.x, rect.y, rect.w, rect.h, [1.0, 1.0, 1.0, 1.0]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: idx.to_vec(),
-            texture: TextureRef::Named(path.to_string()),
-        });
-    }
-
     pub fn build(&mut self, ui: &mut UiFrame) -> LevelUpClick {
         let (icon_w, icon_h) = self.icon_size;
         let y = ui.ctx.screen_height - icon_h - BOTTOM_MARGIN;
@@ -69,7 +53,7 @@ impl LevelUpNotificationWindow {
 
         if self.show_job {
             let rect = Rect::new(MARGIN, y, icon_w, icon_h);
-            if self.icon(ui, JOB_BTN_ID, rect) {
+            if self.icon(ui, JOB_BTN_ID, rect, &rust_i18n::t!("levelup.job_up")) {
                 self.show_job = false;
                 result = LevelUpClick::Job;
             }
@@ -77,7 +61,7 @@ impl LevelUpNotificationWindow {
 
         if self.show_base {
             let rect = Rect::new(ui.ctx.screen_width - icon_w - MARGIN, y, icon_w, icon_h);
-            if self.icon(ui, BASE_BTN_ID, rect) {
+            if self.icon(ui, BASE_BTN_ID, rect, &rust_i18n::t!("levelup.base_up")) {
                 self.show_base = false;
                 result = LevelUpClick::Base;
             }
@@ -88,34 +72,18 @@ impl LevelUpNotificationWindow {
 
     /// Drawn in a popup layer so the icon stays clickable over any window it
     /// overlaps, and swallows the click instead of sharing it with that window.
-    fn icon(&self, ui: &mut UiFrame, id: WidgetId, rect: Rect) -> bool {
+    fn icon(&self, ui: &mut UiFrame, id: WidgetId, rect: Rect, label: &str) -> bool {
         ui.begin_popup_layer(rect);
-        let resp = ui.interact(id, rect);
+        let resp = ui.button(id, rect, label);
         if resp.hovered() {
             ui.any_interactive_hovered = true;
         }
-        self.draw_icon(ui, rect, resp.hovered());
         ui.end_popup_layer();
         resp.clicked()
     }
 }
 
-impl Window for LevelUpNotificationWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(LV_UP_OFF) {
-            self.icon_size = (w as f32, h as f32);
-        }
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![LV_UP_OFF, LV_UP_ON]
-    }
-}
+impl Window for LevelUpNotificationWindow {}
 
 #[cfg(test)]
 mod tests {

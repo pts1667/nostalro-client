@@ -153,10 +153,12 @@ impl UiPipeline {
         let textures = &self.textures;
         let commands: Vec<ragnarok_renderer::UiDrawCommand> = draw_calls
             .iter()
-            .map(|call| ragnarok_renderer::UiDrawCommand {
-                vertices: &call.vertices,
-                indices: &call.indices,
-                texture: bind_for(&call.texture, font_bind, white_bind, textures),
+            .filter_map(|call| {
+                Some(ragnarok_renderer::UiDrawCommand {
+                    vertices: &call.vertices,
+                    indices: &call.indices,
+                    texture: bind_for(&call.texture, font_bind, white_bind, textures)?,
+                })
             })
             .collect();
 
@@ -236,17 +238,19 @@ impl UiPipeline {
     }
 }
 
-/// Resolves a draw call's texture to a bind group. Free function so the caller
-/// can borrow the pipeline's fields separately from the renderer.
+/// Resolves a draw call's texture to a bind group. `None` means a named texture
+/// is not loaded, so the caller skips the quad rather than drawing it white.
+/// Free function so the caller can borrow the pipeline's fields separately from
+/// the renderer.
 fn bind_for<'a>(
     texture: &UiTextureRef,
     font_bind: &'a wgpu::BindGroup,
     white_bind: &'a wgpu::BindGroup,
     textures: &'a TextureCache,
-) -> &'a wgpu::BindGroup {
+) -> Option<&'a wgpu::BindGroup> {
     match texture {
-        UiTextureRef::FontAtlas => font_bind,
-        UiTextureRef::White | UiTextureRef::Inline(_) => white_bind,
-        UiTextureRef::Named(name) => textures.get(name).unwrap_or(white_bind),
+        UiTextureRef::FontAtlas => Some(font_bind),
+        UiTextureRef::White | UiTextureRef::Inline(_) => Some(white_bind),
+        UiTextureRef::Named(name) => textures.get_or_report(name),
     }
 }

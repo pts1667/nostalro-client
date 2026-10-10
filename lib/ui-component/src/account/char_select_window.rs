@@ -1,14 +1,20 @@
 use crate::Window;
+use crate::helper::fallback;
 use crate::helper::window_chrome::{
-    FOOTER_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer,
-    draw_titlebar, text_color,
+    draw_container, draw_footer, draw_titlebar, label_color, text_color,
 };
 use ragnarok_game::event::{CharacterInfo, GameEvent};
 use ragnarok_game::job_class::job_class_name;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+
+
+
+
+
 
 const WIN_W: f32 = 576.0;
 const WIN_H: f32 = 342.0;
@@ -24,14 +30,10 @@ const SLOT_LEFTS: [f32; 3] = [60.0, 224.0, 386.0];
 const SPRITE_ANCHOR_X: f32 = 63.0;
 const SPRITE_ANCHOR_Y: f32 = 110.0;
 
-const BOX_W: f32 = 139.0;
-const BOX_H: f32 = 144.0;
-const BOX_TOP: f32 = 40.0;
-const BOX_DX: f32 = -5.0;
 
-const ARROW_W: f32 = 13.0;
-const ARROW_H: f32 = 13.0;
-const ARROW_TOP: f32 = 105.0;
+const ARROW_W: f32 = 18.0;
+const ARROW_H: f32 = 18.0;
+const ARROW_TOP: f32 = 101.0;
 const ARROW_MARGIN: f32 = 40.0;
 
 const BTN_W: f32 = 42.0;
@@ -42,8 +44,10 @@ const CANCEL_RIGHT: f32 = 4.0;
 const DEL_LEFT: f32 = 4.0;
 
 const PANEL_Y: f32 = 204.0;
-const VAL_COL1_X: f32 = 68.0;
-const VAL_COL2_X: f32 = 216.0;
+const LABEL_COL1_X: f32 = 60.0;
+const VAL_COL1_X: f32 = 140.0;
+const LABEL_COL2_X: f32 = 216.0;
+const VAL_COL2_X: f32 = 300.0;
 const ROW_YS: [f32; 6] = [2.0, 18.0, 34.0, 50.0, 66.0, 82.0];
 
 pub const CHAR_SELECT_WINDOW_ID: WidgetId = WidgetId(210);
@@ -63,46 +67,12 @@ const DIALOG_TITLE_H: f32 = 17.0;
 const DIALOG_FOOTER_H: f32 = 30.0;
 const BIRTHDATE_MAX_LEN: usize = 8;
 
-const WIN_TEXTURE: &str = ragnarok_resources::ui::login::WIN_SELECT;
-const BOX_TEXTURE: &str = ragnarok_resources::ui::login::BOX_SELECT;
-const ARROW_L_TEXTURE: &str = ragnarok_resources::ui::SCROLL1LEFT;
-const ARROW_R_TEXTURE: &str = ragnarok_resources::ui::SCROLL1RIGHT;
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-const MAKE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_MAKE,
-    hover: ragnarok_resources::ui::BTN_MAKE_A,
-    pressed: ragnarok_resources::ui::BTN_MAKE_B,
-};
-const DEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_DEL,
-    hover: ragnarok_resources::ui::BTN_DEL_A,
-    pressed: ragnarok_resources::ui::BTN_DEL_B,
-};
-const ARROW_L_BTN: ButtonTextures = ButtonTextures {
-    normal: ARROW_L_TEXTURE,
-    hover: ARROW_L_TEXTURE,
-    pressed: ARROW_L_TEXTURE,
-};
-const ARROW_R_BTN: ButtonTextures = ButtonTextures {
-    normal: ARROW_R_TEXTURE,
-    hover: ARROW_R_TEXTURE,
-    pressed: ARROW_R_TEXTURE,
-};
 
 const TEXT_COLOR: [f32; 4] = [0.15, 0.16, 0.32, 1.0];
-const SLOT_BORDER_COLOR: [f32; 4] = [0.78, 0.80, 0.86, 1.0];
+const SELECTED_COLOR: [f32; 4] = [0.36, 0.52, 0.86, 1.0];
 
-/// One occupied, on-screen slot the client uses to place the animated sprite.
+
+
 pub struct CharSlotView {
     pub char_index: usize,
     pub anchor: [f32; 2],
@@ -122,7 +92,6 @@ pub struct CharSelectWindow {
     pub max_slots: usize,
     page: usize,
     selected_col: usize,
-    pub has_grf_textures: bool,
     win_origin: (f32, f32),
     delete_dialog: Option<DeleteDialog>,
     delete_status: Option<String>,
@@ -141,7 +110,6 @@ impl CharSelectWindow {
             max_slots: DEFAULT_MAX_SLOTS,
             page,
             selected_col,
-            has_grf_textures: false,
             win_origin: (0.0, 0.0),
             delete_dialog: None,
             delete_status: None,
@@ -259,14 +227,7 @@ impl CharSelectWindow {
             }
         }
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        if self.has_grf_textures {
-            self.build_grf(ui, &mut events);
-        } else {
-            self.build_fallback(ui, &mut events);
-        }
-        ui.has_grf_textures = prev_grf;
+        self.build_fallback(ui, &mut events);
 
         self.sprite_insert_index = Some(ui.draw_calls.len());
 
@@ -291,40 +252,22 @@ impl CharSelectWindow {
         events
     }
 
-    fn build_grf(&mut self, ui: &mut UiFrame, events: &mut Vec<GameEvent>) {
-        let win = ui.window_account(CHAR_SELECT_WINDOW_ID, WIN_W, WIN_H, TITLE_BAR_H);
-        self.win_origin = (win.x, win.y);
-
-        push_quad(
-            ui,
-            win.x,
-            win.y,
-            WIN_W,
-            WIN_H,
-            TextureRef::Named(WIN_TEXTURE.to_string()),
-        );
-
-        self.build_slots(ui, win.x, win.y, true, events);
-        self.build_arrows(ui, win.x, win.y);
-        self.build_info_panel(ui, win.x, win.y);
-        self.build_buttons(ui, win.x, win.y, events);
-    }
-
     fn build_fallback(&mut self, ui: &mut UiFrame, events: &mut Vec<GameEvent>) {
         let win = ui.window_account(CHAR_SELECT_WINDOW_ID, WIN_W, WIN_H, TITLE_BAR_H);
         self.win_origin = (win.x, win.y);
 
-        push_color_quad(ui, win.x, win.y, WIN_W, WIN_H, [0.08, 0.08, 0.12, 0.95]);
-        let title = "Character Select";
-        let tw = ui.atlas.measure_text(title);
+        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_BAR_H);
+        draw_container(ui, win.x, win.y + TITLE_BAR_H, WIN_W, WIN_H - TITLE_BAR_H);
+        let title = rust_i18n::t!("char_select.title");
+        let tw = ui.atlas.measure_text(&title);
         ui.text(
             win.x + (WIN_W - tw) / 2.0,
-            win.y + ui.atlas.line_height,
-            title,
-            [1.0, 1.0, 1.0, 1.0],
+            win.y + (TITLE_BAR_H + ui.atlas.line_height) / 2.0 - 3.0,
+            &title,
+            text_color(),
         );
 
-        self.build_slots(ui, win.x, win.y, false, events);
+        self.build_slots(ui, win.x, win.y, events);
         self.build_arrows(ui, win.x, win.y);
         self.build_info_panel(ui, win.x, win.y);
         self.build_buttons(ui, win.x, win.y, events);
@@ -335,15 +278,12 @@ impl CharSelectWindow {
         ui: &mut UiFrame,
         ox: f32,
         oy: f32,
-        grf: bool,
         events: &mut Vec<GameEvent>,
     ) {
         for col in 0..SLOTS_PER_PAGE {
             let slot_rect = Rect::new(ox + SLOT_LEFTS[col], oy + SLOT_TOP, SLOT_W, SLOT_H);
 
-            if !grf {
-                push_border(ui, slot_rect, SLOT_BORDER_COLOR);
-            }
+            fallback::slot_cell(ui, slot_rect.x, slot_rect.y, slot_rect.w, slot_rect.h);
 
             let resp = ui.interact(
                 WidgetId(CHAR_SELECT_WINDOW_ID.0 + 10 + col as u32),
@@ -366,18 +306,15 @@ impl CharSelectWindow {
             }
 
             if col == self.selected_col {
-                if grf {
-                    push_quad(
-                        ui,
-                        ox + SLOT_LEFTS[col] + BOX_DX,
-                        oy + BOX_TOP,
-                        BOX_W,
-                        BOX_H,
-                        TextureRef::Named(BOX_TEXTURE.to_string()),
-                    );
-                } else {
-                    push_border(ui, slot_rect, [0.5, 0.62, 0.9, 1.0]);
-                }
+                // Two-pixel ring, so the selected slot reads at a glance.
+                push_border(ui, slot_rect, SELECTED_COLOR);
+                let inner = Rect::new(
+                    slot_rect.x + 1.0,
+                    slot_rect.y + 1.0,
+                    slot_rect.w - 2.0,
+                    slot_rect.h - 2.0,
+                );
+                push_border(ui, inner, SELECTED_COLOR);
             }
         }
     }
@@ -393,10 +330,10 @@ impl CharSelectWindow {
             ARROW_W,
             ARROW_H,
         );
-        if ui.button(ARROW_L_ID, left, &ARROW_L_BTN, "<").clicked() {
+        if ui.button(ARROW_L_ID, left, "<").clicked() {
             self.move_selection(-(SLOTS_PER_PAGE as i32));
         }
-        if ui.button(ARROW_R_ID, right, &ARROW_R_BTN, ">").clicked() {
+        if ui.button(ARROW_R_ID, right, ">").clicked() {
             self.move_selection(SLOTS_PER_PAGE as i32);
         }
     }
@@ -421,9 +358,27 @@ impl CharSelectWindow {
             ch.dex.to_string(),
             ch.luk.to_string(),
         ];
+        let left_labels = [
+            rust_i18n::t!("char_select.name"),
+            rust_i18n::t!("char_select.job"),
+            rust_i18n::t!("char_select.base_level"),
+            rust_i18n::t!("char_select.base_exp"),
+            rust_i18n::t!("char_select.hp"),
+            rust_i18n::t!("char_select.sp"),
+        ];
+        let right_labels = [
+            rust_i18n::t!("char_select.str"),
+            rust_i18n::t!("char_select.agi"),
+            rust_i18n::t!("char_select.vit"),
+            rust_i18n::t!("char_select.int"),
+            rust_i18n::t!("char_select.dex"),
+            rust_i18n::t!("char_select.luk"),
+        ];
         for (i, y) in ROW_YS.iter().enumerate() {
             let ty = oy + PANEL_Y + y + ui.atlas.line_height / 1.5;
+            ui.text(ox + LABEL_COL1_X, ty, &left_labels[i], label_color());
             ui.text(ox + VAL_COL1_X, ty, &left[i], TEXT_COLOR);
+            ui.text(ox + LABEL_COL2_X, ty, &right_labels[i], label_color());
             ui.text(ox + VAL_COL2_X, ty, &right[i], TEXT_COLOR);
         }
     }
@@ -438,7 +393,7 @@ impl CharSelectWindow {
 
         let cancel = Rect::new(ox + WIN_W - CANCEL_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
         if ui
-            .button(CANCEL_ID, cancel, &CANCEL_BTN, "Cancel")
+            .button(CANCEL_ID, cancel, &rust_i18n::t!("common.cancel"))
             .clicked()
             && !modal
         {
@@ -447,17 +402,17 @@ impl CharSelectWindow {
 
         let action = Rect::new(ox + WIN_W - OK_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
         if occupied {
-            if ui.button(OK_ID, action, &OK_BTN, "OK").clicked() && !modal {
+            if ui.button(OK_ID, action, &rust_i18n::t!("common.ok")).clicked() && !modal {
                 events.push(GameEvent::RequestSelectCharacter { slot: slot as u8 });
             }
             let del = Rect::new(ox + DEL_LEFT, btn_y, BTN_W, BTN_H);
-            if ui.button(DEL_ID, del, &DEL_BTN, "del").clicked() && !modal {
+            if ui.button(DEL_ID, del, &rust_i18n::t!("char_select.del")).clicked() && !modal {
                 if let Some(gid) = selected_gid {
                     self.open_delete_dialog(gid, 0);
                     events.push(GameEvent::RequestDeleteCharacterReserve { gid });
                 }
             }
-        } else if ui.button(MAKE_ID, action, &MAKE_BTN, "Make").clicked() && !modal {
+        } else if ui.button(MAKE_ID, action, &rust_i18n::t!("char_select.make")).clicked() && !modal {
             events.push(GameEvent::RequestCreateCharacter { slot: slot as u8 });
         }
 
@@ -475,17 +430,16 @@ impl CharSelectWindow {
         let (ox, oy) = self.win_origin;
         let dx = ox + (WIN_W - DIALOG_W) / 2.0;
         let dy = oy + (WIN_H - DIALOG_H) / 2.0;
-        let grf = self.has_grf_textures;
-        let fg = text_color(grf);
+        let fg = text_color();
 
         push_color_quad(ui, ox, oy, WIN_W, WIN_H, [0.0, 0.0, 0.0, 0.55]);
 
-        draw_titlebar(ui, dx, dy, DIALOG_W, DIALOG_TITLE_H, grf);
+        draw_titlebar(ui, dx, dy, DIALOG_W, DIALOG_TITLE_H);
         let body_y = dy + DIALOG_TITLE_H;
         let body_h = DIALOG_H - DIALOG_TITLE_H - DIALOG_FOOTER_H;
-        draw_container(ui, dx, body_y, DIALOG_W, body_h, grf);
+        draw_container(ui, dx, body_y, DIALOG_W, body_h);
         let footer_y = dy + DIALOG_H - DIALOG_FOOTER_H;
-        draw_footer(ui, dx, footer_y, DIALOG_W, DIALOG_FOOTER_H, grf);
+        draw_footer(ui, dx, footer_y, DIALOG_W, DIALOG_FOOTER_H);
 
         let lh = ui.atlas.line_height;
         let name = self
@@ -497,13 +451,13 @@ impl CharSelectWindow {
         ui.text(
             dx + 20.0,
             dy + DIALOG_TITLE_H - 4.0,
-            &format!("Delete {name}?"),
+            &rust_i18n::t!("char_select.delete_name", name = name),
             fg,
         );
         ui.text(
             dx + 12.0,
             body_y + lh,
-            "Enter birthdate (YYMMDD) to confirm:",
+            &rust_i18n::t!("char_select.enter_birthdate_yymmdd_to_confirm"),
             fg,
         );
 
@@ -527,12 +481,12 @@ impl CharSelectWindow {
         let cancel = Rect::new(dx + DIALOG_W - CANCEL_RIGHT - BTN_W, btn_y, BTN_W, BTN_H);
 
         let submit =
-            ui.button(DEL_CONFIRM_ID, confirm, &OK_BTN, "OK").clicked() || ui.ctx.key_enter;
+            ui.button(DEL_CONFIRM_ID, confirm, &rust_i18n::t!("common.ok")).clicked() || ui.ctx.key_enter;
         if submit {
             events.push(GameEvent::RequestDeleteCharacterConfirm { gid, birthdate });
         }
         if ui
-            .button(DEL_CANCEL_ID, cancel, &CANCEL_BTN, "Cancel")
+            .button(DEL_CANCEL_ID, cancel, &rust_i18n::t!("common.cancel"))
             .clicked()
             || ui.ctx.key_escape
         {
@@ -540,15 +494,6 @@ impl CharSelectWindow {
             self.close_delete_dialog();
         }
     }
-}
-
-fn push_quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, texture: TextureRef) {
-    let (v, i) = draw::quad_vertices(x, y, w, h, [1.0, 1.0, 1.0, 1.0]);
-    ui.draw_calls.push(DrawCall {
-        vertices: v.to_vec(),
-        indices: i.to_vec(),
-        texture,
-    });
 }
 
 fn push_color_quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
@@ -573,40 +518,8 @@ fn push_border(ui: &mut UiFrame, rect: Rect, color: [f32; 4]) {
 }
 
 impl Window for CharSelectWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, WIN_H)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            WIN_TEXTURE,
-            BOX_TEXTURE,
-            ARROW_L_TEXTURE,
-            ARROW_R_TEXTURE,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-            MAKE_BTN.normal,
-            MAKE_BTN.hover,
-            MAKE_BTN.pressed,
-            DEL_BTN.normal,
-            DEL_BTN.hover,
-            DEL_BTN.pressed,
-            TITLEBAR_TEX,
-            FOOTER_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-        ]
     }
 }
 

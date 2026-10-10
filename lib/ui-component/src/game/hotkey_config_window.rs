@@ -1,5 +1,5 @@
 use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button,
+    draw_container, draw_footer, draw_sys_button,
     draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -7,8 +7,11 @@ use ragnarok_game::emotion::EMOTION_TABLE;
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::keybinding::{EmotionKeys, HotkeyAction, KeyBindings, KeyChord};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+
+
 
 pub const HOTKEY_CONFIG_WINDOW_ID: WidgetId = WidgetId(4300);
 const CLOSE_BTN_ID: WidgetId = WidgetId(4301);
@@ -20,24 +23,6 @@ const PREV_BTN_ID: WidgetId = WidgetId(4308);
 const NEXT_BTN_ID: WidgetId = WidgetId(4309);
 const FOOTER_CLOSE_BTN_ID: WidgetId = WidgetId(4310);
 const CELL_BASE_ID: u32 = 4350;
-
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-const RESET_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_RESET,
-    hover: ragnarok_resources::ui::BTN_RESET_A,
-    pressed: ragnarok_resources::ui::BTN_RESET_B,
-};
 
 const WIN_W: f32 = 380.0;
 const TITLE_H: f32 = 17.0;
@@ -94,7 +79,6 @@ struct Row {
 }
 
 pub struct HotkeyConfigWindow {
-    has_grf_textures: bool,
     open: bool,
     staged_interface: KeyBindings,
     staged_emotion: EmotionKeys,
@@ -116,7 +100,6 @@ impl Default for HotkeyConfigWindow {
 impl HotkeyConfigWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             open: false,
             staged_interface: KeyBindings::defaults(),
             staged_emotion: EmotionKeys::default(),
@@ -179,7 +162,7 @@ impl HotkeyConfigWindow {
             return;
         }
         if let Some(other) = self.conflict(target, &chord) {
-            self.warning = Some(format!("Already assigned to {other}"));
+            self.warning = Some(rust_i18n::t!("hotkey_config.already_assigned", other = other).to_string());
             return;
         }
         match target {
@@ -278,40 +261,8 @@ fn emote_label(emote_type: u8) -> String {
 }
 
 impl Window for HotkeyConfigWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(RESET_BTN.normal) {
-            self.reset_size = (w as f32, h as f32);
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, WIN_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-            RESET_BTN.normal,
-            RESET_BTN.hover,
-            RESET_BTN.pressed,
-        ]
     }
 }
 
@@ -332,10 +283,7 @@ impl InGameWindow for HotkeyConfigWindow {
             return Vec::new();
         }
         let events = Vec::new();
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         let default_x = (ui.ctx.screen_width - WIN_W) / 2.0;
         let default_y = (ui.ctx.screen_height - WIN_H) / 2.0;
@@ -352,13 +300,13 @@ impl InGameWindow for HotkeyConfigWindow {
 
         let body_y = y + TITLE_H;
         let body_h = WIN_H - TITLE_H - FOOTER_H;
-        draw_container(ui, x, body_y, WIN_W, body_h, grf);
+        draw_container(ui, x, body_y, WIN_W, body_h);
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         ui.text(
             x + 16.0,
             y + TITLE_H - 3.0,
-            "Shortcut key setting window",
+            &rust_i18n::t!("hotkey_config.shortcut_key_setting_window"),
             tc,
         );
 
@@ -377,14 +325,10 @@ impl InGameWindow for HotkeyConfigWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -495,13 +439,13 @@ impl InGameWindow for HotkeyConfigWindow {
         }
 
         let footer_y = y + WIN_H - FOOTER_H;
-        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H, grf);
+        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
 
         let (bw, bh) = self.btn_size;
         let (rw, rh) = self.reset_size;
         let reset_rect = Rect::new(x + PAD, footer_y + (FOOTER_H - rh) / 2.0, rw, rh);
         if ui
-            .button(RESET_BTN_ID, reset_rect, &RESET_BTN, "reset")
+            .button(RESET_BTN_ID, reset_rect, &rust_i18n::t!("hotkey_config.reset"))
             .clicked()
         {
             self.reset_active_tab();
@@ -510,29 +454,26 @@ impl InGameWindow for HotkeyConfigWindow {
         let by = footer_y + (FOOTER_H - bh) / 2.0;
         let close_rect = Rect::new(x + WIN_W - PAD - bw, by, bw, bh);
         if ui
-            .text_button(FOOTER_CLOSE_BTN_ID, close_rect, "close")
+            .text_button(FOOTER_CLOSE_BTN_ID, close_rect, &rust_i18n::t!("hotkey_config.close"))
             .clicked()
         {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
         let cancel_rect = Rect::new(close_rect.x - CELL_GAP - bw, by, bw, bh);
         if ui
-            .button(CANCEL_BTN_ID, cancel_rect, &CANCEL_BTN, "cancel")
+            .button(CANCEL_BTN_ID, cancel_rect, &rust_i18n::t!("hotkey_config.cancel"))
             .clicked()
         {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
         let ok_rect = Rect::new(cancel_rect.x - CELL_GAP - bw, by, bw, bh);
-        if ui.button(OK_BTN_ID, ok_rect, &OK_BTN, "ok").clicked() {
+        if ui.button(OK_BTN_ID, ok_rect, &rust_i18n::t!("hotkey_config.ok")).clicked() {
             self.dirty = true;
             self.close();
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

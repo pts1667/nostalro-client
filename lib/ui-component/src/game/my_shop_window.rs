@@ -1,26 +1,21 @@
 use crate::helper::format::format_thousands;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_titlebar,
+    draw_container, draw_footer, draw_titlebar,
     text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::{GameEvent, VendorItem};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
 
 pub const MY_SHOP_WINDOW_ID: WidgetId = WidgetId(2600);
 const CLOSE_ID: WidgetId = WidgetId(2601);
 const SCROLL_UP_ID: WidgetId = WidgetId(2602);
 const SCROLL_DOWN_ID: WidgetId = WidgetId(2603);
 const SCROLL_THUMB_ID: WidgetId = WidgetId(2604);
-
-const CLOSE_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 const WIN_W: f32 = 300.0;
 const TITLE_H: f32 = 17.0;
@@ -42,7 +37,6 @@ struct MyShopRow {
 
 #[derive(Default)]
 pub struct MyShopWindow {
-    has_grf_textures: bool,
     open: bool,
     shop_name: String,
     rows: Vec<MyShopRow>,
@@ -89,34 +83,10 @@ impl MyShopWindow {
 }
 
 impl Window for MyShopWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(CLOSE_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         let visible_rows = self.rows.len().min(VISIBLE_ROWS).max(1);
         let list_h = visible_rows as f32 * ROW_H;
         (WIN_W, TITLE_H + PAD + list_h + PAD + FOOTER_H)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_BTN.normal,
-            CLOSE_BTN.hover,
-            CLOSE_BTN.pressed,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths
     }
 }
 
@@ -137,10 +107,7 @@ impl InGameWindow for MyShopWindow {
         }
         let mut events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
         let (btn_w, btn_h) = self.btn_size;
 
         let visible_rows = self.rows.len().min(VISIBLE_ROWS).max(1);
@@ -155,7 +122,7 @@ impl InGameWindow for MyShopWindow {
         let (dx, dy) = (win.x, win.y);
         ui.interact(MY_SHOP_WINDOW_ID, Rect::new(dx, dy, WIN_W, win_h));
 
-        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H);
         let title = if self.shop_name.is_empty() {
             "My Shop".to_string()
         } else {
@@ -165,8 +132,8 @@ impl InGameWindow for MyShopWindow {
 
         let body_y = dy + TITLE_H;
         let body_h = PAD + list_h + PAD;
-        draw_container(ui, dx, body_y, WIN_W, body_h, grf);
-        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H, grf);
+        draw_container(ui, dx, body_y, WIN_W, body_h);
+        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H);
 
         let has_scroll = max_scroll > 0;
         let list_x = dx + PAD;
@@ -233,11 +200,10 @@ impl InGameWindow for MyShopWindow {
 
         let win_rect = Rect::new(dx, dy, WIN_W, win_h);
         let btns = win_rect.buttons_bottom_right(1, btn_w, btn_h, 5.0, 5.0, 3.0);
-        if ui.button(CLOSE_ID, btns[0], &CLOSE_BTN, "Close").clicked() {
+        if ui.button(CLOSE_ID, btns[0], &rust_i18n::t!("common.close")).clicked() {
             events.push(GameEvent::RequestCloseStore);
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

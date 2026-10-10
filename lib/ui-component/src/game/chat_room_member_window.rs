@@ -1,15 +1,17 @@
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button,
+    draw_container, draw_footer, draw_sys_button,
     draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::chat_room::ChatRoomMember;
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef, word_wrap};
-use ragnarok_ui::frame::{ButtonTextures, RESIZE_HANDLE_TEX, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+
 
 pub const CHAT_ROOM_MEMBER_WINDOW_ID: WidgetId = WidgetId(4800);
 const CLOSE_BTN_ID: WidgetId = WidgetId(4801);
@@ -21,19 +23,6 @@ const SCROLL_THUMB_ID: WidgetId = WidgetId(4806);
 const INPUT_ID: WidgetId = WidgetId(4807);
 const RESIZE_ID: WidgetId = WidgetId(4808);
 const MEMBER_ROW_BASE_ID: u32 = 4830;
-
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 pub const OWN_MSG_COLOR: [f32; 4] = [0.192, 0.349, 0.216, 1.0];
 pub const OTHER_MSG_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
@@ -59,7 +48,6 @@ const DEFAULT_CONTENT_H: f32 = 112.0;
 const MIN_CONTENT_H: f32 = 56.0;
 
 pub struct ChatRoomMemberWindow {
-    has_grf_textures: bool,
     open: bool,
     room_id: u32,
     title: String,
@@ -85,7 +73,6 @@ impl Default for ChatRoomMemberWindow {
 impl ChatRoomMemberWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             open: false,
             room_id: 0,
             title: String::new(),
@@ -219,37 +206,8 @@ impl ChatRoomMemberWindow {
 }
 
 impl Window for ChatRoomMemberWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(CANCEL_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         (self.width, TITLE_H + PAD + self.content_h + PAD + FOOTER_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-            RESIZE_HANDLE_TEX,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths
     }
 }
 
@@ -271,10 +229,7 @@ impl InGameWindow for ChatRoomMemberWindow {
         }
         let mut events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         let win_w = self.width;
         let visible_rows = self.visible_rows();
@@ -292,7 +247,7 @@ impl InGameWindow for ChatRoomMemberWindow {
         let (x, y) = (win.x, win.y);
         ui.interact(CHAT_ROOM_MEMBER_WINDOW_ID, Rect::new(x, y, win_w, win_h));
 
-        draw_titlebar(ui, x, y, win_w, TITLE_H, grf);
+        draw_titlebar(ui, x, y, win_w, TITLE_H);
         let header = format!("{} ({}/{})", self.title, self.members.len(), self.max_count);
         ui.text(x + 16.0, y + TITLE_H - 3.0, &header, tc);
 
@@ -306,15 +261,12 @@ impl InGameWindow for ChatRoomMemberWindow {
             close_rect,
             (11.0, 11.0),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
 
         let body_y = y + TITLE_H;
-        draw_container(ui, x, body_y, win_w, body_h, grf);
-        draw_footer(ui, x, y + win_h - FOOTER_H, win_w, FOOTER_H, grf);
+        draw_container(ui, x, body_y, win_w, body_h);
+        draw_footer(ui, x, y + win_h - FOOTER_H, win_w, FOOTER_H);
 
         let content_y = body_y + PAD;
 
@@ -411,22 +363,12 @@ impl InGameWindow for ChatRoomMemberWindow {
         let btn_y = footer_y + (FOOTER_H - btn_h) / 2.0;
         let mut bx = x + win_w - PAD - RESIZE_SIZE - btn_w;
         let leave = ui
-            .button(
-                LEAVE_BTN_ID,
-                Rect::new(bx, btn_y, btn_w, btn_h),
-                &CANCEL_BTN,
-                "Leave",
-            )
+            .button(LEAVE_BTN_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("chat_room_member.leave"))
             .clicked();
         if i_am_owner {
             bx -= btn_w + 4.0;
             let edit = ui
-                .button(
-                    EDIT_BTN_ID,
-                    Rect::new(bx, btn_y, btn_w, btn_h),
-                    &OK_BTN,
-                    "Edit",
-                )
+                .button(EDIT_BTN_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("chat_room_member.edit"))
                 .clicked();
             if edit {
                 events.push(GameEvent::RequestEditChatRoomSettings);
@@ -473,7 +415,6 @@ impl InGameWindow for ChatRoomMemberWindow {
             self.close();
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

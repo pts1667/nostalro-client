@@ -1,7 +1,9 @@
 use crate::Window;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId, WindowOrder};
+use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
+
+
 
 const OVERLAY_ID: WidgetId = WidgetId(410);
 const WINDOW_ID: WidgetId = WidgetId(411);
@@ -17,18 +19,6 @@ const BTN_SPACING: f32 = 3.0;
 const FALLBACK_BTN_W: f32 = 42.0;
 const FALLBACK_BTN_H: f32 = 20.0;
 
-const WIN_TEXTURE: &str = ragnarok_resources::ui::WIN_MSGBOX;
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConfirmResult {
@@ -60,7 +50,6 @@ impl ConfirmDialogState {
 
 pub struct ConfirmDialog {
     pub state: Option<ConfirmDialogState>,
-    pub has_grf_textures: bool,
     result: Option<ConfirmResult>,
     btn_size: (f32, f32),
     win_size: (f32, f32),
@@ -76,7 +65,6 @@ impl ConfirmDialog {
     pub fn new() -> Self {
         Self {
             state: None,
-            has_grf_textures: false,
             result: None,
             btn_size: (FALLBACK_BTN_W, FALLBACK_BTN_H),
             win_size: (DIALOG_W, DIALOG_H),
@@ -176,45 +164,32 @@ impl ConfirmDialog {
         let dx = ((ui.ctx.screen_width - dialog_w) / 2.0).floor();
         let dy = ((ui.ctx.screen_height - dialog_h) / 2.0).floor();
 
-        if self.has_grf_textures {
-            let (v, i) = draw::quad_vertices(dx, dy, dialog_w, dialog_h, [1.0, 1.0, 1.0, 1.0]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(WIN_TEXTURE.to_string()),
-            });
-        } else {
-            let (v, i) = draw::quad_vertices(dx, dy, dialog_w, dialog_h, [0.2, 0.2, 0.28, 1.0]);
+        let (v, i) = draw::quad_vertices(dx, dy, dialog_w, dialog_h, [0.2, 0.2, 0.28, 1.0]);
+        ui.draw_calls.push(DrawCall {
+            vertices: v.to_vec(),
+            indices: i.to_vec(),
+            texture: TextureRef::White,
+        });
+        let border_color = [0.5, 0.5, 0.6, 1.0];
+        for (bx, by, bw, bh) in [
+            (dx, dy, dialog_w, 1.0),
+            (dx, dy + dialog_h - 1.0, dialog_w, 1.0),
+            (dx, dy, 1.0, dialog_h),
+            (dx + dialog_w - 1.0, dy, 1.0, dialog_h),
+        ] {
+            let (v, i) = draw::quad_vertices(bx, by, bw, bh, border_color);
             ui.draw_calls.push(DrawCall {
                 vertices: v.to_vec(),
                 indices: i.to_vec(),
                 texture: TextureRef::White,
             });
-            let border_color = [0.5, 0.5, 0.6, 1.0];
-            for (bx, by, bw, bh) in [
-                (dx, dy, dialog_w, 1.0),
-                (dx, dy + dialog_h - 1.0, dialog_w, 1.0),
-                (dx, dy, 1.0, dialog_h),
-                (dx + dialog_w - 1.0, dy, 1.0, dialog_h),
-            ] {
-                let (v, i) = draw::quad_vertices(bx, by, bw, bh, border_color);
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: TextureRef::White,
-                });
-            }
         }
 
         let (btn_w, btn_h) = self.btn_size;
         let container = Rect::new(dx, dy, dialog_w, dialog_h);
 
         if state.no_buttons {
-            let text_color = if self.has_grf_textures {
-                [0.0, 0.0, 0.0, 1.0]
-            } else {
-                [1.0, 1.0, 1.0, 1.0]
-            };
+            let text_color = [1.0, 1.0, 1.0, 1.0];
             draw_wrapped_lines(
                 ui,
                 &container,
@@ -236,11 +211,7 @@ impl ConfirmDialog {
             BTN_SPACING,
         );
 
-        let text_color = if self.has_grf_textures {
-            [0.0, 0.0, 0.0, 1.0]
-        } else {
-            [1.0, 1.0, 1.0, 1.0]
-        };
+        let text_color = [1.0, 1.0, 1.0, 1.0];
         draw_wrapped_lines(ui, &container, &lines, PADDING, btns[0].y, text_color);
 
         let mut callback = state.onclose.take();
@@ -249,10 +220,10 @@ impl ConfirmDialog {
 
         let mut cancelled = false;
         if state.show_cancel {
-            let cancel = ui.button(CANCEL_BTN_ID, btns[0], &CANCEL_BTN, "Cancel");
+            let cancel = ui.button(CANCEL_BTN_ID, btns[0], &rust_i18n::t!("common.cancel"));
             cancelled = cancel.clicked();
         }
-        let ok = ui.button(OK_BTN_ID, btns[num_buttons - 1], &OK_BTN, "OK");
+        let ok = ui.button(OK_BTN_ID, btns[num_buttons - 1], &rust_i18n::t!("common.ok"));
         let confirmed = ok.clicked() || enter;
 
         if cancelled {
@@ -299,33 +270,7 @@ fn draw_wrapped_lines(
 }
 
 impl Window for ConfirmDialog {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
 
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(WIN_TEXTURE) {
-            self.win_size = (w as f32, h as f32);
-        }
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            WIN_TEXTURE,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ]
-    }
 }
 
 #[cfg(test)]

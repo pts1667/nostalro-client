@@ -114,7 +114,7 @@ impl ContextMenu {
         if !self.open {
             return Vec::new();
         }
-        let tc = text_color(false);
+        let tc = text_color();
         let mut events = Vec::new();
 
         let menu_h = self.items.len() as f32 * ITEM_H;

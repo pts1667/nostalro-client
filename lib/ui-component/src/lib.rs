@@ -3,6 +3,8 @@ pub mod game;
 pub mod helper;
 pub mod widget_id;
 
+rust_i18n::i18n!("locales", fallback = "en");
+
 use ragnarok_ai::config::CompanionAiConfig;
 use ragnarok_game::character::Character;
 use ragnarok_game::companion::{HomunculusState, MercenaryState};
@@ -62,9 +64,6 @@ impl<'a> BuildCtx<'a> {
 }
 
 pub trait Window {
-    fn has_grf_textures(&self) -> bool;
-    fn set_has_grf_textures(&mut self, value: bool);
-    fn set_texture_sizes(&mut self, _size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {}
     /// Nominal outer size (width, height) in pixels. The default `(0.0, 0.0)`
     /// marks a window that positions itself (bars, dialogs, full-screen
     /// screens); draggable windows override it so the gallery can lay them out
@@ -72,9 +71,6 @@ pub trait Window {
     fn window_size(&self) -> (f32, f32) {
         (0.0, 0.0)
     }
-    fn grf_texture_paths() -> Vec<&'static str>
-    where
-        Self: Sized;
 }
 
 pub trait InGameWindow: Window {
@@ -97,5 +93,66 @@ pub trait InGameWindow: Window {
     /// cannot both confirm the modal and open the chat line.
     fn owns_keyboard(&self, _ctx: &BuildCtx) -> bool {
         false
+    }
+}
+
+#[cfg(test)]
+mod i18n_tests {
+    use rust_i18n::t;
+
+    #[test]
+    fn shared_labels_resolve_in_english() {
+        assert_eq!(t!("common.ok"), "OK");
+        assert_eq!(t!("common.cancel"), "Cancel");
+    }
+
+    /// Every literal key passed to `t!` in this crate must exist in `en.yml`.
+    /// rust-i18n returns the key itself on a miss, so a typo would otherwise
+    /// show up on screen as `basic_info.titel`.
+    #[test]
+    fn every_t_key_exists_in_en() {
+        let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        let mut keys = Vec::new();
+        collect_t_keys(&src, &mut keys);
+        assert!(
+            keys.iter().any(|k| k == "common.ok"),
+            "key scan found no t! keys; the scanner is broken"
+        );
+        let missing: Vec<&String> = keys
+            .iter()
+            .filter(|k| crate::_rust_i18n_try_translate("en", k.as_str()).is_none())
+            .collect();
+        assert!(missing.is_empty(), "keys missing from locales/en.yml: {missing:?}");
+    }
+
+    fn collect_t_keys(dir: &std::path::Path, out: &mut Vec<String>) {
+        for entry in std::fs::read_dir(dir).expect("read src dir") {
+            let path = entry.expect("dir entry").path();
+            if path.is_dir() {
+                collect_t_keys(&path, out);
+                continue;
+            }
+            if path.extension().is_none_or(|e| e != "rs") {
+                continue;
+            }
+            let text = std::fs::read_to_string(&path).expect("read source file");
+            let mut rest = text.as_str();
+            while let Some(at) = rest.find("t!(\"") {
+                // Skip `format!("`, `write!("` and similar: `t` must start a macro name.
+                let starts_name = rest[..at]
+                    .chars()
+                    .next_back()
+                    .is_none_or(|c| !(c.is_alphanumeric() || c == '_'));
+                let after = &rest[at + "t!(\"".len()..];
+                if let Some(end) = after.find('"') {
+                    if starts_name {
+                        out.push(after[..end].to_string());
+                    }
+                    rest = &after[end..];
+                } else {
+                    break;
+                }
+            }
+        }
     }
 }

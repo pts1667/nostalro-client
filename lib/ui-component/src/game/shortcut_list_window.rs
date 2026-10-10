@@ -1,25 +1,18 @@
 use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button,
+    draw_container, draw_footer, draw_sys_button,
     draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
 
 pub const SHORTCUT_LIST_WINDOW_ID: WidgetId = WidgetId(3600);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3601);
 const VIEW_BTN_ID: WidgetId = WidgetId(3602);
 const ROW_INPUT_BASE: u32 = 3610;
-
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const VIEW_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_VIEW,
-    hover: ragnarok_resources::ui::BTN_VIEW_B,
-    pressed: ragnarok_resources::ui::BTN_VIEW_A,
-};
 
 pub const SLOT_COUNT: usize = 10;
 const WIN_W: f32 = 230.0;
@@ -41,7 +34,6 @@ fn slot_hotkey_digit(slot: usize) -> u8 {
 }
 
 pub struct ShortcutListWindow {
-    has_grf_textures: bool,
     open: bool,
     slots: [TextInput; SLOT_COUNT],
     committed: Vec<String>,
@@ -57,7 +49,6 @@ impl Default for ShortcutListWindow {
 impl ShortcutListWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             open: false,
             slots: std::array::from_fn(|_| TextInput::new(23, false)),
             committed: Vec::new(),
@@ -88,31 +79,8 @@ impl ShortcutListWindow {
 }
 
 impl Window for ShortcutListWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(VIEW_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, win_h())
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            VIEW_BTN.normal,
-            VIEW_BTN.hover,
-            VIEW_BTN.pressed,
-        ]
     }
 }
 
@@ -134,23 +102,16 @@ impl InGameWindow for ShortcutListWindow {
         }
         let mut events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
-        let bg = if grf {
-            TextInputBg::Gray
-        } else {
-            TextInputBg::Default
-        };
+        let tc = text_color();
+        let bg = TextInputBg::Default;
 
         let h = win_h();
         let win = ui.window_at(SHORTCUT_LIST_WINDOW_ID, WIN_W, h, TITLE_H, 520.0, 160.0);
         let (x, y) = (win.x, win.y);
         ui.interact(SHORTCUT_LIST_WINDOW_ID, Rect::new(x, y, WIN_W, h));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
-        ui.text(x + 16.0, y + TITLE_H - 3.0, "Shortcut List", tc);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
+        ui.text(x + 16.0, y + TITLE_H - 3.0, &rust_i18n::t!("shortcut_list.shortcut_list"), tc);
 
         let close_rect = Rect::new(
             x + WIN_W - CLOSE_BTN_SIZE - 3.0,
@@ -167,20 +128,16 @@ impl InGameWindow for ShortcutListWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
         let body_y = y + TITLE_H;
         let body_h = PAD + SLOT_COUNT as f32 * ROW_H + PAD;
-        draw_container(ui, x, body_y, WIN_W, body_h, grf);
+        draw_container(ui, x, body_y, WIN_W, body_h);
 
         let field_x = x + PAD + LABEL_W;
         let field_w = WIN_W - PAD * 2.0 - LABEL_W;
@@ -189,7 +146,7 @@ impl InGameWindow for ShortcutListWindow {
             ui.text(
                 x + PAD,
                 row_y + 12.0,
-                &format!("Alt + {}", slot_hotkey_digit(i)),
+                &rust_i18n::t!("shortcut_list.alt_hotkey", key = slot_hotkey_digit(i)),
                 tc,
             );
             ui.text_input(
@@ -201,7 +158,7 @@ impl InGameWindow for ShortcutListWindow {
         }
 
         let footer_y = y + h - FOOTER_H;
-        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H, grf);
+        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         let (bw, bh) = self.btn_size;
         let ok_rect = Rect::new(
             x + WIN_W - PAD - bw,
@@ -209,7 +166,7 @@ impl InGameWindow for ShortcutListWindow {
             bw,
             bh,
         );
-        if ui.button(VIEW_BTN_ID, ok_rect, &VIEW_BTN, "view").clicked() {
+        if ui.button(VIEW_BTN_ID, ok_rect, &rust_i18n::t!("shortcut_list.view")).clicked() {
             events.push(GameEvent::ToggleEmotionWindow);
         }
 
@@ -219,7 +176,6 @@ impl InGameWindow for ShortcutListWindow {
             events.push(GameEvent::ShortcutBindingsChanged(current));
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

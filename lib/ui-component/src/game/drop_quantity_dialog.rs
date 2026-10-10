@@ -6,7 +6,6 @@ use ragnarok_ui::frame::{UiFrame, WidgetId};
 pub struct DropQuantityDialog {
     pub item_index: u16,
     pub max_count: i16,
-    pub has_grf_textures: bool,
     inner: InputDialog,
 }
 
@@ -25,7 +24,6 @@ impl DropQuantityDialog {
         Self {
             item_index,
             max_count,
-            has_grf_textures: false,
             inner: InputDialog::new(config, WidgetId(421)),
         }
     }
@@ -47,7 +45,6 @@ impl InGameWindow for DropQuantityDialog {
     fn build(&mut self, ui: &mut UiFrame, ctx: &mut BuildCtx) -> Vec<GameEvent> {
         let _character = &mut *ctx.character;
         let _data = ctx.data;
-        self.inner.has_grf_textures = self.has_grf_textures;
         match self.inner.build(ui) {
             InputDialogResult::Submitted => {
                 let qty: i16 = self.inner.value_i16().unwrap_or(0);
@@ -66,22 +63,7 @@ impl InGameWindow for DropQuantityDialog {
     }
 }
 
-impl Window for DropQuantityDialog {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        self.inner.set_texture_sizes(size_fn);
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        InputDialog::grf_texture_paths()
-    }
-}
+impl Window for DropQuantityDialog {}
 
 #[cfg(test)]
 mod tests {

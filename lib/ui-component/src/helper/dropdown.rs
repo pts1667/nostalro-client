@@ -1,23 +1,15 @@
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+use ragnarok_ui::theme::FallbackPalette as P;
+
 
 pub const OPTION_H: f32 = 16.0;
 
-const CARET: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::TXTBOX_BTN_A,
-    hover: ragnarok_resources::ui::basic::TXTBOX_BTN_B,
-    pressed: ragnarok_resources::ui::basic::TXTBOX_BTN_C,
-};
-
-const BG: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
-const BORDER: [f32; 4] = [0.761, 0.761, 0.761, 1.0];
-const SELECTION: [f32; 4] = [0.451, 0.62, 0.937, 1.0];
+const BG: [f32; 4] = P::SLOT_FILL;
+const BORDER: [f32; 4] = P::FIELD_RIM;
+const SELECTION: [f32; 4] = [0.80, 0.86, 0.97, 1.0];
 const TEXT: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-
-pub fn grf_texture_paths() -> Vec<&'static str> {
-    vec![CARET.normal, CARET.hover, CARET.pressed]
-}
 
 #[derive(Default)]
 pub struct Dropdown {
@@ -53,29 +45,18 @@ impl Dropdown {
             ui.any_interactive_hovered = true;
         }
 
-        fill(ui, rect.x, rect.y, rect.w, rect.h, BG);
-        border(ui, rect);
+        ragnarok_ui::theme::fallback_text_input(ui, rect, self.open);
         ui.text(rect.x + 3.0, rect.y + 12.0, label, TEXT);
 
-        let caret = Rect::new(rect.x + rect.w - rect.h, rect.y, rect.h, rect.h);
-        if ui.has_grf_textures {
-            let pressed = resp.hovered() && (ui.ctx.mouse_clicked || ui.ctx.mouse_down);
-            let tex = if pressed {
-                CARET.pressed
-            } else if resp.hovered() {
-                CARET.hover
-            } else {
-                CARET.normal
-            };
-            let (v, i) = draw::quad_vertices(caret.x, caret.y, caret.w, caret.h, BG);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(tex.to_string()),
-            });
-        } else {
-            down_arrow(ui, caret.x + caret.w / 2.0, caret.y + 6.0, TEXT);
-        }
+        // A small glossy button on the right edge carries the caret.
+        let caret = Rect::new(
+            rect.x + rect.w - rect.h + 1.0,
+            rect.y + 1.0,
+            rect.h - 2.0,
+            rect.h - 2.0,
+        );
+        ragnarok_ui::theme::fallback_button(ui, caret, resp.hovered(), false, "");
+        down_arrow(ui, caret.x + caret.w / 2.0, caret.y + caret.h / 2.0 - 2.0, P::GLOSS_RIM);
 
         let mut toggled = false;
         if resp.clicked() && !blocked {

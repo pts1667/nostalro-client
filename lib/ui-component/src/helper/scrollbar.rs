@@ -1,20 +1,11 @@
-use ragnarok_ui::draw::{self, DrawCall, TextureRef};
+use crate::helper::fallback;
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
 pub const SCROLLBAR_W: f32 = 13.0;
 pub const SCROLL_BTN_H: f32 = 13.0;
 
-const TRACK_TILE_H: f32 = 13.0;
-const THUMB_PIECE_H: f32 = 4.0;
 const MIN_THUMB_H: f32 = 8.0;
-
-const SCROLL_UP_TEX: &str = ragnarok_resources::ui::SCROLL0UP;
-const SCROLL_DOWN_TEX: &str = ragnarok_resources::ui::SCROLL0DOWN;
-const SCROLL_TRACK_TEX: &str = ragnarok_resources::ui::SCROLL0MID;
-const THUMB_TOP_TEX: &str = ragnarok_resources::ui::SCROLL0BAR_UP;
-const THUMB_BODY_TEX: &str = ragnarok_resources::ui::SCROLL0BAR_MID;
-const THUMB_BOTTOM_TEX: &str = ragnarok_resources::ui::SCROLL0BAR_DOWN;
 
 pub struct ScrollbarIds {
     pub up: WidgetId,
@@ -27,24 +18,6 @@ struct ScrollThumbState {
     dragging: bool,
     start_mouse: f32,
     start_value: f32,
-}
-
-fn blit(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, texture: &str) {
-    let (v, i) = draw::quad_vertices(x, y, w, h, [1.0, 1.0, 1.0, 1.0]);
-    ui.draw_calls.push(DrawCall {
-        vertices: v.to_vec(),
-        indices: i.to_vec(),
-        texture: TextureRef::Named(texture.to_string()),
-    });
-}
-
-fn fill(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
-    let (v, i) = draw::quad_vertices(x, y, w, h, color);
-    ui.draw_calls.push(DrawCall {
-        vertices: v.to_vec(),
-        indices: i.to_vec(),
-        texture: TextureRef::White,
-    });
 }
 
 pub fn scrollbar(
@@ -81,65 +54,39 @@ pub fn scrollbar(
         }
     }
 
-    let has_grf = ui.has_grf_textures;
     let track_top = y + SCROLL_BTN_H;
     let track_bottom = y + h - SCROLL_BTN_H;
     let track_h = track_bottom - track_top;
 
     let up_rect = Rect::new(x, y, SCROLLBAR_W, SCROLL_BTN_H);
     let up_response = ui.interact(ids.up, up_rect);
-    if has_grf {
-        blit(ui, x, y + 1.0, SCROLLBAR_W, SCROLL_BTN_H, SCROLL_UP_TEX);
-    } else {
-        let color = if up_response.hovered() {
-            [0.5, 0.5, 0.6, 1.0]
-        } else {
-            [0.3, 0.3, 0.4, 1.0]
-        };
-        fill(ui, x, y, SCROLLBAR_W, SCROLL_BTN_H, color);
-    }
+    fallback::scroll_button(
+        ui,
+        x,
+        y,
+        SCROLLBAR_W,
+        SCROLL_BTN_H,
+        true,
+        up_response.hovered(),
+    );
     if up_response.clicked() && offset > 0 {
         offset -= 1;
     }
 
-    if has_grf {
-        let mut ty = track_top;
-        while ty + TRACK_TILE_H <= track_bottom {
-            blit(ui, x, ty, SCROLLBAR_W, TRACK_TILE_H, SCROLL_TRACK_TEX);
-            ty += TRACK_TILE_H;
-        }
-        blit(
-            ui,
-            x,
-            track_bottom - TRACK_TILE_H,
-            SCROLLBAR_W,
-            TRACK_TILE_H,
-            SCROLL_TRACK_TEX,
-        );
-    } else {
-        fill(ui, x, track_top, SCROLLBAR_W, track_h, [0.0, 0.0, 0.0, 0.3]);
-    }
+    fallback::scroll_track(ui, x, track_top, SCROLLBAR_W, track_h);
 
     let down_y = y + h - SCROLL_BTN_H;
     let down_rect = Rect::new(x, down_y, SCROLLBAR_W, SCROLL_BTN_H);
     let down_response = ui.interact(ids.down, down_rect);
-    if has_grf {
-        blit(
-            ui,
-            x,
-            y + h - SCROLL_BTN_H - 1.0,
-            SCROLLBAR_W,
-            SCROLL_BTN_H,
-            SCROLL_DOWN_TEX,
-        );
-    } else {
-        let color = if down_response.hovered() {
-            [0.5, 0.5, 0.6, 1.0]
-        } else {
-            [0.3, 0.3, 0.4, 1.0]
-        };
-        fill(ui, x, down_y, SCROLLBAR_W, SCROLL_BTN_H, color);
-    }
+    fallback::scroll_button(
+        ui,
+        x,
+        down_y,
+        SCROLLBAR_W,
+        SCROLL_BTN_H,
+        false,
+        down_response.hovered(),
+    );
     if down_response.clicked() && offset < max_scroll {
         offset += 1;
     }
@@ -184,43 +131,9 @@ pub fn scrollbar(
     }
 
     let thumb_y = track_top + (track_h - thumb_h) * offset as f32 / max_scroll as f32;
-    if has_grf {
-        blit(ui, x, thumb_y, SCROLLBAR_W, THUMB_PIECE_H, THUMB_TOP_TEX);
-        let bottom_y = thumb_y + thumb_h - THUMB_PIECE_H;
-        let mut ty = thumb_y + THUMB_PIECE_H;
-        while ty < bottom_y {
-            blit(ui, x, ty, SCROLLBAR_W, THUMB_PIECE_H, THUMB_BODY_TEX);
-            ty += THUMB_PIECE_H;
-        }
-        blit(
-            ui,
-            x,
-            bottom_y,
-            SCROLLBAR_W,
-            THUMB_PIECE_H,
-            THUMB_BOTTOM_TEX,
-        );
-    } else {
-        let color = if hovered {
-            [0.6, 0.6, 0.7, 0.9]
-        } else {
-            [0.5, 0.5, 0.6, 0.8]
-        };
-        fill(ui, x + 2.0, thumb_y, SCROLLBAR_W - 4.0, thumb_h, color);
-    }
+    fallback::scroll_thumb(ui, x + 2.0, thumb_y, SCROLLBAR_W - 4.0, thumb_h, hovered);
 
     offset
-}
-
-pub fn grf_texture_paths() -> Vec<&'static str> {
-    vec![
-        SCROLL_UP_TEX,
-        SCROLL_DOWN_TEX,
-        SCROLL_TRACK_TEX,
-        THUMB_TOP_TEX,
-        THUMB_BODY_TEX,
-        THUMB_BOTTOM_TEX,
-    ]
 }
 
 #[cfg(test)]
@@ -333,7 +246,17 @@ mod tests {
         let mut ui = test_frame(&mut ctx, &mut state);
         let win = ui.window_at(WIN_ID, 200.0, 200.0, 200.0, 100.0, 100.0);
         let content = Rect::new(win.x, win.y, 180.0, 200.0);
-        scrollbar(&mut ui, ids(), 0, 5, 10, content, win.x + 180.0, win.y, 200.0);
+        scrollbar(
+            &mut ui,
+            ids(),
+            0,
+            5,
+            10,
+            content,
+            win.x + 180.0,
+            win.y,
+            200.0,
+        );
 
         let mut ctx = UiContext::new(800.0, 600.0);
         ctx.mouse_x = 285.0;
@@ -342,7 +265,17 @@ mod tests {
         let mut ui = test_frame(&mut ctx, &mut state);
         let win = ui.window_at(WIN_ID, 200.0, 200.0, 200.0, 100.0, 100.0);
         let content = Rect::new(win.x, win.y, 180.0, 200.0);
-        let offset = scrollbar(&mut ui, ids(), 0, 5, 10, content, win.x + 180.0, win.y, 200.0);
+        let offset = scrollbar(
+            &mut ui,
+            ids(),
+            0,
+            5,
+            10,
+            content,
+            win.x + 180.0,
+            win.y,
+            200.0,
+        );
 
         assert_eq!((win.x, win.y), (100.0, 100.0));
         assert!(offset > 0);

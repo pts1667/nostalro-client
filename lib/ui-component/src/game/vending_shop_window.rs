@@ -4,15 +4,17 @@ use crate::helper::dialog_container::DialogContainer;
 use crate::helper::format::format_thousands;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    ITEMWIN_MID_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_textured_quad, draw_titlebar,
+    draw_container, draw_footer, draw_titlebar,
     text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::{GameEvent, VendorItem};
 use ragnarok_renderer::font_atlas::FontAtlas;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, RESIZE_HANDLE_TEX, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+
 
 pub const VENDING_SHOP_WINDOW_ID: WidgetId = WidgetId(2400);
 const SCROLL_UP_ID: WidgetId = WidgetId(2405);
@@ -27,17 +29,6 @@ const CANCEL_ID: WidgetId = WidgetId(2422);
 const RIGHT_RESIZE_ID: WidgetId = WidgetId(2423);
 const STAGED_BASE_ID: u32 = 2430;
 const NUM_DIALOG_BASE: u32 = 2440;
-
-const BUY_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_BUY,
-    hover: ragnarok_resources::ui::BTN_BUY_A,
-    pressed: ragnarok_resources::ui::BTN_BUY_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 const WIN_W: f32 = 280.0;
 const TITLE_H: f32 = 17.0;
@@ -73,7 +64,6 @@ struct StagedBuy {
 
 #[derive(Default)]
 pub struct VendingShopWindow {
-    has_grf_textures: bool,
     open: bool,
     aid: u32,
     unique_id: u32,
@@ -182,8 +172,8 @@ impl VendingShopWindow {
         }
     }
 
-    fn build_left(&mut self, ui: &mut UiFrame, grf: bool) {
-        let tc = text_color(grf);
+    fn build_left(&mut self, ui: &mut UiFrame) {
+        let tc = text_color();
         let rows_shown = self.list_rows;
         let max_scroll = self.rows.len().saturating_sub(rows_shown);
         let list_h = rows_shown as f32 * ROW_H;
@@ -193,17 +183,17 @@ impl VendingShopWindow {
         let (dx, dy) = (win.x, win.y);
         ui.interact(VENDING_SHOP_WINDOW_ID, Rect::new(dx, dy, WIN_W, win_h));
 
-        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H);
         ui.text(
             dx + 17.0,
             dy + TITLE_H - 4.0,
-            &format!("Merchant Shop - {}", self.title),
+            &rust_i18n::t!("vending_shop.title", title = self.title),
             tc,
         );
 
         let body_y = dy + TITLE_H;
-        draw_container(ui, dx, body_y, WIN_W, PAD + list_h + PAD, grf);
-        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H, grf);
+        draw_container(ui, dx, body_y, WIN_W, PAD + list_h + PAD);
+        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H);
 
         let has_scroll = max_scroll > 0;
         let list_x = dx + PAD;
@@ -256,7 +246,7 @@ impl VendingShopWindow {
             }
 
             let iy = row_y + (ROW_H - ICON_SIZE) / 2.0;
-            draw_item_slot(ui, list_x + 2.0, iy, grf);
+            draw_item_slot(ui, list_x + 2.0, iy);
             if let Some(icon) = &row.icon {
                 let (v, i) = draw::quad_vertices(list_x + 2.0, iy, ICON_SIZE, ICON_SIZE, [1.0; 4]);
                 ui.draw_calls.push(DrawCall {
@@ -290,13 +280,12 @@ impl VendingShopWindow {
             dy,
             WIN_W,
             win_h,
-            grf,
         );
     }
 
-    fn build_right(&mut self, ui: &mut UiFrame, grf: bool) -> Vec<GameEvent> {
+    fn build_right(&mut self, ui: &mut UiFrame) -> Vec<GameEvent> {
         let mut events = Vec::new();
-        let tc = text_color(grf);
+        let tc = text_color();
         let (btn_w, btn_h) = self.btn_size;
 
         let slots_shown = self.buy_rows;
@@ -307,13 +296,13 @@ impl VendingShopWindow {
         let (dx, dy) = (win.x, win.y);
         ui.interact(VENDING_BUY_WINDOW_ID, Rect::new(dx, dy, WIN_W, win_h));
 
-        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H, grf);
-        ui.text(dx + 17.0, dy + TITLE_H - 4.0, "Buying Items", tc);
+        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H);
+        ui.text(dx + 17.0, dy + TITLE_H - 4.0, &rust_i18n::t!("vending_shop.buying_items"), tc);
 
         let body_y = dy + TITLE_H;
         let body_h = PAD + list_h + PAD + TOTAL_H;
-        draw_container(ui, dx, body_y, WIN_W, body_h, grf);
-        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H, grf);
+        draw_container(ui, dx, body_y, WIN_W, body_h);
+        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H);
 
         let slot_x = dx + PAD;
         let slot_w = WIN_W - PAD * 2.0;
@@ -324,7 +313,7 @@ impl VendingShopWindow {
             let sy = slots_y + slot as f32 * ROW_H;
             let slot_rect = Rect::new(slot_x, sy, slot_w, ROW_H);
             let iy = sy + (ROW_H - ICON_SIZE) / 2.0;
-            draw_item_slot(ui, slot_x + 2.0, iy, grf);
+            draw_item_slot(ui, slot_x + 2.0, iy);
 
             let Some(item) = self.staged.get(slot) else {
                 continue;
@@ -397,13 +386,13 @@ impl VendingShopWindow {
             }
         }
 
-        let total_str = format!("Total : {} Zeny", format_thousands(self.total()));
+        let total_str = rust_i18n::t!("vending_shop.total", zeny = format_thousands(self.total())).to_string();
 
         let win_rect = Rect::new(dx, dy, WIN_W, win_h);
         ui.text(dx + PAD, win_rect.y + win_rect.h - 10.0, &total_str, tc);
         let btns = win_rect.buttons_bottom_right(2, btn_w, btn_h, 5.0, GRIP + 3.0, 3.0);
-        let cancel = ui.button(CANCEL_ID, btns[0], &CANCEL_BTN, "Cancel");
-        let buy = ui.button(BUY_ID, btns[1], &BUY_BTN, "Buy");
+        let cancel = ui.button(CANCEL_ID, btns[0], &rust_i18n::t!("common.cancel"));
+        let buy = ui.button(BUY_ID, btns[1], &rust_i18n::t!("vending_shop.buy"));
         if buy.clicked() && !self.staged.is_empty() {
             let items = self.staged.iter().map(|s| (s.count, s.index)).collect();
             events.push(GameEvent::RequestPurchaseFromVendor {
@@ -425,7 +414,6 @@ impl VendingShopWindow {
             dy,
             WIN_W,
             win_h,
-            grf,
         );
 
         events
@@ -433,39 +421,9 @@ impl VendingShopWindow {
 }
 
 impl Window for VendingShopWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-        self.container.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(BUY_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-        self.container.set_texture_sizes(size_fn);
-    }
     fn window_size(&self) -> (f32, f32) {
         let list_h = self.list_rows as f32 * ROW_H;
         (WIN_W, TITLE_H + PAD + list_h + PAD + FOOTER_H)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            BUY_BTN.normal,
-            BUY_BTN.hover,
-            BUY_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ];
-        paths.push(ITEMWIN_MID_TEX);
-        paths.push(RESIZE_HANDLE_TEX);
-        paths.extend(scrollbar::grf_texture_paths());
-        paths.extend(InputDialog::grf_texture_paths());
-        paths
     }
 }
 
@@ -495,17 +453,13 @@ impl InGameWindow for VendingShopWindow {
             return Vec::new();
         }
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        self.container.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
 
         if let Some(dialog) = &self.qty_dialog {
             ui.set_modal(&[dialog.win_id()]);
         }
 
-        self.build_left(ui, grf);
-        let events = self.build_right(ui, grf);
+        self.build_left(ui);
+        let events = self.build_right(ui);
 
         if let Some(dialog) = &mut self.qty_dialog {
             match dialog.build(ui) {
@@ -524,17 +478,12 @@ impl InGameWindow for VendingShopWindow {
             }
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
 
-fn draw_item_slot(ui: &mut UiFrame, x: f32, y: f32, grf: bool) {
-    if grf {
-        draw_textured_quad(ui, x, y, ICON_SIZE, ICON_SIZE, ITEMWIN_MID_TEX);
-    } else {
-        crate::helper::fallback::slot_cell(ui, x, y, ICON_SIZE, ICON_SIZE);
-    }
+fn draw_item_slot(ui: &mut UiFrame, x: f32, y: f32) {
+    crate::helper::fallback::slot_cell(ui, x, y, ICON_SIZE, ICON_SIZE);
 }
 
 fn draw_amount(ui: &mut UiFrame, icon_x: f32, icon_y: f32, amount: i16) {
@@ -561,7 +510,6 @@ fn resize_grip(
     dy: f32,
     win_w: f32,
     win_h: f32,
-    grf: bool,
 ) {
     let grip = Rect::new(dx + win_w - GRIP, dy + win_h - GRIP, GRIP, GRIP);
     ui.interact(resize_id, grip);
@@ -581,21 +529,17 @@ fn resize_grip(
         let delta = ((ui.ctx.mouse_y - start_mouse) / ROW_H).round() as i32;
         *rows = (start_rows as i32 + delta).clamp(MIN_ROWS as i32, MAX_ROWS as i32) as usize;
     }
-    if grf {
-        draw_textured_quad(ui, grip.x, grip.y, GRIP, GRIP, RESIZE_HANDLE_TEX);
+    let c = if hovered {
+        [0.6, 0.6, 0.7, 0.9]
     } else {
-        let c = if hovered {
-            [0.6, 0.6, 0.7, 0.9]
-        } else {
-            [0.5, 0.5, 0.6, 0.8]
-        };
-        let (v, i) = draw::quad_vertices(grip.x, grip.y, GRIP, GRIP, c);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::White,
-        });
-    }
+        [0.5, 0.5, 0.6, 0.8]
+    };
+    let (v, i) = draw::quad_vertices(grip.x, grip.y, GRIP, GRIP, c);
+    ui.draw_calls.push(DrawCall {
+        vertices: v.to_vec(),
+        indices: i.to_vec(),
+        texture: TextureRef::White,
+    });
 }
 
 fn wrap_name(name: &str, max_w: f32, atlas: &FontAtlas) -> Vec<String> {

@@ -1,15 +1,16 @@
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    FOOTER_TEX, ITEMWIN_MID_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_titlebar,
+    draw_container, draw_footer, draw_titlebar,
     text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
-const OVERLAY_ID: WidgetId = WidgetId(1100);
+
+
 pub const CARD_INSERT_WINDOW_ID: WidgetId = WidgetId(1101);
 const OK_BTN_ID: WidgetId = WidgetId(1102);
 const CANCEL_BTN_ID: WidgetId = WidgetId(1103);
@@ -34,17 +35,6 @@ const BTN_SPACING: f32 = 3.0;
 const FALLBACK_BTN_W: f32 = 42.0;
 const FALLBACK_BTN_H: f32 = 20.0;
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-
 pub struct EligibleItem {
     pub inventory_index: u16,
     pub display_name: String,
@@ -52,7 +42,6 @@ pub struct EligibleItem {
 }
 
 pub struct CardInsertDialog {
-    pub has_grf_textures: bool,
     card_index: u16,
     card_name: String,
     eligible_items: Vec<EligibleItem>,
@@ -71,7 +60,6 @@ impl Default for CardInsertDialog {
 impl CardInsertDialog {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             card_index: 0,
             card_name: String::new(),
             eligible_items: Vec::new(),
@@ -117,34 +105,7 @@ impl CardInsertDialog {
 }
 
 impl Window for CardInsertDialog {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
 
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            ITEMWIN_MID_TEX,
-            FOOTER_TEX,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths
-    }
 }
 
 impl InGameWindow for CardInsertDialog {
@@ -169,7 +130,6 @@ impl InGameWindow for CardInsertDialog {
         }
 
         let mut events = Vec::new();
-        let grf = self.has_grf_textures;
 
         if ui.ctx.key_enter && self.selected_index.is_some() {
             let idx = self.selected_index.unwrap();
@@ -188,9 +148,9 @@ impl InGameWindow for CardInsertDialog {
         let win_h = TITLE_H + container_h + FOOTER_H;
         let win = ui.window(CARD_INSERT_WINDOW_ID, WIN_W, win_h, TITLE_H);
 
-        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H);
         let title = format!("Card Insert - {}", self.card_name);
-        let title_text_color = text_color(grf);
+        let title_text_color = text_color();
         ui.text(
             win.x + 20.0,
             win.y + TITLE_H - 4.0,
@@ -199,7 +159,7 @@ impl InGameWindow for CardInsertDialog {
         );
 
         let container_y = win.y + TITLE_H;
-        draw_container(ui, win.x, container_y, WIN_W, container_h, grf);
+        draw_container(ui, win.x, container_y, WIN_W, container_h);
 
         let has_scrollbar = item_count > visible;
         let scrollbar_w = if has_scrollbar { SCROLLBAR_W } else { 0.0 };
@@ -281,7 +241,7 @@ impl InGameWindow for CardInsertDialog {
             }
 
             let text_y = ry + ITEM_ROW_H - 8.0;
-            ui.text(name_x, text_y, &item.display_name, text_color(grf));
+            ui.text(name_x, text_y, &item.display_name, text_color());
 
             if response.clicked() {
                 self.selected_index = Some(list_idx);
@@ -298,7 +258,7 @@ impl InGameWindow for CardInsertDialog {
         }
 
         let footer_y = container_y + container_h;
-        draw_footer(ui, win.x, footer_y, WIN_W, FOOTER_H, grf);
+        draw_footer(ui, win.x, footer_y, WIN_W, FOOTER_H);
 
         let (btn_w, btn_h) = self.btn_size;
         let footer_rect = Rect::new(win.x, footer_y, WIN_W, FOOTER_H);
@@ -311,8 +271,8 @@ impl InGameWindow for CardInsertDialog {
             BTN_SPACING,
         );
 
-        let cancel = ui.button(CANCEL_BTN_ID, btns[0], &CANCEL_BTN, "Cancel");
-        let ok = ui.button(OK_BTN_ID, btns[1], &OK_BTN, "OK");
+        let cancel = ui.button(CANCEL_BTN_ID, btns[0], &rust_i18n::t!("common.cancel"));
+        let ok = ui.button(OK_BTN_ID, btns[1], &rust_i18n::t!("common.ok"));
 
         if cancel.clicked() {
             self.close();

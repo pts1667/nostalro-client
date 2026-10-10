@@ -1,18 +1,19 @@
 use super::input_dialog::{InputDialog, InputDialogConfig, InputDialogLayout, InputDialogResult};
 use super::item_info_window::ITEM_INFO_WINDOW_ID;
-use crate::helper::CHECKBOX;
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::format::format_thousands;
 use crate::helper::window_chrome::{
-    FOOTER_TEX, ITEMWIN_MID_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container,
+    draw_container,
     draw_footer, draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::npc_shop::{NpcShopData, NpcShopMode};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, RESIZE_HANDLE_TEX, UiFrame, WidgetId, WindowOrder};
+use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
+
+
 
 pub const INPUT_WIN_ID: WidgetId = WidgetId(701);
 pub const OUTPUT_WIN_ID: WidgetId = WidgetId(702);
@@ -49,17 +50,6 @@ const ICON_SIZE: f32 = 24.0;
 const ICON_OFFSET_X: f32 = 4.0;
 const ICON_OFFSET_Y: f32 = 2.0;
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN_TEX: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-
 const RESIZE_SIZE: f32 = 13.0;
 const CHECK_SIZE: f32 = 12.0;
 const CHECK_X: f32 = 12.0;
@@ -75,7 +65,6 @@ enum QtyTarget {
 }
 
 pub struct NpcShop {
-    pub has_grf_textures: bool,
     pub shop: NpcShopData,
     qty_popup: Option<(QtyTarget, InputDialog)>,
     btn_size: (f32, f32),
@@ -96,7 +85,6 @@ impl Default for NpcShop {
 impl NpcShop {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             shop: NpcShopData::new(),
             qty_popup: None,
             btn_size: (FALLBACK_BTN_W, FALLBACK_BTN_H),
@@ -119,42 +107,7 @@ impl NpcShop {
 }
 
 impl Window for NpcShop {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
 
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-        self.container.has_grf_textures = true;
-        self.container.set_texture_sizes(size_fn);
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = DialogContainer::grf_texture_paths();
-        paths.extend_from_slice(&[
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN_TEX.normal,
-            CANCEL_BTN_TEX.hover,
-            CANCEL_BTN_TEX.pressed,
-            TITLEBAR_TEX,
-            ITEMWIN_MID_TEX,
-            FOOTER_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            RESIZE_HANDLE_TEX,
-            CHECKBOX.off,
-            CHECKBOX.on,
-        ]);
-        paths.extend(scrollbar::grf_texture_paths());
-        paths
-    }
 }
 
 impl InGameWindow for NpcShop {
@@ -192,8 +145,6 @@ impl InGameWindow for NpcShop {
 
         let mut events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
 
         let input_default_x = 100.0;
         let input_default_y = 100.0;
@@ -236,7 +187,6 @@ impl InGameWindow for NpcShop {
             self.build_quantity_popup(ui);
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -306,10 +256,9 @@ impl NpcShop {
         let win = ui.window_at(INPUT_WIN_ID, win_w, win_h, title_h, default_x, default_y);
         ui.interact(INPUT_WIN_ID, Rect::new(win.x, win.y, win_w, win_h));
 
-        let grf = self.has_grf_textures;
-        let text_color = text_color(grf);
+        let text_color = text_color();
 
-        draw_titlebar(ui, win.x, win.y, win_w, title_h, grf);
+        draw_titlebar(ui, win.x, win.y, win_w, title_h);
         let title = match self.shop.mode {
             Some(NpcShopMode::Buy) => "Shop Items",
             Some(NpcShopMode::Sell) => "Available Items for selling",
@@ -319,7 +268,7 @@ impl NpcShop {
 
         let container_y = win.y + title_h;
         let container_h = win_h - title_h - footer_h;
-        draw_container(ui, win.x, container_y, win_w, container_h, grf);
+        draw_container(ui, win.x, container_y, win_w, container_h);
 
         let max_scroll = item_count.saturating_sub(self.input_visible_rows);
 
@@ -340,22 +289,6 @@ impl NpcShop {
             let widget_id = WidgetId(ITEM_BASE_ID + i as u32);
             let response = ui.interact(widget_id, row_rect);
 
-            if grf {
-                let shadow_x = win.x + pad_left + (ICON_OFFSET_X);
-                let shadow_y = ry + (ICON_OFFSET_Y);
-                let (v, idx) = draw::quad_vertices(
-                    shadow_x,
-                    shadow_y,
-                    icon_size,
-                    icon_size,
-                    [1.0, 1.0, 1.0, 1.0],
-                );
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: idx.to_vec(),
-                    texture: TextureRef::Named(ITEMWIN_MID_TEX.to_string()),
-                });
-            }
 
             if let Some(icon_path) = self.shop.item_icon_path(item_idx) {
                 let ix = win.x + pad_left + (ICON_OFFSET_X);
@@ -449,7 +382,7 @@ impl NpcShop {
         }
 
         let footer_y = win.y + win_h - footer_h;
-        draw_footer(ui, win.x, footer_y, win_w, footer_h, grf);
+        draw_footer(ui, win.x, footer_y, win_w, footer_h);
 
         let check_rect = Rect::new(
             win.x + CHECK_X,
@@ -466,13 +399,13 @@ impl NpcShop {
         if self.shop.mode == Some(NpcShopMode::Sell) {
             let mut checked = self.drag_all;
             if ui
-                .checkbox(DRAG_ALL_CHECK_ID, check_rect, &mut checked, &CHECKBOX)
+                .checkbox(DRAG_ALL_CHECK_ID, check_rect, &mut checked)
                 .clicked()
             {
                 self.drag_all = checked;
             }
         } else {
-            ui.checkbox_display(check_rect, self.drag_all, &CHECKBOX);
+            ui.checkbox_display(check_rect, self.drag_all);
         }
         ui.text(
             check_rect.x + CHECK_SIZE + 4.0,
@@ -525,10 +458,9 @@ impl NpcShop {
         let win = ui.window_at(OUTPUT_WIN_ID, win_w, win_h, title_h, default_x, default_y);
         ui.interact(OUTPUT_WIN_ID, Rect::new(win.x, win.y, win_w, win_h));
 
-        let grf = self.has_grf_textures;
-        let text_color = text_color(grf);
+        let text_color = text_color();
 
-        draw_titlebar(ui, win.x, win.y, win_w, title_h, grf);
+        draw_titlebar(ui, win.x, win.y, win_w, title_h);
         let title = match self.shop.mode {
             Some(NpcShopMode::Buy) => "Buying Items",
             Some(NpcShopMode::Sell) => "Selling Items",
@@ -538,7 +470,7 @@ impl NpcShop {
 
         let container_y = win.y + title_h;
         let container_h = win_h - title_h - footer_h;
-        draw_container(ui, win.x, container_y, win_w, container_h, grf);
+        draw_container(ui, win.x, container_y, win_w, container_h);
 
         let list_y = container_y + pad_y;
         let icon_size = ICON_SIZE;
@@ -566,22 +498,6 @@ impl NpcShop {
                 ui.any_interactive_hovered = true;
             }
 
-            if grf {
-                let shadow_x = win.x + pad_left + (ICON_OFFSET_X);
-                let shadow_y = ry + (ICON_OFFSET_Y);
-                let (v, idx) = draw::quad_vertices(
-                    shadow_x,
-                    shadow_y,
-                    icon_size,
-                    icon_size,
-                    [1.0, 1.0, 1.0, 1.0],
-                );
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: idx.to_vec(),
-                    texture: TextureRef::Named(ITEMWIN_MID_TEX.to_string()),
-                });
-            }
 
             if let Some(icon_path) = self.shop.item_icon_path(basket_item.source_index) {
                 let ix = win.x + pad_left + (ICON_OFFSET_X);
@@ -632,7 +548,7 @@ impl NpcShop {
             let price_w = ui.atlas.measure_text(&price_str);
             let price_x = z_x - (2.0) - price_w;
             ui.text(price_x, text_y, &price_str, text_color);
-            ui.text(z_x, text_y, "Z", text_color);
+            ui.text(z_x, text_y, &rust_i18n::t!("npc_shop.z"), text_color);
 
             if response.right_clicked()
                 && let Some(item) = self.shop.item_at(basket_item.source_index)
@@ -676,10 +592,10 @@ impl NpcShop {
         }
 
         let footer_y = win.y + win_h - footer_h;
-        draw_footer(ui, win.x, footer_y, win_w, footer_h, grf);
+        draw_footer(ui, win.x, footer_y, win_w, footer_h);
 
         let total = self.shop.basket_total();
-        let total_label = format!("Total : {} Zeny", format_thousands(total));
+        let total_label = rust_i18n::t!("npc_shop.total", zeny = format_thousands(total)).to_string();
         ui.text(
             win.x + (10.0),
             footer_y + footer_h - (10.0),
@@ -696,18 +612,8 @@ impl NpcShop {
             Some(NpcShopMode::Sell) => "Sell",
             None => "",
         };
-        let action_btn = ui.button(
-            BUY_SELL_BTN_ID,
-            Rect::new(action_x, btn_y, btn_w, btn_h),
-            &OK_BTN,
-            action_label,
-        );
-        let cancel_btn = ui.button(
-            CANCEL_BTN_ID,
-            Rect::new(cancel_x, btn_y, btn_w, btn_h),
-            &CANCEL_BTN_TEX,
-            "Cancel",
-        );
+        let action_btn = ui.button(BUY_SELL_BTN_ID, Rect::new(action_x, btn_y, btn_w, btn_h), action_label);
+        let cancel_btn = ui.button(CANCEL_BTN_ID, Rect::new(cancel_x, btn_y, btn_w, btn_h), &rust_i18n::t!("common.cancel"));
 
         if action_btn.clicked() && !self.shop.basket.is_empty() {
             match self.shop.mode {
@@ -1019,20 +925,21 @@ mod tests {
         shop_ui.shop.add_to_basket(0, 10);
 
         let mut state = StateCache::new();
-        let frame = |state: &mut StateCache, shop_ui: &mut NpcShop, mx: f32, my: f32, down: bool| {
-            let mut character = Character::new();
-            let data = DataTable::new();
-            let mut ctx = UiContext::new(800.0, 600.0);
-            ctx.mouse_x = mx;
-            ctx.mouse_y = my;
-            ctx.mouse_down = down;
-            let mut ui = test_frame(&mut ctx, state);
-            shop_ui.setup_modal(&mut ui);
-            let z = ui.get_z_order();
-            ui.compute_hovered_window(&z);
-            shop_ui.build(&mut ui, &mut crate::BuildCtx::test(&mut character, &data));
-            ui.draw_drag_icon();
-        };
+        let frame =
+            |state: &mut StateCache, shop_ui: &mut NpcShop, mx: f32, my: f32, down: bool| {
+                let mut character = Character::new();
+                let data = DataTable::new();
+                let mut ctx = UiContext::new(800.0, 600.0);
+                ctx.mouse_x = mx;
+                ctx.mouse_y = my;
+                ctx.mouse_down = down;
+                let mut ui = test_frame(&mut ctx, state);
+                shop_ui.setup_modal(&mut ui);
+                let z = ui.get_z_order();
+                ui.compute_hovered_window(&z);
+                shop_ui.build(&mut ui, &mut crate::BuildCtx::test(&mut character, &data));
+                ui.draw_drag_icon();
+            };
 
         let (input_h, output_h) = shop_ui.window_heights();
         let basket_row = (
@@ -1040,7 +947,7 @@ mod tests {
             100.0 + input_h - output_h + TITLE_H + CONTAINER_PAD_Y + ICON_SIZE / 2.0,
         );
         let list_row = (150.0, 100.0 + TITLE_H + CONTAINER_PAD_Y + ICON_SIZE / 2.0);
-        let mut drag_basket_to_list = |state: &mut StateCache, shop_ui: &mut NpcShop| {
+        let drag_basket_to_list = |state: &mut StateCache, shop_ui: &mut NpcShop| {
             frame(state, shop_ui, basket_row.0, basket_row.1, false);
             {
                 let mut character = Character::new();

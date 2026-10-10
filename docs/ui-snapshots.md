@@ -32,20 +32,20 @@ gallery is written as `category-<name>.png`.
 | Mode | Flag | What it draws |
 | --- | --- | --- |
 | Fallback (default) | `--mode fallback` | The procedural look from `lib/ui-core/src/theme.rs` and `lib/ui-component/src/helper/fallback.rs`. Never opens a data file. |
-| GRF | `--mode grf` | The textured look from the game data. Needs `--grf`, or uses `data/data.grf` when that is omitted. |
+| Game art | `--mode grf` | The same procedural chrome, plus game art (item, skill and emote icons, map images) from the data files. Needs `--grf`, or uses `data/data.grf` when that is omitted. |
 
-Fallback mode is the one that matters for the GRF-free redesign. A texture that
-a window still needs from the data files draws as a white box there. Every run
-lists those textures on stderr:
+Fallback mode is the one that matters for the GRF-free UI. The chrome never reads
+the data files, in either mode. Game art does: in fallback mode a game texture
+that is missing is not drawn, and the renderer logs one error per texture name.
+Every run lists those textures on stderr:
 
 ```
-note: emotion draws 64 GRF texture(s) without data (white in fallback):
+note: emotion draws 64 game texture(s) without data (skipped in fallback):
   @emo/3
   ...
 ```
 
-Treat that list as the to-do list for the redesign. Run `--all` to get the full
-picture.
+That list is game art only. Run `--all` to get the full picture.
 
 GRF mode, against your kRO download:
 

@@ -1,8 +1,5 @@
-use crate::helper::CHECKBOX;
 use crate::helper::dropdown::Dropdown;
-use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_sys_button, draw_titlebar, text_color,
-};
+use crate::helper::window_chrome::{draw_sys_button, draw_titlebar, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::cursor::MouseSnapPrefs;
 use ragnarok_game::display::DisplayOptions;
@@ -36,9 +33,6 @@ const UI_SCALE_OPTION_BASE: u32 = 4230;
 
 const UI_SCALE_OPTIONS: [u32; 6] = [75, 100, 125, 150, 175, 200];
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-
 const WIN_W: f32 = 280.0;
 const TITLE_H: f32 = 20.0;
 const CLOSE_SIZE: f32 = 11.0;
@@ -51,7 +45,6 @@ const CB_SIZE: f32 = 11.0;
 #[derive(Default)]
 pub struct GraphicOptionsWindow {
     pub open: bool,
-    pub has_grf_textures: bool,
     selected_ui_scale: usize,
     fullscreen: bool,
     fog: bool,
@@ -142,27 +135,8 @@ impl GraphicOptionsWindow {
 }
 
 impl Window for GraphicOptionsWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, WIN_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            CHECKBOX.off,
-            CHECKBOX.on,
-        ];
-        paths.extend(crate::helper::dropdown::grf_texture_paths());
-        paths
     }
 }
 
@@ -184,9 +158,6 @@ impl InGameWindow for GraphicOptionsWindow {
             return Vec::new();
         }
         let mut events = Vec::new();
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
 
         let default_x = (ui.ctx.screen_width - WIN_W) / 2.0;
         let default_y = (ui.ctx.screen_height - WIN_H) / 2.0;
@@ -205,12 +176,12 @@ impl InGameWindow for GraphicOptionsWindow {
 
         crate::helper::fallback::window_body(ui, win.x, win.y + TITLE_H, WIN_W, WIN_H - TITLE_H);
 
-        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, win.x, win.y, WIN_W, TITLE_H);
         ui.text(
             win.x + 20.0,
             win.y + TITLE_H - 5.0,
-            "Graphic Settings",
-            text_color(grf),
+            &rust_i18n::t!("graphic_options.graphic_settings"),
+            text_color(),
         );
 
         let close_rect = Rect::new(
@@ -228,26 +199,27 @@ impl InGameWindow for GraphicOptionsWindow {
             close_rect,
             (CLOSE_SIZE, CLOSE_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
             self.open = false;
             self.dropdown.open = false;
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
-        let label_color = text_color(grf);
+        let label_color = text_color();
         let row_y = |n: usize| win.y + TITLE_H + PAD + n as f32 * ROW_H;
         let cb_y = |n: usize| row_y(n) + (ROW_H - CB_SIZE) / 2.0 - 2.0;
         let text_y = |n: usize| row_y(n) + 13.0;
         let mut changed = false;
 
         // Row 0: UI scale dropdown + full screen
-        ui.text(win.x + 10.0, text_y(0), "UI Scale", label_color);
+        ui.text(
+            win.x + 10.0,
+            text_y(0),
+            &rust_i18n::t!("graphic_options.ui_scale"),
+            label_color,
+        );
         let labels: Vec<String> = UI_SCALE_OPTIONS.iter().map(|p| format!("{p}%")).collect();
         let selected_label = labels
             .get(self.selected_ui_scale)
@@ -268,12 +240,12 @@ impl InGameWindow for GraphicOptionsWindow {
 
         let fs_cb = Rect::new(win.x + 185.0, cb_y(0), CB_SIZE, CB_SIZE);
         changed |= ui
-            .checkbox(FULLSCREEN_CB_ID, fs_cb, &mut self.fullscreen, &CHECKBOX)
+            .checkbox(FULLSCREEN_CB_ID, fs_cb, &mut self.fullscreen)
             .clicked();
         ui.text(
             fs_cb.x + CB_SIZE + 4.0,
             text_y(0),
-            "Full Screen",
+            &rust_i18n::t!("graphic_options.full_screen"),
             label_color,
         );
 
@@ -285,13 +257,18 @@ impl InGameWindow for GraphicOptionsWindow {
                          value: &mut bool|
          -> bool {
             let rect = Rect::new(x, cb_y(n), CB_SIZE, CB_SIZE);
-            let clicked = ui.checkbox(id, rect, value, &CHECKBOX).clicked();
+            let clicked = ui.checkbox(id, rect, value).clicked();
             ui.text(rect.x + CB_SIZE + 4.0, text_y(n), label, label_color);
             clicked
         };
 
         let x0 = win.x + 10.0;
-        ui.text(x0, text_y(1), "Texture Filtering:", label_color);
+        ui.text(
+            x0,
+            text_y(1),
+            &rust_i18n::t!("graphic_options.texture_filtering"),
+            label_color,
+        );
         changed |= check_row(
             ui,
             1,
@@ -359,7 +336,12 @@ impl InGameWindow for GraphicOptionsWindow {
             &mut self.display.show_other_cast_bars,
         );
 
-        ui.text(x0, text_y(8), "Name plates:", label_color);
+        ui.text(
+            x0,
+            text_y(8),
+            &rust_i18n::t!("graphic_options.name_plates"),
+            label_color,
+        );
         let mut show_player = !self.display.hide_name_player;
         let mut show_monster = !self.display.hide_name_monster;
         let mut show_npc = !self.display.hide_name_npc;
@@ -386,7 +368,12 @@ impl InGameWindow for GraphicOptionsWindow {
             changed = true;
         }
 
-        ui.text(x0, text_y(9), "Auto-refuse:", label_color);
+        ui.text(
+            x0,
+            text_y(9),
+            &rust_i18n::t!("graphic_options.auto_refuse"),
+            label_color,
+        );
         changed |= check_row(
             ui,
             9,
@@ -404,7 +391,12 @@ impl InGameWindow for GraphicOptionsWindow {
             &mut self.refuse_party_invite,
         );
 
-        ui.text(x0, text_y(10), "Cursor snap:", label_color);
+        ui.text(
+            x0,
+            text_y(10),
+            &rust_i18n::t!("graphic_options.cursor_snap"),
+            label_color,
+        );
         changed |= check_row(
             ui,
             10,
@@ -456,7 +448,6 @@ impl InGameWindow for GraphicOptionsWindow {
             events.push(self.changed_event());
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

@@ -1,7 +1,4 @@
-use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_sys_button,
-    draw_titlebar, text_color,
-};
+use crate::helper::window_chrome::{draw_container, draw_sys_button, draw_titlebar, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::monster_info::MonsterInfo;
@@ -11,9 +8,6 @@ use ragnarok_ui::rect::Rect;
 
 pub const MONSTER_INFO_WINDOW_ID: WidgetId = WidgetId(5900);
 const CLOSE_BTN_ID: WidgetId = WidgetId(5901);
-
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
 
 const TITLE_H: f32 = 17.0;
 const PAD: f32 = 8.0;
@@ -25,7 +19,6 @@ const ANCHOR_Y: f32 = 120.0;
 const NOMINAL_SIZE: (f32, f32) = (MIN_W, TITLE_H + PAD * 2.0 + LINE_H * 18.0);
 
 pub struct MonsterInfoWindow {
-    pub has_grf_textures: bool,
     info: Option<MonsterInfo>,
     lines: Vec<String>,
     measured: Option<(f32, f32)>,
@@ -40,7 +33,6 @@ impl Default for MonsterInfoWindow {
 impl MonsterInfoWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             info: None,
             lines: Vec::new(),
             measured: None,
@@ -65,23 +57,8 @@ impl MonsterInfoWindow {
 }
 
 impl Window for MonsterInfoWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
     fn window_size(&self) -> (f32, f32) {
         self.measured.unwrap_or(NOMINAL_SIZE)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-        ]
     }
 }
 
@@ -100,10 +77,6 @@ impl InGameWindow for MonsterInfoWindow {
             return Vec::new();
         }
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-
         if self.measured.is_none() {
             let widest = self
                 .lines
@@ -121,8 +94,13 @@ impl InGameWindow for MonsterInfoWindow {
         let (x, y) = (win.x, win.y);
         ui.interact(MONSTER_INFO_WINDOW_ID, Rect::new(x, y, w, h));
 
-        draw_titlebar(ui, x, y, w, TITLE_H, grf);
-        ui.text(x + 16.0, y + TITLE_H - 3.0, "Monster Info", text_color(grf));
+        draw_titlebar(ui, x, y, w, TITLE_H);
+        ui.text(
+            x + 16.0,
+            y + TITLE_H - 3.0,
+            &rust_i18n::t!("monster_info.monster_info"),
+            text_color(),
+        );
 
         let close_rect = Rect::new(
             x + w - CLOSE_BTN_SIZE - 3.0,
@@ -139,27 +117,22 @@ impl InGameWindow for MonsterInfoWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return Vec::new();
         }
 
         let body_y = y + TITLE_H;
-        draw_container(ui, x, body_y, w, h - TITLE_H, grf);
+        draw_container(ui, x, body_y, w, h - TITLE_H);
 
         let mut text_y = body_y + PAD + LINE_H - 3.0;
         for line in &self.lines {
-            ui.colored_text(x + PAD, text_y, line, text_color(grf));
+            ui.colored_text(x + PAD, text_y, line, text_color());
             text_y += LINE_H;
         }
 
-        ui.has_grf_textures = prev_grf;
         Vec::new()
     }
 }

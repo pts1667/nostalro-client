@@ -1,4 +1,3 @@
-use super::preload_window;
 use crate::App;
 use ragnarok_game::app_state::AppState;
 use ragnarok_network::session::Session;
@@ -17,10 +16,7 @@ impl App {
         let mut session = Session::new(self.active_packetver);
         session.store_login(account_id, login_id1, login_id2, sex);
         self.game.session.login_session = Some(session);
-        let mut server_win = ServerListWindow::new(servers);
-        if let (Some(grf), Some(renderer)) = (&self.grf, &mut self.renderer) {
-            preload_window(&mut server_win, renderer, grf);
-        }
+        let server_win = ServerListWindow::new(servers);
         self.server_list_window = Some(server_win);
         self.account_dialog.dismiss();
         self.game.session.app_state = AppState::ServerSelect;

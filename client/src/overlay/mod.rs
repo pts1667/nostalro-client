@@ -554,13 +554,7 @@ impl App {
                 None => continue,
             };
 
-            let has_grf = renderer
-                .texture_cache
-                .texture_size(vending_board::VENDING_ICON_TEX)
-                .is_some();
-            let mut container = DialogContainer::new();
-            container.has_grf_textures = has_grf;
-            container.set_texture_sizes(&|name| renderer.texture_cache.texture_size(name));
+            let container = DialogContainer::new();
 
             vending_board::draw_board(
                 calls,
@@ -585,13 +579,7 @@ impl App {
                 None => continue,
             };
 
-            let has_grf = renderer
-                .texture_cache
-                .texture_size(chat_room_board::CHAT_OPEN_TEX)
-                .is_some();
-            let mut container = DialogContainer::new();
-            container.has_grf_textures = has_grf;
-            container.set_texture_sizes(&|name| renderer.texture_cache.texture_size(name));
+            let container = DialogContainer::new();
 
             chat_room_board::draw_board(
                 calls,

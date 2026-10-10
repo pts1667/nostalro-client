@@ -1,23 +1,15 @@
 use crate::helper::dialog_container::DialogContainer;
-use crate::helper::head_board;
+use crate::helper::head_board::{self, BoardIcon};
 use ragnarok_renderer::font_atlas::FontAtlas;
 use ragnarok_ui::draw::DrawCall;
 
 pub use crate::helper::head_board::board_rect;
 
-pub const CHAT_OPEN_TEX: &str = ragnarok_resources::ui::CHAT_OPEN;
-pub const CHAT_CLOSE_TEX: &str = ragnarok_resources::ui::CHAT_CLOSE;
-
-/// Textures needed to render the board with GRF art (frame + open/close icon).
-pub fn grf_texture_paths() -> Vec<&'static str> {
-    head_board::grf_texture_paths(&[CHAT_OPEN_TEX, CHAT_CLOSE_TEX])
-}
-
-fn icon_texture(atype: u8) -> &'static str {
+fn board_icon(atype: u8) -> BoardIcon {
     if atype == 0 {
-        CHAT_CLOSE_TEX
+        BoardIcon::ChatClose
     } else {
-        CHAT_OPEN_TEX
+        BoardIcon::ChatOpen
     }
 }
 
@@ -55,7 +47,7 @@ pub fn draw_board(
         anchor_x,
         anchor_y,
         head_offset,
-        icon_texture(atype),
+        board_icon(atype),
         &format!("{title}{suffix}"),
     );
 }
@@ -66,8 +58,8 @@ mod tests {
 
     #[test]
     fn icon_and_count_suffix_follow_room_type() {
-        assert_eq!(icon_texture(2), CHAT_OPEN_TEX);
-        assert_eq!(icon_texture(0), CHAT_CLOSE_TEX);
+        assert_eq!(board_icon(2), BoardIcon::ChatOpen);
+        assert_eq!(board_icon(0), BoardIcon::ChatClose);
         assert_eq!(count_suffix(2, 3, 20), " (3/20)");
         assert_eq!(count_suffix(3, 3, 20), "");
     }

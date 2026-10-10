@@ -3,6 +3,7 @@ pub mod char_select_window;
 pub mod login_server_list_window;
 pub mod login_window;
 pub mod server_list_window;
+pub mod server_list_panel;
 
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::UiFrame;

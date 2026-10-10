@@ -3,8 +3,7 @@ use super::inventory_window::INV_WINDOW_ID;
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    FOOTER_TEX, ITEMWIN_MID_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container,
-    draw_footer, draw_sys_button, draw_titlebar, text_color,
+    draw_container, draw_footer, draw_sys_button, draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::display_name::format_equipment_display_name;
@@ -34,18 +33,12 @@ const MINI_BTN_SIZE: f32 = 11.0;
 const GRID_COLS: usize = 5;
 const GRID_ROWS: usize = 4;
 
-const MINI_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_MINI_OFF;
-const MINI_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_MINI_ON;
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-
 enum PendingCartMove {
     FromBody { index: u16 },
     FromStore { index: u16 },
 }
 
 pub struct CartWindow {
-    pub has_grf_textures: bool,
     scroll_offset: usize,
     minimized: bool,
     container: DialogContainer,
@@ -61,7 +54,6 @@ impl Default for CartWindow {
 impl CartWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             scroll_offset: 0,
             minimized: false,
             container: DialogContainer::new(),
@@ -97,37 +89,8 @@ impl CartWindow {
 }
 
 impl Window for CartWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-        self.container.has_grf_textures = value;
-    }
-
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        self.container.set_texture_sizes(size_fn);
-    }
-
     fn window_size(&self) -> (f32, f32) {
         self.dimensions()
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            ITEMWIN_MID_TEX,
-            FOOTER_TEX,
-            MINI_OFF_TEX,
-            MINI_ON_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths.extend(InputDialog::grf_texture_paths());
-        paths
     }
 }
 
@@ -161,10 +124,7 @@ impl InGameWindow for CartWindow {
         let card_name_table = data.card_name.as_ref();
         let producers = &character.char_names;
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let text_color = text_color(grf);
+        let text_color = text_color();
 
         let (win_w, full_h) = self.dimensions();
         let win_h = if self.minimized { TITLE_H } else { full_h };
@@ -172,8 +132,13 @@ impl InGameWindow for CartWindow {
         let win = ui.window_at(CART_WINDOW_ID, win_w, win_h, TITLE_H, 80.0, 120.0);
         ui.interact(CART_WINDOW_ID, Rect::new(win.x, win.y, win_w, win_h));
 
-        draw_titlebar(ui, win.x, win.y, win_w, TITLE_H, grf);
-        ui.text(win.x + 17.0, win.y + TITLE_H - 3.0, "Cart", text_color);
+        draw_titlebar(ui, win.x, win.y, win_w, TITLE_H);
+        ui.text(
+            win.x + 17.0,
+            win.y + TITLE_H - 3.0,
+            &rust_i18n::t!("cart.cart"),
+            text_color,
+        );
 
         let mini_rect = Rect::new(
             win.x + win_w - MINI_BTN_SIZE * 2.0 - 6.0,
@@ -190,9 +155,6 @@ impl InGameWindow for CartWindow {
             mini_rect,
             (MINI_BTN_SIZE, MINI_BTN_SIZE),
             mini_resp.hovered(),
-            grf,
-            MINI_ON_TEX,
-            MINI_OFF_TEX,
             Some('_'),
         );
         if mini_resp.clicked() {
@@ -214,25 +176,20 @@ impl InGameWindow for CartWindow {
             close_rect,
             (MINI_BTN_SIZE, MINI_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
             character.cart.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
         if self.minimized {
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
         let container_y = win.y + TITLE_H;
         let container_h = PAD_Y + GRID_ROWS as f32 * CELL_SIZE + PAD_Y;
-        draw_container(ui, win.x, container_y, win_w, container_h, grf);
+        draw_container(ui, win.x, container_y, win_w, container_h);
 
         let grid_x = win.x + PAD_X;
         let grid_y = container_y + PAD_Y;
@@ -262,17 +219,7 @@ impl InGameWindow for CartWindow {
                 let cell_rect = Rect::new(cx, cy, cell, cell);
                 let response = ui.interact(WidgetId(CART_ITEM_BASE_ID + slot as u32), cell_rect);
 
-                if grf {
-                    let (v, idx) =
-                        draw::quad_vertices(cx + pad, cy + pad, icon, icon, [1.0, 1.0, 1.0, 1.0]);
-                    ui.draw_calls.push(DrawCall {
-                        vertices: v.to_vec(),
-                        indices: idx.to_vec(),
-                        texture: TextureRef::Named(ITEMWIN_MID_TEX.to_string()),
-                    });
-                } else {
-                    crate::helper::fallback::slot_cell(ui, cx + pad, cy + pad, icon, icon);
-                }
+                crate::helper::fallback::slot_cell(ui, cx + pad, cy + pad, icon, icon);
 
                 if item_idx >= items.len() {
                     continue;
@@ -389,7 +336,7 @@ impl InGameWindow for CartWindow {
         }
 
         let footer_y = container_y + container_h;
-        draw_footer(ui, win.x, footer_y, win_w, FOOTER_H, grf);
+        draw_footer(ui, win.x, footer_y, win_w, FOOTER_H);
         let cart = &character.cart;
         let footer_label = format!("{}/{}", cart.weight / 10, cart.max_weight / 10);
         ui.text(
@@ -428,7 +375,6 @@ impl InGameWindow for CartWindow {
             }
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

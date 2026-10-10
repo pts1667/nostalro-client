@@ -1,19 +1,8 @@
 use crate::Window;
 use crate::helper::dialog_container::DialogContainer;
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
-
-pub const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-pub const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 const FALLBACK_BTN_W: f32 = 42.0;
 const FALLBACK_BTN_H: f32 = 20.0;
@@ -63,7 +52,6 @@ pub struct InputDialogConfig {
 }
 
 pub struct InputDialog {
-    pub has_grf_textures: bool,
     input: TextInput,
     btn_size: (f32, f32),
     is_item_count: bool,
@@ -91,7 +79,6 @@ impl InputDialog {
             InputDialogLayout::Text { label, show_cancel } => (false, label, show_cancel),
         };
         Self {
-            has_grf_textures: false,
             input,
             btn_size: (FALLBACK_BTN_W, FALLBACK_BTN_H),
             is_item_count,
@@ -104,9 +91,7 @@ impl InputDialog {
         }
     }
 
-    pub fn init_container(&mut self, source: &DialogContainer) {
-        self.has_grf_textures = source.has_grf_textures;
-        self.container.copy_sizes_from(source);
+    pub fn init_container(&mut self, _source: &DialogContainer) {
     }
 
     pub fn value_str(&self) -> &str {
@@ -191,7 +176,6 @@ impl InputDialog {
         let dx = win.x;
         let dy = win.y;
 
-        self.container.has_grf_textures = self.has_grf_textures;
         self.container
             .draw(&mut ui.draw_calls, dx, dy, dw, dh, [1.0, 1.0, 1.0, 1.0]);
 
@@ -243,11 +227,7 @@ impl InputDialog {
             )
         };
 
-        let input_bg = if self.has_grf_textures {
-            TextInputBg::Gray
-        } else {
-            TextInputBg::Default
-        };
+        let input_bg = TextInputBg::Default;
 
         let input_id = self.input_id();
         let ok_id = self.ok_id();
@@ -257,10 +237,10 @@ impl InputDialog {
         }
 
         ui.text_input(input_id, input_rect, &mut self.input, input_bg);
-        let ok = ui.button(ok_id, ok_rect, &OK_BTN, "OK");
+        let ok = ui.button(ok_id, ok_rect, &rust_i18n::t!("common.ok"));
 
         if let Some(cancel_rect) = cancel_rect {
-            let cancel = ui.button(self.cancel_id(), cancel_rect, &CANCEL_BTN, "Cancel");
+            let cancel = ui.button(self.cancel_id(), cancel_rect, &rust_i18n::t!("common.cancel"));
             if cancel.clicked() {
                 return InputDialogResult::Cancel;
             }
@@ -276,32 +256,7 @@ impl InputDialog {
 }
 
 impl Window for InputDialog {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
 
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-        self.container.set_texture_sizes(size_fn);
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = DialogContainer::grf_texture_paths();
-        paths.extend_from_slice(&[
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ]);
-        paths
-    }
 }
 
 #[cfg(test)]

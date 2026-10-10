@@ -1076,23 +1076,21 @@ impl Renderer {
 
         if !ui_draw_calls.is_empty() {
             ragnarok_profiling::profile_scope!("ui");
+            // A quad whose named texture is not loaded is skipped, not drawn white.
             let resolved: Vec<UiDrawCommand> = ui_draw_calls
                 .iter()
-                .map(|call| {
+                .filter_map(|call| {
                     let bind_group = match &call.texture {
                         UiTextureRef::FontAtlas => &self.font_atlas_bind_group,
                         UiTextureRef::White => &self.white_bind_group,
-                        UiTextureRef::Named(name) => self
-                            .texture_cache
-                            .get(name)
-                            .unwrap_or(&self.white_bind_group),
+                        UiTextureRef::Named(name) => self.texture_cache.get_or_report(name)?,
                         UiTextureRef::Inline(idx) => inline_textures[*idx],
                     };
-                    UiDrawCommand {
+                    Some(UiDrawCommand {
                         vertices: &call.vertices,
                         indices: &call.indices,
                         texture: bind_group,
-                    }
+                    })
                 })
                 .collect();
 
@@ -1105,8 +1103,14 @@ impl Renderer {
             );
         }
 
-        cursor_batches.extend(tooltip_draw_calls.iter().map(|call| {
-            SpriteBatch {
+        cursor_batches.extend(tooltip_draw_calls.iter().filter_map(|call| {
+            let texture = match &call.texture {
+                UiTextureRef::FontAtlas => &self.font_atlas_bind_group,
+                UiTextureRef::White => &self.white_bind_group,
+                UiTextureRef::Named(name) => self.texture_cache.get_or_report(name)?,
+                UiTextureRef::Inline(idx) => inline_textures[*idx],
+            };
+            Some(SpriteBatch {
                 vertices: call
                     .vertices
                     .iter()
@@ -1117,18 +1121,10 @@ impl Renderer {
                     })
                     .collect(),
                 indices: call.indices.clone(),
-                texture: match &call.texture {
-                    UiTextureRef::FontAtlas => &self.font_atlas_bind_group,
-                    UiTextureRef::White => &self.white_bind_group,
-                    UiTextureRef::Named(name) => self
-                        .texture_cache
-                        .get(name)
-                        .unwrap_or(&self.white_bind_group),
-                    UiTextureRef::Inline(idx) => inline_textures[*idx],
-                },
+                texture,
                 additive: false,
                 no_depth: false,
-            }
+            })
         }));
 
         if !cursor_batches.is_empty() {

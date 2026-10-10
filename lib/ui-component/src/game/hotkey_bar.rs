@@ -28,19 +28,12 @@ const RESIZE_ID: WidgetId = WidgetId(1351);
 const DESCRIBE_ID: WidgetId = WidgetId(1352);
 const DESCRIBE_CLOSE_ID: WidgetId = WidgetId(1353);
 
-const BG_TEX: &str = ragnarok_resources::ui::basic::SHORTITEM_BG;
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const CAT_PAW_TEX: &str = ragnarok_resources::ui::item::CAT_PAW_HAIRPIN;
-
 const COUNT_OUTLINE_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 const ICON_SIZE: f32 = 24.0;
-const SLOT_PAD_X: f32 = 16.0;
 const SLOT_PAD_Y: f32 = 5.0;
 const SLOT_W: f32 = 32.0;
 const SLOT_MARGIN: f32 = 2.0;
 const ROW_H: f32 = 34.0;
-const LABEL_W: f32 = 4.0;
 const CLOSE_SIZE: f32 = 12.0;
 const RESIZE_SIZE: f32 = 13.0;
 const WIN_W: f32 = SLOT_MARGIN + (SLOT_W + SLOT_MARGIN) * HOTKEY_COLS as f32;
@@ -119,15 +112,12 @@ fn slot_tooltip(key: Option<String>, body: Option<String>) -> Option<String> {
 }
 
 pub struct HotkeyBarWindow {
-    pub has_grf_textures: bool,
     pub chat_is_active: bool,
     /// Mercenary + homunculus skills, refreshed each frame, so companion skills
     /// dragged into a slot can resolve their icon and drop level. IDs are
     /// range-disjoint from player skills, so a flat list needs no source tag.
     pub companion_skills: Vec<SkillInfo>,
     pub top_margin: f32,
-    bg_size: (f32, f32),
-    close_size: (f32, f32),
     resize_start: Option<u8>,
     described_skill: Option<(SkillEnum, usize)>,
     tooltip_container: DialogContainer,
@@ -142,12 +132,9 @@ impl Default for HotkeyBarWindow {
 impl HotkeyBarWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             chat_is_active: false,
             companion_skills: Vec::new(),
             top_margin: 0.0,
-            bg_size: (0.0, 0.0),
-            close_size: (0.0, 0.0),
             resize_start: None,
             described_skill: None,
             tooltip_container: DialogContainer::new(),
@@ -253,13 +240,7 @@ impl HotkeyBarWindow {
         }
     }
 
-    fn describe_close_clicked(
-        &self,
-        ui: &mut UiFrame,
-        rect: Rect,
-        has_grf: bool,
-        close_size: f32,
-    ) -> bool {
+    fn describe_close_clicked(&self, ui: &mut UiFrame, rect: Rect, close_size: f32) -> bool {
         ui.begin_popup_layer(rect);
         ui.interact(DESCRIBE_ID, rect);
         let close_rect = Rect::new(
@@ -277,9 +258,6 @@ impl HotkeyBarWindow {
             close_rect,
             (close_size, close_size),
             close_resp.hovered(),
-            has_grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         ui.end_popup_layer();
@@ -376,32 +354,7 @@ impl HotkeyBarWindow {
     }
 }
 
-impl Window for HotkeyBarWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-        self.tooltip_container.has_grf_textures = value;
-    }
-
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        self.tooltip_container.set_texture_sizes(size_fn);
-        if let Some(size) = size_fn(BG_TEX) {
-            self.bg_size = (size.0 as f32, size.1 as f32);
-        }
-        if let Some(size) = size_fn(CLOSE_OFF_TEX) {
-            self.close_size = (size.0 as f32, size.1 as f32);
-        }
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![BG_TEX, CLOSE_OFF_TEX, CLOSE_ON_TEX, CAT_PAW_TEX];
-        paths.extend(DialogContainer::grf_texture_paths());
-        paths
-    }
-}
+impl Window for HotkeyBarWindow {}
 
 impl InGameWindow for HotkeyBarWindow {
     fn build(&mut self, ui: &mut UiFrame, ctx: &mut BuildCtx) -> Vec<GameEvent> {
@@ -435,44 +388,9 @@ impl InGameWindow for HotkeyBarWindow {
             default_y,
         );
 
-        let has_grf = self.has_grf_textures;
+        crate::helper::fallback::panel(ui, win.x, win.y, WIN_W, win_h);
 
-        if has_grf && self.bg_size.0 > 0.0 {
-            for row in 0..visible_rows {
-                let row_y = win.y + row as f32 * ROW_H;
-                let (v, idx) = draw::quad_vertices(win.x, row_y, WIN_W, ROW_H, [1.0; 4]);
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: idx.to_vec(),
-                    texture: TextureRef::Named(BG_TEX.to_string()),
-                });
-            }
-        } else {
-            crate::helper::fallback::panel(ui, win.x, win.y, WIN_W, win_h);
-        }
-
-        if has_grf {
-            let border_color = [0.3, 0.25, 0.2, 1.0];
-            for &(bx, by, bw, bh) in &[
-                (win.x, win.y, WIN_W, 1.0),
-                (win.x, win.y + win_h - 1.0, WIN_W, 1.0),
-                (win.x, win.y, 1.0, win_h),
-                (win.x + WIN_W - 1.0, win.y, 1.0, win_h),
-            ] {
-                let (v, idx) = draw::quad_vertices(bx, by, bw, bh, border_color);
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: idx.to_vec(),
-                    texture: TextureRef::White,
-                });
-            }
-        }
-
-        let close_size = if has_grf {
-            self.close_size.1.max(CLOSE_SIZE)
-        } else {
-            CLOSE_SIZE
-        };
+        let close_size = CLOSE_SIZE;
         let close_rect = Rect::new(
             win.x + WIN_W - close_size - 2.0,
             win.y + SLOT_MARGIN,
@@ -485,9 +403,6 @@ impl InGameWindow for HotkeyBarWindow {
             close_rect,
             (close_size, close_size),
             close_resp.hovered(),
-            has_grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
@@ -516,17 +431,13 @@ impl InGameWindow for HotkeyBarWindow {
             }
         }
 
-        let tc = text_color(has_grf);
+        let tc = text_color();
 
         for row in 0..visible_rows {
             let row_y = win.y + row as f32 * ROW_H;
 
             if row > 0 {
-                let sep_color = if has_grf {
-                    [0.6, 0.55, 0.5, 0.5]
-                } else {
-                    [0.3, 0.3, 0.4, 0.5]
-                };
+                let sep_color = [0.3, 0.3, 0.4, 0.5];
                 let (v, idx) = draw::quad_vertices(win.x + 1.0, row_y, WIN_W - 2.0, 1.0, sep_color);
                 ui.draw_calls.push(DrawCall {
                     vertices: v.to_vec(),
@@ -615,20 +526,6 @@ impl InGameWindow for HotkeyBarWindow {
                             indices: idx.to_vec(),
                             texture: TextureRef::White,
                         });
-                        if has_grf {
-                            let (v, idx) = draw::quad_vertices(
-                                icon_x,
-                                cell_rect.y,
-                                ICON_SIZE,
-                                ICON_SIZE,
-                                [1.0; 4],
-                            );
-                            ui.draw_calls.push(DrawCall {
-                                vertices: v.to_vec(),
-                                indices: idx.to_vec(),
-                                texture: TextureRef::Named(CAT_PAW_TEX.to_string()),
-                            });
-                        }
                         let remaining = character.cooldowns.remaining_secs(skill, ui.elapsed_secs);
                         if remaining > 0.1 {
                             let time_text = if remaining >= 1.0 {
@@ -775,7 +672,7 @@ impl InGameWindow for HotkeyBarWindow {
             ui.draw_calls.extend(pinned_calls);
             match tooltip_rect {
                 Some(rect) => {
-                    if self.describe_close_clicked(ui, rect, has_grf, close_size) {
+                    if self.describe_close_clicked(ui, rect, close_size) {
                         self.described_skill = None;
                     }
                 }

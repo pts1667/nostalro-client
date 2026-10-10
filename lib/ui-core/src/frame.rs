@@ -4,13 +4,13 @@ use crate::rect::Rect;
 use crate::state::StateCache;
 use crate::text_input::TextInput;
 use ragnarok_renderer::font_atlas::FontAtlas;
+use ragnarok_renderer::ui_renderer::UiVertex;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 
 #[derive(Clone, Copy)]
-pub enum TextInputBg<'a> {
+pub enum TextInputBg {
     Default,
-    Texture(&'a str),
     Transparent,
     Gray,
 }
@@ -20,7 +20,6 @@ pub struct UiFrame<'a> {
     pub atlas: &'a FontAtlas,
     pub state: &'a mut StateCache,
     pub elapsed_secs: f32,
-    pub has_grf_textures: bool,
     pub draw_calls: Vec<DrawCall>,
     pub tooltip_draw_calls: Vec<DrawCall>,
     pub any_hovered: bool,
@@ -66,17 +65,6 @@ pub struct WindowState {
     drag_offset_y: f32,
 }
 
-pub struct ButtonTextures {
-    pub normal: &'static str,
-    pub hover: &'static str,
-    pub pressed: &'static str,
-}
-
-pub struct CheckboxTextures {
-    pub off: &'static str,
-    pub on: &'static str,
-}
-
 pub struct Response {
     clicked: bool,
     double_clicked: bool,
@@ -102,8 +90,6 @@ impl Response {
         self.has_focus
     }
 }
-
-pub const RESIZE_HANDLE_TEX: &str = ragnarok_resources::ui::BTN_RESIZE;
 
 const DRAG_STATE_ID: WidgetId = WidgetId(u32::MAX);
 pub const Z_ORDER_STATE_ID: WidgetId = WidgetId(u32::MAX - 1);
@@ -264,7 +250,6 @@ impl<'a> UiFrame<'a> {
         atlas: &'a FontAtlas,
         state: &'a mut StateCache,
         elapsed_secs: f32,
-        has_grf_textures: bool,
         initial_focus: Option<WidgetId>,
         saved_positions: &'a HashMap<u32, [f32; 2]>,
     ) -> Self {
@@ -280,7 +265,6 @@ impl<'a> UiFrame<'a> {
             atlas,
             state,
             elapsed_secs,
-            has_grf_textures,
             draw_calls: Vec::new(),
             tooltip_draw_calls: Vec::new(),
             any_hovered: false,
@@ -659,38 +643,13 @@ impl<'a> UiFrame<'a> {
         }
     }
 
-    pub fn button(
-        &mut self,
-        id: WidgetId,
-        rect: Rect,
-        textures: &ButtonTextures,
-        fallback_label: &str,
-    ) -> Response {
+    pub fn button(&mut self, id: WidgetId, rect: Rect, label: &str) -> Response {
         let response = self.interact(id, rect);
         if response.hovered {
             self.any_interactive_hovered = true;
         }
         let pressed = response.hovered && (self.ctx.mouse_clicked || self.ctx.mouse_down);
-
-        if self.has_grf_textures {
-            let tex = if pressed {
-                textures.pressed
-            } else if response.hovered {
-                textures.hover
-            } else {
-                textures.normal
-            };
-            let (verts, indices) =
-                draw::quad_vertices(rect.x, rect.y, rect.w, rect.h, [1.0, 1.0, 1.0, 1.0]);
-            self.draw_calls.push(DrawCall {
-                vertices: verts.to_vec(),
-                indices: indices.to_vec(),
-                texture: TextureRef::Named(tex.to_string()),
-            });
-        } else {
-            crate::theme::fallback_button(self, rect, response.hovered, pressed, fallback_label);
-        }
-
+        crate::theme::fallback_button(self, rect, response.hovered, pressed, label);
         response
     }
 
@@ -699,7 +658,6 @@ impl<'a> UiFrame<'a> {
         id: WidgetId,
         rect: Rect,
         checked: &mut bool,
-        textures: &CheckboxTextures,
     ) -> Response {
         let response = self.interact(id, rect);
         if response.hovered {
@@ -708,56 +666,56 @@ impl<'a> UiFrame<'a> {
         if response.clicked {
             *checked = !*checked;
         }
-        self.draw_checkbox(rect, *checked, textures);
+        self.draw_checkbox(rect, *checked, response.hovered);
         response
     }
 
     /// Draw a checkbox glyph without registering interaction, for read-only
     /// displays reflecting state the user cannot toggle here.
-    pub fn checkbox_display(&mut self, rect: Rect, checked: bool, textures: &CheckboxTextures) {
-        self.draw_checkbox(rect, checked, textures);
+    /// Pushes a rounded shape from `draw::rounded_rect*` as a white draw call.
+    /// Shared by the procedural widget fallbacks.
+    fn push_shape(&mut self, (vertices, indices): (Vec<UiVertex>, Vec<u32>)) {
+        self.draw_calls.push(DrawCall {
+            vertices,
+            indices,
+            texture: TextureRef::White,
+        });
     }
 
-    fn draw_checkbox(&mut self, rect: Rect, checked: bool, textures: &CheckboxTextures) {
-        if self.has_grf_textures {
-            let tex = if checked { textures.on } else { textures.off };
-            let (verts, indices) =
-                draw::quad_vertices(rect.x, rect.y, rect.w, rect.h, [1.0, 1.0, 1.0, 1.0]);
-            self.draw_calls.push(DrawCall {
-                vertices: verts.to_vec(),
-                indices: indices.to_vec(),
-                texture: TextureRef::Named(tex.to_string()),
-            });
-        } else {
-            let mut fill = |x: f32, y: f32, w: f32, h: f32, color: [f32; 4]| {
-                let (verts, indices) = draw::quad_vertices(x, y, w, h, color);
-                self.draw_calls.push(DrawCall {
-                    vertices: verts.to_vec(),
-                    indices: indices.to_vec(),
-                    texture: TextureRef::White,
-                });
-            };
-            fill(rect.x, rect.y, rect.w, rect.h, [0.6, 0.6, 0.65, 1.0]);
-            fill(
-                rect.x + 1.0,
-                rect.y + 1.0,
-                rect.w - 2.0,
-                rect.h - 2.0,
-                [1.0, 1.0, 1.0, 1.0],
-            );
-            if checked {
-                fill(
-                    rect.x + 2.0,
-                    rect.y + 2.0,
-                    rect.w - 4.0,
-                    rect.h - 4.0,
-                    [0.286, 0.4, 0.7, 1.0],
-                );
+    pub fn checkbox_display(&mut self, rect: Rect, checked: bool) {
+        self.draw_checkbox(rect, checked, false);
+    }
+
+    fn draw_checkbox(&mut self, rect: Rect, checked: bool, hovered: bool) {
+        use crate::theme::{FallbackPalette as P, lift, line};
+        // A glossy-rimmed white well, with a navy tick when checked.
+        self.push_shape(draw::rounded_rect(
+            rect.x,
+            rect.y,
+            rect.w,
+            rect.h,
+            2.0,
+            lift(P::GLOSS_RIM, hovered),
+        ));
+        self.push_shape(draw::rounded_rect_vgrad(
+            rect.x + 1.0,
+            rect.y + 1.0,
+            rect.w - 2.0,
+            rect.h - 2.0,
+            1.5,
+            lift(P::SLOT_FILL, hovered),
+            lift(P::BTN_LO_BOT, hovered),
+        ));
+        if checked {
+            let at = |fx: f32, fy: f32| (rect.x + rect.w * fx, rect.y + rect.h * fy);
+            let (a, b, c) = (at(0.24, 0.52), at(0.43, 0.74), at(0.80, 0.26));
+            for (p, q) in [(a, b), (b, c)] {
+                line(self, p, q, 2.0, P::GLOSS_RIM);
             }
         }
     }
 
-    /// A labeled button drawn procedurally regardless of GRF textures — for
+    /// A labeled button drawn procedurally, with no named texture — for
     /// buttons whose label has no dedicated texture (e.g. Apply/Revert/Add).
     pub fn text_button(&mut self, id: WidgetId, rect: Rect, label: &str) -> Response {
         let response = self.interact(id, rect);
@@ -810,15 +768,6 @@ impl<'a> UiFrame<'a> {
         }
 
         match bg {
-            TextInputBg::Texture(tex_name) => {
-                let (verts, indices) =
-                    draw::quad_vertices(rect.x, rect.y, rect.w, rect.h, [1.0, 1.0, 1.0, 1.0]);
-                self.draw_calls.push(DrawCall {
-                    vertices: verts.to_vec(),
-                    indices: indices.to_vec(),
-                    texture: TextureRef::Named(tex_name.to_string()),
-                });
-            }
             TextInputBg::Default => {
                 crate::theme::fallback_text_input(self, rect, response.has_focus);
             }
@@ -1096,73 +1045,67 @@ impl<'a> UiFrame<'a> {
 
         let span = (max - min).abs().max(f32::EPSILON);
         let t = ((*value - min) / span).clamp(0.0, 1.0);
-        let track_h = 4.0;
+        use crate::theme::FallbackPalette as P;
+        // Grey capsule track, a glossy blue capsule up to the knob, and a round
+        // glossy knob.
+        let track_h = 5.0;
         let track_y = rect.y + (rect.h - track_h) * 0.5;
-        let knob_w = 8.0;
+        let knob_w = rect.h.clamp(8.0, 13.0);
         let knob_x = rect.x + t * (rect.w - knob_w);
+        let knob_cx = knob_x + knob_w * 0.5;
 
-        let push_rect = |ui: &mut Self, x: f32, y: f32, w: f32, h: f32, c: [f32; 4]| {
-            let (v, i) = draw::quad_vertices(x, y, w, h, c);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
-        };
-        push_rect(
-            self,
+        self.push_shape(draw::rounded_rect(
             rect.x,
             track_y,
             rect.w,
             track_h,
-            [0.2, 0.2, 0.28, 1.0],
-        );
-        push_rect(
+            track_h * 0.5,
+            [0.60, 0.64, 0.72, 1.0],
+        ));
+        self.push_shape(draw::rounded_rect_vgrad(
+            rect.x + 1.0,
+            track_y + 1.0,
+            rect.w - 2.0,
+            track_h - 2.0,
+            (track_h - 2.0) * 0.5,
+            [0.80, 0.83, 0.89, 1.0],
+            [0.93, 0.94, 0.97, 1.0],
+        ));
+        if knob_cx - rect.x > 2.0 {
+            self.push_shape(draw::rounded_rect_vgrad(
+                rect.x + 1.0,
+                track_y + 1.0,
+                knob_cx - rect.x - 1.0,
+                track_h - 2.0,
+                (track_h - 2.0) * 0.5,
+                P::GLOSS_UP_TOP,
+                P::GLOSS_UP_BOT,
+            ));
+        }
+        crate::theme::gloss_disc(
             self,
-            rect.x,
-            track_y,
-            knob_x - rect.x,
-            track_h,
-            [0.45, 0.55, 0.8, 1.0],
+            knob_cx,
+            rect.y + rect.h * 0.5,
+            knob_w * 0.5,
+            resp.hovered || resp.dragging,
         );
-        let knob_c = if resp.hovered || resp.dragging {
-            [0.85, 0.9, 1.0, 1.0]
-        } else {
-            [0.65, 0.7, 0.85, 1.0]
-        };
-        push_rect(self, knob_x, rect.y, knob_w, rect.h, knob_c);
 
         SliderResponse { changed, released }
     }
 
     pub fn resize_handle(&mut self, id: WidgetId, rect: Rect) -> DragResponse {
         let resp = self.drag_handle(id, rect, true);
-
-        if self.has_grf_textures {
-            let (v, i) = draw::quad_vertices(rect.x, rect.y, rect.w, rect.h, [1.0, 1.0, 1.0, 1.0]);
-            self.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(RESIZE_HANDLE_TEX.to_string()),
-            });
-        } else {
-            let c = if resp.hovered {
-                [0.7, 0.7, 0.8, 1.0]
-            } else {
-                [0.4, 0.4, 0.5, 1.0]
-            };
-            let (v, i) = draw::quad_vertices(
-                rect.x + rect.w * 0.5,
-                rect.y + rect.h * 0.5,
-                rect.w * 0.5,
-                rect.h * 0.5,
-                c,
-            );
-            self.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
+        use crate::theme::{FallbackPalette as P, line};
+        // Three diagonal grooves in the bottom-right corner: a light edge under a
+        // blue line, darker while hovered.
+        let colour = if resp.hovered { P::GLOSS_RIM } else { P::GLOSS_UP_BOT };
+        let s = rect.w.min(rect.h);
+        let (right, bottom) = (rect.x + rect.w - 1.0, rect.y + rect.h - 1.0);
+        for k in [0.4, 0.7, 1.0] {
+            let d = s * k;
+            for (c, off) in [([1.0, 1.0, 1.0, 0.9], 1.0), (colour, 0.0)] {
+                line(self, (right - d + off, bottom + off), (right + off, bottom - d + off), 1.2, c);
+            }
         }
 
         resp
@@ -1678,27 +1621,17 @@ mod tests {
     #[test]
     fn button_fallback_draws_procedural_geometry_not_named_texture() {
         let mut state = StateCache::new();
-        let textures = ButtonTextures {
-            normal: "n",
-            hover: "h",
-            pressed: "p",
-        };
         let mut ctx = UiContext::new(800.0, 600.0);
         let mut ui = test_frame(&mut ctx, &mut state);
 
-        ui.button(
-            WidgetId(1),
-            Rect::new(10.0, 10.0, 60.0, 20.0),
-            &textures,
-            "OK",
-        );
+        ui.button(WidgetId(1), Rect::new(10.0, 10.0, 60.0, 20.0), "OK");
 
         assert!(!ui.draw_calls.is_empty());
         assert!(
             !ui.draw_calls
                 .iter()
                 .any(|c| matches!(c.texture, TextureRef::Named(_))),
-            "fallback button must not reference GRF textures"
+            "fallback button must not reference named textures"
         );
         assert!(
             ui.draw_calls
@@ -1712,17 +1645,12 @@ mod tests {
     fn interactive_hovered_true_for_button() {
         let mut state = StateCache::new();
         let rect = Rect::new(10.0, 10.0, 100.0, 30.0);
-        let textures = ButtonTextures {
-            normal: "n",
-            hover: "h",
-            pressed: "p",
-        };
 
         let mut ctx = UiContext::new(800.0, 600.0);
         ctx.mouse_x = 50.0;
         ctx.mouse_y = 25.0;
         let mut ui = test_frame(&mut ctx, &mut state);
-        ui.button(WidgetId(1), rect, &textures, "Test");
+        ui.button(WidgetId(1), rect, "Test");
         assert!(ui.any_hovered);
         assert!(ui.any_interactive_hovered);
     }

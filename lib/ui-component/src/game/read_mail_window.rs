@@ -1,9 +1,9 @@
-use crate::helper::window_chrome::text_color;
+use crate::helper::window_chrome::{draw_sys_button, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::item::Item;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
 pub const READ_MAIL_WINDOW_ID: WidgetId = WidgetId(3950);
@@ -13,24 +13,8 @@ const READ_RETURN_BTN_ID: WidgetId = WidgetId(3953);
 const READ_REPLY_BTN_ID: WidgetId = WidgetId(3954);
 const READ_DELETE_BTN_ID: WidgetId = WidgetId(3955);
 
-const BG_TEX: &str = ragnarok_resources::ui::basic::MAILLIST3_BG;
 
-macro_rules! btn {
-    ($normal:expr, $active:expr) => {
-        ButtonTextures {
-            normal: $normal,
-            hover: $active,
-            pressed: $active,
-        }
-    };
-}
 
-use ragnarok_resources::ui::basic as basic_tex;
-
-const CLOSE_BTN: ButtonTextures = btn!(basic_tex::BTN_CLOSE2, basic_tex::BTN_CLOSE2_A);
-const RETURN_BTN: ButtonTextures = btn!(basic_tex::BTN_RETURN, basic_tex::BTN_RETURN_A);
-const REPLY_BTN: ButtonTextures = btn!(basic_tex::BTN_REMAIL, basic_tex::BTN_REMAIL_A);
-const DELETE_BTN: ButtonTextures = btn!(basic_tex::BTN_DEL, basic_tex::BTN_DEL_A);
 
 const WIN_W: f32 = 300.0;
 const WIN_H: f32 = 400.0;
@@ -79,7 +63,6 @@ fn wrap_lines(ui: &UiFrame, text: &str, max_w: f32) -> Vec<String> {
 }
 
 pub struct ReadMailWindow {
-    pub has_grf_textures: bool,
 }
 
 impl Default for ReadMailWindow {
@@ -91,33 +74,13 @@ impl Default for ReadMailWindow {
 impl ReadMailWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
         }
     }
 }
 
 impl Window for ReadMailWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, WIN_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            BG_TEX,
-            CLOSE_BTN.normal,
-            CLOSE_BTN.hover,
-            RETURN_BTN.normal,
-            RETURN_BTN.hover,
-            REPLY_BTN.normal,
-            REPLY_BTN.hover,
-            DELETE_BTN.normal,
-            DELETE_BTN.hover,
-        ]
     }
 }
 
@@ -140,37 +103,25 @@ impl InGameWindow for ReadMailWindow {
         }
         let mut events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         let win = ui.window_at(READ_MAIL_WINDOW_ID, WIN_W, WIN_H, TITLE_H, 560.0, 60.0);
         let (x, y) = (win.x, win.y);
         ui.interact(READ_MAIL_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
 
-        if grf {
-            let (v, i) = draw::quad_vertices(x, y, WIN_W, WIN_H, [1.0, 1.0, 1.0, 1.0]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(BG_TEX.to_string()),
-            });
-        } else {
-            crate::helper::fallback::window_body(ui, x, y, WIN_W, WIN_H);
-            crate::helper::fallback::titlebar(ui, x, y, WIN_W, TITLE_H);
-        }
+        crate::helper::fallback::window_body(ui, x, y, WIN_W, WIN_H);
+        crate::helper::fallback::titlebar(ui, x, y, WIN_W, TITLE_H);
 
         let opened = character.mail.opened.as_ref().unwrap();
         let mail_id = opened.mail_id;
         let sender = opened.sender.clone();
         let has_attachment = opened.has_attachment();
 
-        ui.text(x + 25.0, y + TITLE_H - 4.0, "Read Mail", tc);
+        ui.text(x + 25.0, y + TITLE_H - 4.0, &rust_i18n::t!("read_mail.read_mail"), tc);
 
-        ui.text(x + BODY_X_OFF, y + 40.0, "From:", LABEL_COLOR);
+        ui.text(x + BODY_X_OFF, y + 40.0, &rust_i18n::t!("read_mail.from"), LABEL_COLOR);
         ui.text(x + 80.0, y + 40.0, &opened.sender, tc);
-        ui.text(x + BODY_X_OFF, y + 58.0, "Title:", LABEL_COLOR);
+        ui.text(x + BODY_X_OFF, y + 58.0, &rust_i18n::t!("read_mail.title"), LABEL_COLOR);
         ui.text(x + 80.0, y + 58.0, &opened.title, tc);
 
         let body = opened.body.clone();
@@ -191,9 +142,7 @@ impl InGameWindow for ReadMailWindow {
             SLOT_SIZE,
             SLOT_SIZE,
         );
-        if !grf {
-            crate::helper::fallback::slot_cell(ui, slot_rect.x, slot_rect.y, SLOT_SIZE, SLOT_SIZE);
-        }
+        crate::helper::fallback::slot_cell(ui, slot_rect.x, slot_rect.y, SLOT_SIZE, SLOT_SIZE);
         let slot_resp = ui.interact(READ_GET_ATTACH_ID, slot_rect);
         if slot_resp.hovered() {
             ui.any_interactive_hovered = true;
@@ -240,7 +189,7 @@ impl InGameWindow for ReadMailWindow {
             ui.text(
                 x + BODY_X_OFF + 120.0,
                 attach_y + SLOT_SIZE / 2.0 + 4.0,
-                &format!("{} z", thousands(zeny)),
+                &rust_i18n::t!("read_mail.zeny", amount = thousands(zeny)),
                 tc,
             );
         }
@@ -257,7 +206,7 @@ impl InGameWindow for ReadMailWindow {
         let delete_rect = Rect::new(x + WIN_W - 52.0, btn_y, 43.0, 21.0);
 
         if ui
-            .button(READ_RETURN_BTN_ID, return_rect, &RETURN_BTN, "Return")
+            .button(READ_RETURN_BTN_ID, return_rect, &rust_i18n::t!("read_mail.return"))
             .clicked()
         {
             events.push(GameEvent::RequestMailReturn {
@@ -266,7 +215,7 @@ impl InGameWindow for ReadMailWindow {
             });
         }
         if ui
-            .button(READ_REPLY_BTN_ID, reply_rect, &REPLY_BTN, "Reply")
+            .button(READ_REPLY_BTN_ID, reply_rect, &rust_i18n::t!("read_mail.reply"))
             .clicked()
         {
             let title = character
@@ -280,14 +229,14 @@ impl InGameWindow for ReadMailWindow {
             character.mail.compose_prefill = Some((sender.clone(), format!("RE:{title}")));
         }
         let delete_clicked = ui
-            .button(READ_DELETE_BTN_ID, delete_rect, &DELETE_BTN, "Delete")
+            .button(READ_DELETE_BTN_ID, delete_rect, &rust_i18n::t!("read_mail.delete"))
             .clicked();
         if delete_clicked {
             if has_attachment {
                 ui.tooltip(
                     delete_rect.x - 120.0,
                     delete_rect.y - 16.0,
-                    "Remove the attachment before deleting.",
+                    &rust_i18n::t!("read_mail.remove_the_attachment_before_deleting"),
                 );
             } else {
                 events.push(GameEvent::RequestMailDelete { mail_id });
@@ -295,11 +244,13 @@ impl InGameWindow for ReadMailWindow {
         }
 
         // Close.
-        let close_rect = Rect::new(x + WIN_W - 17.0, y + 3.0, 16.0, 11.0);
-        if ui
-            .button(READ_CLOSE_BTN_ID, close_rect, &CLOSE_BTN, "x")
-            .clicked()
-        {
+        let close_rect = Rect::new(x + WIN_W - 15.0, y + 3.0, 11.0, 11.0);
+        let close_resp = ui.interact(READ_CLOSE_BTN_ID, close_rect);
+        if close_resp.hovered() {
+            ui.any_interactive_hovered = true;
+        }
+        draw_sys_button(ui, close_rect, (11.0, 11.0), close_resp.hovered(), Some('x'));
+        if close_resp.clicked() {
             character.mail.read_open = false;
             character.mail.opened = None;
         }
@@ -308,7 +259,6 @@ impl InGameWindow for ReadMailWindow {
             events.push(GameEvent::ShowItemInfoDirect { item });
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

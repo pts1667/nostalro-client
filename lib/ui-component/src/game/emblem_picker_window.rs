@@ -1,13 +1,15 @@
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    FOOTER_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer,
+    draw_container, draw_footer,
     draw_sys_button, draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+
 
 pub const EMBLEM_PICKER_WINDOW_ID: WidgetId = WidgetId(3480);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3481);
@@ -20,19 +22,6 @@ const EMBLEM_SCROLL: ScrollbarIds = ScrollbarIds {
 };
 const THUMB_BASE_ID: u32 = 3490;
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 const WIN_W: f32 = 322.0;
 const TITLE_H: f32 = 17.0;
@@ -66,7 +55,6 @@ pub struct EmblemEntry {
 
 pub struct EmblemPickerWindow {
     pub open: bool,
-    pub has_grf_textures: bool,
     entries: Vec<EmblemEntry>,
     selected: Option<usize>,
     scroll: usize,
@@ -82,7 +70,6 @@ impl EmblemPickerWindow {
     pub fn new() -> Self {
         Self {
             open: false,
-            has_grf_textures: false,
             entries: Vec::new(),
             selected: None,
             scroll: 0,
@@ -120,32 +107,8 @@ impl EmblemPickerWindow {
 }
 
 impl Window for EmblemPickerWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, TITLE_H + CONTENT_H + FOOTER_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            FOOTER_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths
     }
 }
 
@@ -166,10 +129,7 @@ impl InGameWindow for EmblemPickerWindow {
             return Vec::new();
         }
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
         let mut events = Vec::new();
 
         let win_h = TITLE_H + CONTENT_H + FOOTER_H;
@@ -178,8 +138,8 @@ impl InGameWindow for EmblemPickerWindow {
         let y = win.y;
         ui.interact(EMBLEM_PICKER_WINDOW_ID, Rect::new(x, y, WIN_W, win_h));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
-        ui.text(x + 17.0, y + TITLE_H - 3.0, "Select emblem", tc);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
+        ui.text(x + 17.0, y + TITLE_H - 3.0, &rust_i18n::t!("emblem_picker.select_emblem"), tc);
 
         let close_rect = Rect::new(
             x + WIN_W - CLOSE_BTN_SIZE - 3.0,
@@ -196,27 +156,22 @@ impl InGameWindow for EmblemPickerWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
             self.open = false;
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
         let content_y = y + TITLE_H;
-        draw_container(ui, x, content_y, WIN_W, CONTENT_H, grf);
+        draw_container(ui, x, content_y, WIN_W, CONTENT_H);
         self.build_grid(ui, x + 6.0, content_y + 6.0);
         self.build_preview(ui, x + GRID_W + 12.0, content_y + 6.0);
 
         let footer_y = content_y + CONTENT_H;
-        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H, grf);
+        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         events.extend(self.build_footer(ui, x, footer_y));
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -226,7 +181,7 @@ impl EmblemPickerWindow {
         let box_h = CONTENT_H - 12.0;
         Self::fill(ui, gx, gy, GRID_W, box_h, LISTBOX_BG);
         if self.entries.is_empty() {
-            ui.text(gx + 6.0, gy + 18.0, "No .bmp emblems found.", OFFLINE_COLOR);
+            ui.text(gx + 6.0, gy + 18.0, &rust_i18n::t!("emblem_picker.no_bmp_emblems_found"), OFFLINE_COLOR);
             return;
         }
 
@@ -280,7 +235,7 @@ impl EmblemPickerWindow {
     }
 
     fn build_preview(&self, ui: &mut UiFrame, px: f32, py: f32) {
-        ui.text(px, py + 10.0, "Preview", TEXT);
+        ui.text(px, py + 10.0, &rust_i18n::t!("emblem_picker.preview"), TEXT);
         let box_x = px + (WIN_W - GRID_W - 12.0 - PREVIEW) / 2.0 - 6.0;
         let box_y = py + 16.0;
         Self::fill_border(ui, box_x - 1.0, box_y - 1.0, PREVIEW + 2.0, PREVIEW + 2.0);
@@ -314,7 +269,7 @@ impl EmblemPickerWindow {
             .unwrap_or(false);
 
         let cancel_rect = Rect::new(x + WIN_W - 50.0, footer_y + 4.0, 42.0, 20.0);
-        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, &CANCEL_BTN, "Cancel");
+        let cancel = ui.button(CANCEL_BTN_ID, cancel_rect, &rust_i18n::t!("common.cancel"));
         if cancel.hovered() {
             ui.any_interactive_hovered = true;
         }
@@ -325,7 +280,7 @@ impl EmblemPickerWindow {
 
         if can_ok {
             let ok_rect = Rect::new(x + WIN_W - 96.0, footer_y + 4.0, 42.0, 20.0);
-            let ok = ui.button(OK_BTN_ID, ok_rect, &OK_BTN, "OK");
+            let ok = ui.button(OK_BTN_ID, ok_rect, &rust_i18n::t!("common.ok"));
             if ok.hovered() {
                 ui.any_interactive_hovered = true;
             }

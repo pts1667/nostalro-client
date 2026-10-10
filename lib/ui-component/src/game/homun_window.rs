@@ -1,17 +1,20 @@
 use crate::helper::colors;
 use crate::helper::window_chrome::{
-    EXP_BAR_FILL, GZE_BLUE_LEFT, TITLEBAR_TEX, draw_container, draw_exp_bar, draw_gauge,
-    draw_hline, draw_sys_button, draw_titlebar, draw_value_bar, gauge_texture_paths, label_color,
-    text_color,
+    EXP_BAR_FILL, draw_container, draw_exp_bar, draw_gauge, draw_hline,
+    draw_sys_button, draw_titlebar, draw_value_bar, label_color, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::companion::{HomunculusState, aspd_display};
 use ragnarok_game::data_table::DataTable;
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+
+
+
 
 pub const HOMUN_WINDOW_ID: WidgetId = WidgetId(2900);
 const CLOSE_BTN_ID: WidgetId = WidgetId(2901);
@@ -20,33 +23,7 @@ const DEL_BTN_ID: WidgetId = WidgetId(2903);
 const RENAME_INPUT_ID: WidgetId = WidgetId(2905);
 const RENAME_BTN_ID: WidgetId = WidgetId(2906);
 const SKILL_BTN_ID: WidgetId = WidgetId(2907);
-const REST_BTN_ID: WidgetId = WidgetId(2908);
-const AI_BTN_ID: WidgetId = WidgetId(2909);
 
-const BG_TEX: &str = ragnarok_resources::ui::basic::HOMUNINFO_BG;
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-
-const RENAME_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_REWRITE,
-    hover: ragnarok_resources::ui::BTN_REWRITE_A,
-    pressed: ragnarok_resources::ui::BTN_REWRITE_B,
-};
-const DEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_DEL,
-    hover: ragnarok_resources::ui::BTN_DEL_A,
-    pressed: ragnarok_resources::ui::BTN_DEL_B,
-};
-const SKILL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_SKILL,
-    hover: ragnarok_resources::ui::BTN_SKILL_A,
-    pressed: ragnarok_resources::ui::BTN_SKILL_B,
-};
-const FEED_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_FEED,
-    hover: ragnarok_resources::ui::BTN_FEED_A,
-    pressed: ragnarok_resources::ui::BTN_FEED_B,
-};
 
 const WIN_W: f32 = 280.0;
 const WIN_H: f32 = 180.0;
@@ -73,11 +50,8 @@ const VALUE_RIGHT_X: f32 = 200.0;
 const HUNGER_LOW: i16 = 25;
 
 pub struct HomunWindow {
-    pub has_grf_textures: bool,
     visible: bool,
     rename_input: TextInput,
-    bar_cap_w: f32,
-    bg_size: (f32, f32),
     rename_size: (f32, f32),
     del_size: (f32, f32),
     skill_size: (f32, f32),
@@ -93,11 +67,8 @@ impl Default for HomunWindow {
 impl HomunWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             visible: false,
             rename_input: TextInput::new(23, false),
-            bar_cap_w: 4.0,
-            bg_size: (0.0, 0.0),
             rename_size: (40.0, 16.0),
             del_size: (42.0, 20.0),
             skill_size: (42.0, 20.0),
@@ -127,12 +98,9 @@ impl HomunWindow {
         let Some(homun) = homun else {
             return Vec::new();
         };
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
         let mut events = Vec::new();
-        let tc = text_color(grf);
-        let lc = label_color(grf);
+        let tc = text_color();
+        let lc = label_color();
 
         let win = ui.window_at(HOMUN_WINDOW_ID, WIN_W, WIN_H, TITLE_H, 200.0, 120.0);
         let x = win.x;
@@ -141,19 +109,10 @@ impl HomunWindow {
 
         // The background carries the stat labels, their rules, and the HP and SP
         // labels with their empty gauge troughs.
-        if grf && self.bg_size.0 > 0.0 {
-            let (v, i) = draw::quad_vertices(x, y, self.bg_size.0, self.bg_size.1, [1.0; 4]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(BG_TEX.to_string()),
-            });
-        } else {
-            draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
-            draw_container(ui, x, y + TITLE_H, WIN_W, WIN_H - TITLE_H, grf);
-        }
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
+        draw_container(ui, x, y + TITLE_H, WIN_W, WIN_H - TITLE_H);
 
-        ui.text(x + 5.0, y + 2.0 + BASELINE, "Homunculus Info", tc);
+        ui.text(x + 5.0, y + 2.0 + BASELINE, &rust_i18n::t!("homun.homunculus_info"), tc);
 
         let sys_w = 11.0;
         let close_rect = Rect::new(x + WIN_W - 14.0, y + 3.0, sys_w, sys_w);
@@ -169,9 +128,6 @@ impl HomunWindow {
             close_rect,
             (sys_w, sys_w),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
 
@@ -187,18 +143,14 @@ impl HomunWindow {
         ];
         for (row, (label, value)) in stats.iter().enumerate() {
             let by = y + STAT_TOP + STAT_PITCH * row as f32 + BASELINE;
-            if !grf {
-                ui.text_bold(x + 6.0, by, label, lc);
-                draw_hline(ui, x + 6.0, by + 4.0, STAT_VALUE_RIGHT - 6.0);
-            }
+            ui.text_bold(x + 6.0, by, label, lc);
+            draw_hline(ui, x + 6.0, by + 4.0, STAT_VALUE_RIGHT - 6.0);
             ui.text_right(x + STAT_VALUE_RIGHT, by, &value.to_string(), tc);
         }
 
         // Name: an edit box and a Rename button until the server accepts a name.
         if homun.renamed {
-            if !grf {
-                ui.text(x + RIGHT_LABEL_X, y + 24.0 + BASELINE, "Name", tc);
-            }
+            ui.text(x + RIGHT_LABEL_X, y + 24.0 + BASELINE, &rust_i18n::t!("homun.name"), tc);
             let (color, shadow) = colors::GREEN_WITH_SHADOW;
             ui.text_with_shadow(
                 x + RIGHT_VALUE_X,
@@ -209,16 +161,12 @@ impl HomunWindow {
             );
         } else {
             let input_rect = Rect::new(x + RIGHT_VALUE_X, y + 22.0, 80.0, 16.0);
-            let bg = if grf {
-                TextInputBg::Gray
-            } else {
-                TextInputBg::Default
-            };
+            let bg = TextInputBg::Default;
             ui.text_input(RENAME_INPUT_ID, input_rect, &mut self.rename_input, bg);
             let (rw, rh) = self.rename_size;
             let btn_rect = Rect::new(x + 232.0, y + 21.0, rw, rh);
             if ui
-                .button(RENAME_BTN_ID, btn_rect, &RENAME_BTN, "Name")
+                .button(RENAME_BTN_ID, btn_rect, &rust_i18n::t!("homun.name"))
                 .clicked()
             {
                 let name = self.rename_input.text.trim().to_string();
@@ -229,9 +177,7 @@ impl HomunWindow {
             }
         }
 
-        if !grf {
-            ui.text(x + RIGHT_LABEL_X, y + 47.0 + BASELINE, "Level", tc);
-        }
+        ui.text(x + RIGHT_LABEL_X, y + 47.0 + BASELINE, &rust_i18n::t!("homun.level"), tc);
         ui.text(
             x + RIGHT_VALUE_X,
             y + 47.0 + BASELINE,
@@ -241,40 +187,19 @@ impl HomunWindow {
         let (dw, dh) = self.del_size;
         let (sw, sh) = self.skill_size;
         if ui
-            .button(
-                DEL_BTN_ID,
-                Rect::new(x + 187.0, y + 44.0, dw, dh),
-                &DEL_BTN,
-                "Delete",
-            )
+            .button(DEL_BTN_ID, Rect::new(x + 187.0, y + 44.0, dw, dh), &rust_i18n::t!("homun.delete"))
             .clicked()
         {
             events.push(GameEvent::RequestHomunDelete);
         }
         if ui
-            .button(
-                SKILL_BTN_ID,
-                Rect::new(x + 232.0, y + 44.0, sw, sh),
-                &SKILL_BTN,
-                "Skill",
-            )
+            .button(SKILL_BTN_ID, Rect::new(x + 232.0, y + 44.0, sw, sh), &rust_i18n::t!("homun.skill"))
             .clicked()
         {
             events.push(GameEvent::ToggleHomunSkillWindow);
         }
 
-        gauge_row(
-            ui,
-            x,
-            y + 73.0,
-            "HP",
-            homun.hp,
-            homun.max_hp,
-            true,
-            self.bar_cap_w,
-            tc,
-            grf,
-        );
+        gauge_row(ui, x, y + 73.0, "HP", homun.hp, homun.max_hp, true, tc);
         gauge_row(
             ui,
             x,
@@ -283,15 +208,11 @@ impl HomunWindow {
             homun.sp,
             homun.max_sp,
             false,
-            self.bar_cap_w,
             tc,
-            grf,
         );
 
         // EXP shows what the next level costs, not what has been earned.
-        if !grf {
-            ui.text(x + RIGHT_LABEL_X, y + 105.0 + BASELINE, "EXP", tc);
-        }
+        ui.text(x + RIGHT_LABEL_X, y + 105.0 + BASELINE, &rust_i18n::t!("homun.exp"), tc);
         ui.text_right(
             x + VALUE_RIGHT_X,
             y + 104.0 + BASELINE,
@@ -310,14 +231,11 @@ impl HomunWindow {
             SMALL_BAR_W,
             EXP_BAR_H,
             exp_ratio,
-            grf,
         );
 
-        self.accessory(ui, x, y, homun.accessory, data, tc, grf);
+        self.accessory(ui, x, y, homun.accessory, data, tc);
 
-        if !grf {
-            ui.text(x + RIGHT_LABEL_X, y + 131.0 + BASELINE, "Hunger", tc);
-        }
+        ui.text(x + RIGHT_LABEL_X, y + 131.0 + BASELINE, &rust_i18n::t!("homun.hunger"), tc);
         ui.text_right(
             x + VALUE_RIGHT_X,
             y + 130.0 + BASELINE,
@@ -337,12 +255,9 @@ impl HomunWindow {
             EXP_BAR_H,
             (homun.hunger.max(0) as f32 / 100.0).clamp(0.0, 1.0),
             hunger_fill,
-            grf,
         );
 
-        if !grf {
-            ui.text(x + RIGHT_LABEL_X, y + 159.0 + BASELINE, "Intimacy", tc);
-        }
+        ui.text(x + RIGHT_LABEL_X, y + 159.0 + BASELINE, &rust_i18n::t!("homun.intimacy"), tc);
         ui.text(x + 140.0, y + 159.0 + BASELINE, ":", tc);
         ui.text(
             x + 150.0,
@@ -353,18 +268,12 @@ impl HomunWindow {
 
         let (fw, fh) = self.feed_size;
         if ui
-            .button(
-                FEED_BTN_ID,
-                Rect::new(x + 210.0, y + 155.0, fw, fh),
-                &FEED_BTN,
-                "Feed",
-            )
+            .button(FEED_BTN_ID, Rect::new(x + 210.0, y + 155.0, fw, fh), &rust_i18n::t!("homun.feed"))
             .clicked()
         {
             events.push(GameEvent::RequestHomunMenu { command: 1 });
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 
@@ -376,11 +285,8 @@ impl HomunWindow {
         accessory: u16,
         data: &DataTable,
         tc: [f32; 4],
-        grf: bool,
     ) {
-        if !grf {
-            ui.text(x + 216.0, y + 105.0 + BASELINE, "Accessory", tc);
-        }
+        ui.text(x + 216.0, y + 105.0 + BASELINE, &rust_i18n::t!("homun.accessory"), tc);
         let icon = (accessory != 0)
             .then(|| {
                 data.item_resource
@@ -398,7 +304,7 @@ impl HomunWindow {
                     texture: TextureRef::Named(path),
                 });
             }
-            None => ui.text(x + 220.0, y + 130.0 + BASELINE, "Unequipped", tc),
+            None => ui.text(x + 220.0, y + 130.0 + BASELINE, &rust_i18n::t!("homun.unequipped"), tc),
         }
     }
 }
@@ -413,33 +319,27 @@ fn gauge_row(
     cur: u32,
     max: u32,
     is_hp: bool,
-    cap_w: f32,
     tc: [f32; 4],
-    grf: bool,
 ) {
     let ratio = if max > 0 {
         (cur as f32 / max as f32).clamp(0.0, 1.0)
     } else {
         0.0
     };
-    if !grf {
-        ui.text(x + RIGHT_LABEL_X, y + BASELINE, label, tc);
-    }
+    ui.text(x + RIGHT_LABEL_X, y + BASELINE, label, tc);
     draw_gauge(
         ui,
         x + GAUGE_X,
         y,
         GAUGE_W,
         GAUGE_H,
-        cap_w,
         ratio,
         is_hp && ratio < 0.25,
-        grf,
     );
     ui.text(
         x + HPSP_TEXT_X,
         y - 3.0 + BASELINE,
-        &format!("{cur} / {max}"),
+        &rust_i18n::t!("homun.cur_max", cur = cur, max = max),
         tc,
     );
 }
@@ -460,57 +360,8 @@ impl InGameWindow for HomunWindow {
 }
 
 impl Window for HomunWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, _)) = size_fn(GZE_BLUE_LEFT) {
-            self.bar_cap_w = w as f32;
-        }
-        if let Some((w, h)) = size_fn(BG_TEX) {
-            self.bg_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(RENAME_BTN.normal) {
-            self.rename_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(DEL_BTN.normal) {
-            self.del_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(SKILL_BTN.normal) {
-            self.skill_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(FEED_BTN.normal) {
-            self.feed_size = (w as f32, h as f32);
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, WIN_H)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            BG_TEX,
-            TITLEBAR_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            DEL_BTN.normal,
-            DEL_BTN.hover,
-            DEL_BTN.pressed,
-            SKILL_BTN.normal,
-            SKILL_BTN.hover,
-            SKILL_BTN.pressed,
-            RENAME_BTN.normal,
-            RENAME_BTN.hover,
-            RENAME_BTN.pressed,
-            FEED_BTN.normal,
-            FEED_BTN.hover,
-            FEED_BTN.pressed,
-        ];
-        paths.extend(gauge_texture_paths());
-        paths
     }
 }
 
@@ -538,7 +389,7 @@ const HPSP_LABEL_W: f32 = 22.0;
 
 /// Draws a HP/SP gauge with the label to the left of the bar and the value
 /// centered over it, returning the next y cursor.
-#[allow(clippy::too_many_arguments)]
+/// Labelled HP/SP row used by the mercenary window: label, gauge, and value text.
 pub(crate) fn bar(
     ui: &mut UiFrame,
     x: f32,
@@ -548,10 +399,8 @@ pub(crate) fn bar(
     cur: u32,
     max: u32,
     kind: GaugeKind,
-    cap_w: f32,
     tc: [f32; 4],
     _label_c: [f32; 4],
-    has_grf: bool,
 ) -> f32 {
     let ratio = if max > 0 {
         (cur as f32 / max as f32).clamp(0.0, 1.0)
@@ -562,8 +411,8 @@ pub(crate) fn bar(
     ui.text(x, y + BAR_H - 2.0, label, tc);
     let bx = x + HPSP_LABEL_W;
     let bw = w - HPSP_LABEL_W;
-    draw_gauge(ui, bx, y, bw, BAR_H, cap_w, ratio, is_red, has_grf);
-    ui.text_centered(bx, y + BAR_H - 2.0, bw, &format!("{cur} / {max}"), tc);
+    draw_gauge(ui, bx, y, bw, BAR_H, ratio, is_red);
+    ui.text_centered(bx, y + BAR_H - 2.0, bw, &rust_i18n::t!("homun.cur_max", cur = cur, max = max), tc);
     y + BAR_H + 3.0
 }
 

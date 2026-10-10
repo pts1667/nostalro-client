@@ -1,8 +1,7 @@
-use crate::helper::CHECKBOX;
-use crate::helper::dropdown::{self, Dropdown};
+use crate::helper::dropdown::Dropdown;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    FOOTER_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_footer, draw_sys_button,
+    draw_footer, draw_sys_button,
     draw_titlebar,
 };
 use crate::{BuildCtx, InGameWindow, Window};
@@ -13,9 +12,14 @@ use ragnarok_game::guild::{GUILD_PERM_EXPEL, GUILD_PERM_INVITE, Guild, GuildPosi
 use ragnarok_game::job_class::job_class_name;
 use ragnarok_game::skill::{SkillEnum, skill_icon_path};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+
+
+
+
 
 pub const GUILD_WINDOW_ID: WidgetId = WidgetId(3400);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3401);
@@ -48,39 +52,9 @@ const POS_TAX_INPUT_BASE: u32 = 5420;
 const POS_INVITE_BASE: u32 = 5440;
 const POS_PUNISH_BASE: u32 = 5460;
 const SKILL_UP_BASE: u32 = 5500;
-const SKILL_DOWN_BASE: u32 = 5520;
 const MEMBER_POS_DROPDOWN_BASE: u32 = 5600;
 const MEMBER_POS_OPTION_BASE: u32 = 5700;
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const GRP_ONLINE_TEX: &str = ragnarok_resources::ui::basic::GRP_ONLINE;
-
-const EDIT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_EDIT,
-    hover: ragnarok_resources::ui::BTN_EDIT_A,
-    pressed: ragnarok_resources::ui::BTN_EDIT_B,
-};
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const APPLY_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_APPLY,
-    hover: ragnarok_resources::ui::BTN_APPLY_A,
-    pressed: ragnarok_resources::ui::BTN_APPLY_B,
-};
-const RESET_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_RESET,
-    hover: ragnarok_resources::ui::BTN_RESET_A,
-    pressed: ragnarok_resources::ui::BTN_RESET_B,
-};
-const SKILL_UP_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::SKILL_UP_A,
-    hover: ragnarok_resources::ui::basic::SKILL_UP_B,
-    pressed: ragnarok_resources::ui::basic::SKILL_UP_C,
-};
 
 const WIN_W: f32 = 500.0;
 const TITLE_H: f32 = 17.0;
@@ -165,7 +139,6 @@ struct PosEdit {
 
 pub struct GuildWindow {
     pub open: bool,
-    pub has_grf_textures: bool,
     just_opened: bool,
     tab: GuildTab,
     members_scroll: usize,
@@ -195,7 +168,6 @@ impl GuildWindow {
     pub fn new() -> Self {
         Self {
             open: false,
-            has_grf_textures: false,
             just_opened: false,
             tab: GuildTab::Info,
             members_scroll: 0,
@@ -338,43 +310,8 @@ impl GuildWindow {
 }
 
 impl Window for GuildWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, TITLE_H + TAB_H + CONTENT_H + FOOTER_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            FOOTER_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            GRP_ONLINE_TEX,
-            EDIT_BTN.normal,
-            EDIT_BTN.hover,
-            EDIT_BTN.pressed,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            APPLY_BTN.normal,
-            APPLY_BTN.hover,
-            APPLY_BTN.pressed,
-            RESET_BTN.normal,
-            RESET_BTN.hover,
-            RESET_BTN.pressed,
-            SKILL_UP_BTN.normal,
-            SKILL_UP_BTN.hover,
-            SKILL_UP_BTN.pressed,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths.extend(dropdown::grf_texture_paths());
-        paths
     }
 }
 
@@ -398,9 +335,6 @@ impl InGameWindow for GuildWindow {
         let is_master = self.is_master(guild, local_gid, &ctx.character.name);
         self.seed_from_guild(guild);
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
         let mut events = Vec::new();
         self.member_head_slots.clear();
         self.head_insert_index = None;
@@ -418,7 +352,7 @@ impl InGameWindow for GuildWindow {
         let y = win.y;
         ui.interact(GUILD_WINDOW_ID, Rect::new(x, y, WIN_W, win_h));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
         let close_rect = Rect::new(
             x + WIN_W - CLOSE_BTN_SIZE - 3.0,
             y + (TITLE_H - CLOSE_BTN_SIZE) / 2.0,
@@ -434,14 +368,10 @@ impl InGameWindow for GuildWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
             self.open = false;
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
@@ -474,13 +404,12 @@ impl InGameWindow for GuildWindow {
         }
 
         let footer_y = content_y + CONTENT_H;
-        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H, grf);
+        draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
         events.extend(self.build_footer(ui, guild.is_some(), is_master, x, footer_y));
 
         self.head_insert_index = Some(ui.draw_calls.len());
         events.extend(self.render_member_pos_overlay(ui));
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -537,7 +466,7 @@ impl GuildWindow {
             return events;
         }
         let ok_rect = Rect::new(x + WIN_W - 46.0, footer_y + 4.0, 42.0, 20.0);
-        let resp = ui.button(FOOTER_OK_BTN, ok_rect, &OK_BTN, "OK");
+        let resp = ui.button(FOOTER_OK_BTN, ok_rect, &rust_i18n::t!("common.ok"));
         if resp.hovered() {
             ui.any_interactive_hovered = true;
         }
@@ -571,37 +500,32 @@ impl GuildWindow {
     ) -> Vec<GameEvent> {
         let mut events = Vec::new();
         let Some(g) = guild else {
-            ui.text(x + 10.0, cy + 20.0, "Not in a guild.", OFFLINE_COLOR);
+            ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.not_in_a_guild"), OFFLINE_COLOR);
             return events;
         };
-        let grf = ui.has_grf_textures;
         let lx = x + 9.0;
         let online = g.members.iter().filter(|m| m.online).count();
 
-        ui.text(lx, cy + 20.0, &format!("Guild Name : {}", g.name), TEXT);
-        ui.text(lx, cy + 36.0, &format!("Guild lvl : {}", g.level), TEXT);
+        ui.text(lx, cy + 20.0, &rust_i18n::t!("guild.guild_name", name = g.name), TEXT);
+        ui.text(lx, cy + 36.0, &rust_i18n::t!("guild.guild_level", level = g.level), TEXT);
         ui.text(
             lx,
             cy + 52.0,
-            &format!("Guild Master : {}", g.master_name),
+            &rust_i18n::t!("guild.guild_master", name = g.master_name),
             TEXT,
         );
-        let members_text = format!("Members : {} / {}", g.member_num, g.max_member_num);
+        let members_text = rust_i18n::t!(
+            "guild.members",
+            current = g.member_num,
+            max = g.max_member_num
+        );
         ui.text(lx, cy + 68.0, &members_text, TEXT);
         let online_icon_x = lx + ui.atlas.measure_text(&members_text) + 6.0;
-        if grf {
-            let (v, i) = draw::quad_vertices(online_icon_x, cy + 57.0, 15.0, 15.0, [1.0; 4]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(GRP_ONLINE_TEX.to_string()),
-            });
-        }
         ui.text(online_icon_x + 18.0, cy + 68.0, &online.to_string(), TEXT);
         ui.text(
             lx,
             cy + 84.0,
-            &format!("Avg.lvl of Members : {}", g.avg_level),
+            &rust_i18n::t!("guild.avg_level_of_members", level = g.avg_level),
             TEXT,
         );
         let land = if g.manage_land.is_empty() {
@@ -609,9 +533,9 @@ impl GuildWindow {
         } else {
             &g.manage_land
         };
-        ui.text(lx, cy + 100.0, &format!("Territory : {land}"), TEXT);
+        ui.text(lx, cy + 100.0, &rust_i18n::t!("guild.territory_land", land = land), TEXT);
 
-        ui.text(lx, cy + 137.0, "Tendency :", TEXT);
+        ui.text(lx, cy + 137.0, &rust_i18n::t!("guild.tendency"), TEXT);
         Self::draw_tendency(ui, lx + 5.0, cy + 150.0);
 
         // Right column.
@@ -619,11 +543,11 @@ impl GuildWindow {
         ui.text(
             rx,
             cy + 20.0,
-            &format!("EXP : {} / {}", g.exp, g.max_exp),
+            &rust_i18n::t!("guild.exp", exp = g.exp, max = g.max_exp),
             TEXT,
         );
 
-        ui.text(rx, cy + 52.0, "emblem", TEXT);
+        ui.text(rx, cy + 52.0, &rust_i18n::t!("guild.emblem"), TEXT);
         Self::fill(ui, x + 400.0, cy + 32.0, 24.0, 24.0, EMBLEM_BG);
         if g.emblem_bmp.is_some() {
             let key = ragnarok_game::guild::emblem_texture_key(g.gdid, g.emblem_version);
@@ -636,7 +560,7 @@ impl GuildWindow {
         }
         if is_master {
             let edit_rect = Rect::new(x + 444.0, cy + 36.0, 42.0, 20.0);
-            let resp = ui.button(EMBLEM_EDIT_BTN, edit_rect, &EDIT_BTN, "Edit");
+            let resp = ui.button(EMBLEM_EDIT_BTN, edit_rect, &rust_i18n::t!("guild.edit"));
             if resp.hovered() {
                 ui.any_interactive_hovered = true;
             }
@@ -645,10 +569,10 @@ impl GuildWindow {
             }
         }
 
-        ui.text(rx, cy + 68.0, &format!("Tax Point : {}", g.point), TEXT);
+        ui.text(rx, cy + 68.0, &rust_i18n::t!("guild.tax_point", point = g.point), TEXT);
 
-        events.extend(self.build_relation_box(ui, g, rx, cy + 98.0, "Alliance", 0, is_master));
-        events.extend(self.build_relation_box(ui, g, rx, cy + 178.0, "Antagonist", 1, is_master));
+        events.extend(self.build_relation_box(ui, g, rx, cy + 98.0, &rust_i18n::t!("guild.alliance"), 0, is_master));
+        events.extend(self.build_relation_box(ui, g, rx, cy + 178.0, &rust_i18n::t!("guild.antagonist"), 1, is_master));
         events
     }
 
@@ -688,10 +612,10 @@ impl GuildWindow {
             [1.0; 4],
         );
         let black = [0.0, 0.0, 0.0, 1.0];
-        ui.text(gx + size / 2.0 - 3.0, gy - 3.0, "R", black);
-        ui.text(gx + size / 2.0 - 3.0, gy + size + 6.0, "W", black);
-        ui.text(gx - 9.0, gy + size / 2.0 + 3.0, "V", black);
-        ui.text(gx + size + 3.0, gy + size / 2.0 + 3.0, "F", black);
+        ui.text(gx + size / 2.0 - 3.0, gy - 3.0, &rust_i18n::t!("guild.r"), black);
+        ui.text(gx + size / 2.0 - 3.0, gy + size + 6.0, &rust_i18n::t!("guild.w"), black);
+        ui.text(gx - 9.0, gy + size / 2.0 + 3.0, &rust_i18n::t!("guild.v"), black);
+        ui.text(gx + size + 3.0, gy + size / 2.0 + 3.0, &rust_i18n::t!("guild.f"), black);
     }
 
     fn build_relation_box(
@@ -747,7 +671,7 @@ impl GuildWindow {
     ) -> Vec<GameEvent> {
         let mut events = Vec::new();
         let Some(g) = guild else {
-            ui.text(x + 10.0, cy + 20.0, "Not in a guild.", OFFLINE_COLOR);
+            ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.not_in_a_guild"), OFFLINE_COLOR);
             return events;
         };
 
@@ -759,13 +683,13 @@ impl GuildWindow {
         let dev_x = x + WIN_W - SCROLLBAR_W - 96.0;
         let tax_x = x + WIN_W - SCROLLBAR_W - 6.0;
 
-        ui.text(name_x, cy + 12.0, "Name", TEXT);
-        ui.text(pos_x, cy + 12.0, "Position", TEXT);
-        ui.text(job_x, cy + 12.0, "Job", TEXT);
-        ui.text(lv_x, cy + 12.0, "Lv", TEXT);
-        ui.text(note_x, cy + 12.0, "Note", TEXT);
-        ui.text(dev_x, cy + 12.0, "Devotion", TEXT);
-        ui.text_right(tax_x, cy + 12.0, "Tax", TEXT);
+        ui.text(name_x, cy + 12.0, &rust_i18n::t!("guild.name"), TEXT);
+        ui.text(pos_x, cy + 12.0, &rust_i18n::t!("guild.position"), TEXT);
+        ui.text(job_x, cy + 12.0, &rust_i18n::t!("guild.job"), TEXT);
+        ui.text(lv_x, cy + 12.0, &rust_i18n::t!("guild.lv"), TEXT);
+        ui.text(note_x, cy + 12.0, &rust_i18n::t!("guild.note"), TEXT);
+        ui.text(dev_x, cy + 12.0, &rust_i18n::t!("guild.devotion"), TEXT);
+        ui.text_right(tax_x, cy + 12.0, &rust_i18n::t!("guild.tax"), TEXT);
         Self::fill(ui, x + 2.0, cy + HEADER_H, WIN_W - 4.0, 1.0, BORDER);
 
         let total_exp: i64 = g.members.iter().map(|m| m.contribution_exp as i64).sum();
@@ -874,7 +798,7 @@ impl GuildWindow {
             } else {
                 0
             };
-            ui.text(dev_x, baseline, &format!("{devotion} %"), color);
+            ui.text(dev_x, baseline, &rust_i18n::t!("guild.devotion_2", devotion = devotion), color);
             ui.text_right(tax_x, baseline, &m.contribution_exp.to_string(), color);
 
             let target_master = m.position_id == 0;
@@ -945,7 +869,7 @@ impl GuildWindow {
         cy: f32,
     ) {
         if !guild_present {
-            ui.text(x + 10.0, cy + 20.0, "Not in a guild.", OFFLINE_COLOR);
+            ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.not_in_a_guild"), OFFLINE_COLOR);
             return;
         }
 
@@ -954,11 +878,11 @@ impl GuildWindow {
         let inv_x = x + 226.0;
         let pun_x = x + 294.0;
         let tax_x = x + WIN_W - SCROLLBAR_W - 60.0;
-        ui.text(id_x, cy + 12.0, "Rank", TEXT);
-        ui.text(title_x, cy + 12.0, "Position Title", TEXT);
-        ui.text(inv_x, cy + 12.0, "Invite", TEXT);
-        ui.text(pun_x, cy + 12.0, "Punish", TEXT);
-        ui.text(tax_x, cy + 12.0, "Tax", TEXT);
+        ui.text(id_x, cy + 12.0, &rust_i18n::t!("guild.rank"), TEXT);
+        ui.text(title_x, cy + 12.0, &rust_i18n::t!("guild.position_title"), TEXT);
+        ui.text(inv_x, cy + 12.0, &rust_i18n::t!("guild.invite"), TEXT);
+        ui.text(pun_x, cy + 12.0, &rust_i18n::t!("guild.punish"), TEXT);
+        ui.text(tax_x, cy + 12.0, &rust_i18n::t!("guild.tax"), TEXT);
         Self::fill(ui, x + 2.0, cy + HEADER_H, WIN_W - 4.0, 1.0, BORDER);
 
         let list_top = cy + HEADER_H + 1.0;
@@ -1041,12 +965,7 @@ impl GuildWindow {
             if is_master && !is_rank0 {
                 let mut inv = invite_on;
                 if ui
-                    .checkbox(
-                        WidgetId(POS_INVITE_BASE + idx as u32),
-                        inv_rect,
-                        &mut inv,
-                        &CHECKBOX,
-                    )
+                    .checkbox(WidgetId(POS_INVITE_BASE + idx as u32), inv_rect, &mut inv)
                     .clicked()
                 {
                     self.pos_edits[idx].right ^= GUILD_PERM_INVITE;
@@ -1054,20 +973,15 @@ impl GuildWindow {
                 }
                 let mut pun = punish_on;
                 if ui
-                    .checkbox(
-                        WidgetId(POS_PUNISH_BASE + idx as u32),
-                        pun_rect,
-                        &mut pun,
-                        &CHECKBOX,
-                    )
+                    .checkbox(WidgetId(POS_PUNISH_BASE + idx as u32), pun_rect, &mut pun)
                     .clicked()
                 {
                     self.pos_edits[idx].right ^= GUILD_PERM_EXPEL;
                     self.pos_dirty = true;
                 }
             } else {
-                ui.checkbox_display(inv_rect, invite_on, &CHECKBOX);
-                ui.checkbox_display(pun_rect, punish_on, &CHECKBOX);
+                ui.checkbox_display(inv_rect, invite_on);
+                ui.checkbox_display(pun_rect, punish_on);
             }
 
             if editable {
@@ -1085,7 +999,7 @@ impl GuildWindow {
                 ui.text(tax_x + 33.0, baseline, "%", TEXT);
             } else {
                 let tax_text = self.pos_edits[idx].tax.text.clone();
-                ui.text(tax_x, baseline, &format!("{tax_text} %"), TEXT);
+                ui.text(tax_x, baseline, &rust_i18n::t!("guild.tax_text", tax_text = tax_text), TEXT);
             }
         }
     }
@@ -1103,12 +1017,12 @@ impl GuildWindow {
         let (skills, skill_point) = match guild {
             Some(g) => (g.skills.clone(), g.skill_point),
             None => {
-                ui.text(x + 10.0, cy + 20.0, "Not in a guild.", OFFLINE_COLOR);
+                ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.not_in_a_guild"), OFFLINE_COLOR);
                 return events;
             }
         };
         if skills.is_empty() {
-            ui.text(x + 10.0, cy + 20.0, "No guild skills.", OFFLINE_COLOR);
+            ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.no_guild_skills"), OFFLINE_COLOR);
             return events;
         }
 
@@ -1164,18 +1078,13 @@ impl GuildWindow {
             ui.text(
                 x + 45.0,
                 row_y + 25.0,
-                &format!("Lv : {shown_level}"),
+                &rust_i18n::t!("guild.lv_shown_level", shown_level = shown_level),
                 name_color,
             );
 
             if remaining > 0 && s.upgradable {
                 let up_rect = Rect::new(x + WIN_W - 76.0, row_y + 4.0, 18.0, 18.0);
-                let up = ui.button(
-                    WidgetId(SKILL_UP_BASE + row as u32),
-                    up_rect,
-                    &SKILL_UP_BTN,
-                    "+",
-                );
+                let up = ui.button(WidgetId(SKILL_UP_BASE + row as u32), up_rect, "+");
                 if up.hovered() {
                     ui.any_interactive_hovered = true;
                 }
@@ -1190,12 +1099,12 @@ impl GuildWindow {
         ui.text(
             x + 10.0,
             footer_y + 17.0,
-            &format!("Skill Points: {remaining}"),
+            &rust_i18n::t!("guild.skill_points_remaining", remaining = remaining),
             TEXT,
         );
         if is_master && pending_total > 0 {
             let apply_rect = Rect::new(x + WIN_W - 100.0, footer_y + 4.0, 42.0, 20.0);
-            let apply = ui.button(SKILL_APPLY_BTN, apply_rect, &APPLY_BTN, "Apply");
+            let apply = ui.button(SKILL_APPLY_BTN, apply_rect, &rust_i18n::t!("guild.apply"));
             if apply.hovered() {
                 ui.any_interactive_hovered = true;
             }
@@ -1207,7 +1116,7 @@ impl GuildWindow {
                 }
             }
             let reset_rect = Rect::new(x + WIN_W - 50.0, footer_y + 4.0, 42.0, 20.0);
-            let reset = ui.button(SKILL_RESET_BTN, reset_rect, &RESET_BTN, "Reset");
+            let reset = ui.button(SKILL_RESET_BTN, reset_rect, &rust_i18n::t!("guild.reset"));
             if reset.hovered() {
                 ui.any_interactive_hovered = true;
             }
@@ -1231,13 +1140,13 @@ impl GuildWindow {
 
     fn build_expel_tab(&self, ui: &mut UiFrame, guild: Option<&Guild>, x: f32, cy: f32) {
         let Some(g) = guild else {
-            ui.text(x + 10.0, cy + 20.0, "Not in a guild.", OFFLINE_COLOR);
+            ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.not_in_a_guild"), OFFLINE_COLOR);
             return;
         };
         let name_x = x + 8.0;
         let reason_x = x + 110.0;
-        ui.text(name_x, cy + 12.0, "Name", TEXT);
-        ui.text(reason_x, cy + 12.0, "The Reason of Expulsion", TEXT);
+        ui.text(name_x, cy + 12.0, &rust_i18n::t!("guild.name"), TEXT);
+        ui.text(reason_x, cy + 12.0, &rust_i18n::t!("guild.the_reason_of_expulsion"), TEXT);
         Self::fill(ui, x + 2.0, cy + HEADER_H, WIN_W - 4.0, 1.0, BORDER);
         Self::fill(ui, reason_x - 4.0, cy, 1.0, CONTENT_H, BORDER);
 
@@ -1245,7 +1154,7 @@ impl GuildWindow {
             ui.text(
                 x + 10.0,
                 cy + HEADER_H + 18.0,
-                "No expelled members.",
+                &rust_i18n::t!("guild.no_expelled_members"),
                 OFFLINE_COLOR,
             );
             return;
@@ -1269,12 +1178,12 @@ impl GuildWindow {
         cy: f32,
     ) {
         if guild.is_none() {
-            ui.text(x + 10.0, cy + 20.0, "Not in a guild.", OFFLINE_COLOR);
+            ui.text(x + 10.0, cy + 20.0, &rust_i18n::t!("guild.not_in_a_guild"), OFFLINE_COLOR);
             return;
         }
-        ui.text(x + 9.0, cy + 23.0, "Title", TEXT);
+        ui.text(x + 9.0, cy + 23.0, &rust_i18n::t!("guild.title"), TEXT);
         let subj_rect = Rect::new(x + 50.0, cy + 13.0, WIN_W - 60.0, 16.0);
-        ui.text(x + 9.0, cy + 46.0, "Contents", TEXT);
+        ui.text(x + 9.0, cy + 46.0, &rust_i18n::t!("guild.contents"), TEXT);
         let body_rect = Rect::new(x + 9.0, cy + 52.0, WIN_W - 18.0, CONTENT_H - 68.0);
 
         if is_master {

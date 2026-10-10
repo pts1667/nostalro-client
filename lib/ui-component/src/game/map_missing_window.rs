@@ -1,8 +1,9 @@
 use crate::Window;
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
 
 pub const MAP_MISSING_WINDOW_ID: WidgetId = WidgetId(2700);
 const WARP_BTN_ID: WidgetId = WidgetId(2701);
@@ -14,14 +15,7 @@ const BTN_W: f32 = 300.0;
 const BTN_H: f32 = 26.0;
 const BTN_SPACING: f32 = 8.0;
 
-const DUMMY_BTN: ButtonTextures = ButtonTextures {
-    normal: "",
-    hover: "",
-    pressed: "",
-};
-
 pub struct MapMissingWindow {
-    pub has_grf_textures: bool,
     open: bool,
     map_name: String,
 }
@@ -29,7 +23,6 @@ pub struct MapMissingWindow {
 impl MapMissingWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             open: false,
             map_name: String::new(),
         }
@@ -56,8 +49,6 @@ impl MapMissingWindow {
 
         // Rendered entirely with fallback (untextured) chrome so it works even
         // when the GRF is unusable.
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = false;
 
         let sw = ui.ctx.screen_width;
         let sh = ui.ctx.screen_height;
@@ -80,7 +71,7 @@ impl MapMissingWindow {
         ui.text(
             wx + 16.0,
             wy + 8.0 + lh * 2.6,
-            &format!("Map '{}' is not in your game data.", self.map_name),
+            &rust_i18n::t!("map_missing.not_in_data", map = self.map_name),
             [0.85, 0.86, 0.92, 1.0],
         );
 
@@ -89,30 +80,19 @@ impl MapMissingWindow {
         let charselect_y = warp_y + BTN_H + BTN_SPACING;
 
         if ui
-            .button(
-                WARP_BTN_ID,
-                Rect::new(btn_x, warp_y, BTN_W, BTN_H),
-                &DUMMY_BTN,
-                "Warp to Prontera",
-            )
+            .button(WARP_BTN_ID, Rect::new(btn_x, warp_y, BTN_W, BTN_H), &rust_i18n::t!("map_missing.warp_to_prontera"))
             .clicked()
         {
             events.push(GameEvent::RequestMapRecoveryWarp);
         }
         if ui
-            .button(
-                CHARSELECT_BTN_ID,
-                Rect::new(btn_x, charselect_y, BTN_W, BTN_H),
-                &DUMMY_BTN,
-                "Return to Character Select",
-            )
+            .button(CHARSELECT_BTN_ID, Rect::new(btn_x, charselect_y, BTN_W, BTN_H), &rust_i18n::t!("map_missing.return_to_character_select"))
             .clicked()
         {
             events.push(GameEvent::BackToCharacterSelect);
             self.hide();
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -124,15 +104,6 @@ impl Default for MapMissingWindow {
 }
 
 impl Window for MapMissingWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![]
-    }
 }
 
 fn push_color_quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {

@@ -5,8 +5,17 @@ use super::confirm_dialog::{ConfirmDialog, ConfirmResult};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId, WindowOrder};
+use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
+
+
+
+
+
+
+
+
+
 
 const BG_ID: WidgetId = WidgetId(510);
 const WINDOW_ID: WidgetId = WidgetId(511);
@@ -26,55 +35,7 @@ const FALLBACK_BTN_H: f32 = 24.0;
 const BTN_SPACING: f32 = 4.0;
 const PADDING_TOP: f32 = 12.0;
 const PADDING_BOTTOM: f32 = 12.0;
-const MENU_H: f32 = PADDING_TOP + 4.0 * FALLBACK_BTN_H + 3.0 * BTN_SPACING + PADDING_BOTTOM;
 
-const WIN_TEXTURE: &str = ragnarok_resources::ui::basic::TITLEBAR_FIX;
-
-const RESUME_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_02A,
-    hover: ragnarok_resources::ui::ESC_02B,
-    pressed: ragnarok_resources::ui::ESC_02C,
-};
-const CHARSELECT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_01A,
-    hover: ragnarok_resources::ui::ESC_01B,
-    pressed: ragnarok_resources::ui::ESC_01C,
-};
-const QUIT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_03A,
-    hover: ragnarok_resources::ui::ESC_03B,
-    pressed: ragnarok_resources::ui::ESC_03C,
-};
-const RESTART_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_04A,
-    hover: ragnarok_resources::ui::ESC_04B,
-    pressed: ragnarok_resources::ui::ESC_04C,
-};
-const RESURRECT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_05A,
-    hover: ragnarok_resources::ui::ESC_05B,
-    pressed: ragnarok_resources::ui::ESC_05C,
-};
-const GRAPHICS_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_06A,
-    hover: ragnarok_resources::ui::ESC_06B,
-    pressed: ragnarok_resources::ui::ESC_06C,
-};
-const SOUND_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_07A,
-    hover: ragnarok_resources::ui::ESC_07B,
-    pressed: ragnarok_resources::ui::ESC_07C,
-};
-const SHORTCUT_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::ESC_08A,
-    hover: ragnarok_resources::ui::ESC_08B,
-    pressed: ragnarok_resources::ui::ESC_08C,
-};
-const DUMMY_BTN: ButtonTextures = ButtonTextures {
-    normal: "",
-    hover: "",
-    pressed: "",
-};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PendingConfirm {
@@ -87,12 +48,9 @@ pub struct SystemMenu {
     pub open: bool,
     pub dead: bool,
     pub can_resurrect: bool,
-    pub has_grf_textures: bool,
     pending_confirm: PendingConfirm,
     confirm_dialog: ConfirmDialog,
     confirm_dialog_out_param: Rc<Cell<Option<ConfirmResult>>>,
-    win_size: (f32, f32),
-    btn_size: (f32, f32),
 }
 
 impl Default for SystemMenu {
@@ -107,66 +65,15 @@ impl SystemMenu {
             open: false,
             dead: false,
             can_resurrect: false,
-            has_grf_textures: false,
             pending_confirm: PendingConfirm::None,
             confirm_dialog: ConfirmDialog::new(),
             confirm_dialog_out_param: Rc::new(Cell::new(None)),
-            win_size: (MENU_W, MENU_H),
-            btn_size: (FALLBACK_BTN_W, FALLBACK_BTN_H),
         }
     }
 }
 
 impl Window for SystemMenu {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
 
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(RESUME_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(WIN_TEXTURE) {
-            self.win_size = (w as f32, h as f32);
-        }
-        self.confirm_dialog.set_texture_sizes(size_fn);
-        self.confirm_dialog.has_grf_textures = true;
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            WIN_TEXTURE,
-            RESUME_BTN.normal,
-            RESUME_BTN.hover,
-            RESUME_BTN.pressed,
-            CHARSELECT_BTN.normal,
-            CHARSELECT_BTN.hover,
-            CHARSELECT_BTN.pressed,
-            QUIT_BTN.normal,
-            QUIT_BTN.hover,
-            QUIT_BTN.pressed,
-            RESTART_BTN.normal,
-            RESTART_BTN.hover,
-            RESTART_BTN.pressed,
-            RESURRECT_BTN.normal,
-            RESURRECT_BTN.hover,
-            RESURRECT_BTN.pressed,
-            GRAPHICS_BTN.normal,
-            GRAPHICS_BTN.hover,
-            GRAPHICS_BTN.pressed,
-            SOUND_BTN.normal,
-            SOUND_BTN.hover,
-            SOUND_BTN.pressed,
-            SHORTCUT_BTN.normal,
-            SHORTCUT_BTN.hover,
-            SHORTCUT_BTN.pressed,
-        ];
-        paths.extend(ConfirmDialog::grf_texture_paths());
-        paths
-    }
 }
 
 impl InGameWindow for SystemMenu {
@@ -226,11 +133,7 @@ impl InGameWindow for SystemMenu {
             return events;
         }
 
-        if self.has_grf_textures {
-            self.build_grf(ui, &mut events);
-        } else {
-            self.build_fallback(ui, &mut events);
-        }
+        self.build_fallback(ui, &mut events);
 
         events
     }
@@ -261,20 +164,6 @@ impl MenuButton {
             MenuButton::Quit => QUIT_ID,
             MenuButton::Restart => RESTART_ID,
             MenuButton::Resurrect => RESURRECT_ID,
-        }
-    }
-
-    fn textures(self) -> &'static ButtonTextures {
-        match self {
-            MenuButton::Resume => &RESUME_BTN,
-            MenuButton::Graphics => &GRAPHICS_BTN,
-            MenuButton::Sound => &SOUND_BTN,
-            MenuButton::Shortcut => &SHORTCUT_BTN,
-            MenuButton::Hotkeys => &DUMMY_BTN,
-            MenuButton::CharSelect => &CHARSELECT_BTN,
-            MenuButton::Quit => &QUIT_BTN,
-            MenuButton::Restart => &RESTART_BTN,
-            MenuButton::Resurrect => &RESURRECT_BTN,
         }
     }
 
@@ -313,16 +202,6 @@ impl SystemMenu {
             buttons.push(MenuButton::CharSelect);
             buttons.push(MenuButton::Quit);
             buttons
-        } else if self.has_grf_textures {
-            vec![
-                MenuButton::CharSelect,
-                MenuButton::Graphics,
-                MenuButton::Sound,
-                MenuButton::Shortcut,
-                MenuButton::Hotkeys,
-                MenuButton::Quit,
-                MenuButton::Resume,
-            ]
         } else {
             vec![
                 MenuButton::Resume,
@@ -369,58 +248,6 @@ impl SystemMenu {
         ui.interact(BG_ID, screen);
     }
 
-    fn build_grf(&mut self, ui: &mut UiFrame, events: &mut Vec<GameEvent>) {
-        let buttons = self.buttons();
-        let n = buttons.len() as f32;
-        let (btn_w, btn_h) = self.btn_size;
-        let (titlebar_w, titlebar_h) = self.win_size;
-        let grf_btn_spacing = 3.0;
-        let body_padding_top = 6.0;
-        let body_padding_bottom = 6.0;
-        let menu_w = btn_w + 60.0;
-        let body_h =
-            body_padding_top + n * btn_h + (n - 1.0) * grf_btn_spacing + body_padding_bottom;
-        let menu_h = titlebar_h + body_h;
-
-        let mx = ((ui.ctx.screen_width - menu_w) / 2.0).floor();
-        let my = ((ui.ctx.screen_height - menu_h) / 2.0).floor() + 80.0;
-
-        self.claim_pointer(ui, Rect::new(mx, my, menu_w, menu_h));
-
-        let titlebar_x = mx + (menu_w - titlebar_w) / 2.0;
-        let (v, i) =
-            draw::quad_vertices(titlebar_x, my, titlebar_w, titlebar_h, [1.0, 1.0, 1.0, 1.0]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::Named(WIN_TEXTURE.to_string()),
-        });
-
-        let body_y = my + titlebar_h;
-        let (v, i) = draw::quad_vertices(mx, body_y, menu_w, body_h, [1.0, 1.0, 1.0, 1.0]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::White,
-        });
-
-        let btn_x = mx + (menu_w - btn_w) / 2.0;
-        let btn_y = |idx: usize| body_y + body_padding_top + idx as f32 * (btn_h + grf_btn_spacing);
-
-        for (idx, &button) in buttons.iter().enumerate() {
-            let rect = Rect::new(btn_x, btn_y(idx), btn_w, btn_h);
-            let clicked = if button == MenuButton::Hotkeys {
-                ui.text_button(button.id(), rect, button.label()).clicked()
-            } else {
-                ui.button(button.id(), rect, button.textures(), button.label())
-                    .clicked()
-            };
-            if clicked {
-                self.on_button_click(button, events);
-            }
-        }
-    }
-
     fn build_fallback(&mut self, ui: &mut UiFrame, events: &mut Vec<GameEvent>) {
         let buttons = self.buttons();
         let n = buttons.len() as f32;
@@ -457,7 +284,7 @@ impl SystemMenu {
         for (idx, &button) in buttons.iter().enumerate() {
             let rect = Rect::new(btn_x, btn_y(idx), FALLBACK_BTN_W, FALLBACK_BTN_H);
             if ui
-                .button(button.id(), rect, &DUMMY_BTN, button.label())
+                .button(button.id(), rect, button.label())
                 .clicked()
             {
                 self.on_button_click(button, events);

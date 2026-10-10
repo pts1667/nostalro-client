@@ -10,7 +10,6 @@ pub struct GuildExpelDialog {
     pub aid: u32,
     pub gid: u32,
     pub name: String,
-    pub has_grf_textures: bool,
     inner: InputDialog,
 }
 
@@ -18,7 +17,7 @@ impl GuildExpelDialog {
     pub fn new(aid: u32, gid: u32, name: String) -> Self {
         let config = InputDialogConfig {
             layout: InputDialogLayout::Text {
-                label: Some(format!("Reason for expelling {name}:")),
+                label: Some(rust_i18n::t!("guild_expel.reason", name = name).to_string()),
                 show_cancel: true,
             },
             escape_cancels: true,
@@ -31,7 +30,6 @@ impl GuildExpelDialog {
             aid,
             gid,
             name,
-            has_grf_textures: false,
             inner: InputDialog::new(config, BASE_ID),
         }
     }
@@ -53,7 +51,6 @@ impl InGameWindow for GuildExpelDialog {
     fn build(&mut self, ui: &mut UiFrame, ctx: &mut BuildCtx) -> Vec<GameEvent> {
         let _character = &mut *ctx.character;
         let _data = ctx.data;
-        self.inner.has_grf_textures = self.has_grf_textures;
         match self.inner.build(ui) {
             InputDialogResult::Submitted => vec![GameEvent::ConfirmedGuildExpel {
                 aid: self.aid,
@@ -67,22 +64,7 @@ impl InGameWindow for GuildExpelDialog {
     }
 }
 
-impl Window for GuildExpelDialog {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        self.inner.set_texture_sizes(size_fn);
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        InputDialog::grf_texture_paths()
-    }
-}
+impl Window for GuildExpelDialog {}
 
 #[cfg(test)]
 mod tests {

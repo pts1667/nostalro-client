@@ -1,12 +1,14 @@
 use crate::helper::window_chrome::{
-    SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer, draw_sys_button,
+    draw_container, draw_footer, draw_sys_button,
     draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+
 
 pub const STORAGE_PASSWORD_WINDOW_ID: WidgetId = WidgetId(5000);
 const CLOSE_BTN_ID: WidgetId = WidgetId(5001);
@@ -15,19 +17,6 @@ const NEW_PASSWORD_INPUT_ID: WidgetId = WidgetId(5003);
 const CONFIRM_INPUT_ID: WidgetId = WidgetId(5004);
 const OK_ID: WidgetId = WidgetId(5005);
 const CANCEL_ID: WidgetId = WidgetId(5006);
-
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 const WIN_W: f32 = 240.0;
 const TITLE_H: f32 = 17.0;
@@ -57,7 +46,6 @@ pub enum StoragePasswordMode {
 }
 
 pub struct StoragePasswordWindow {
-    pub has_grf_textures: bool,
     open: bool,
     mode: StoragePasswordMode,
     password: TextInput,
@@ -77,7 +65,6 @@ impl Default for StoragePasswordWindow {
 impl StoragePasswordWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             open: false,
             mode: StoragePasswordMode::Enter,
             password: TextInput::new(MAX_LEN, true),
@@ -208,34 +195,8 @@ impl StoragePasswordWindow {
 }
 
 impl Window for StoragePasswordWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, TITLE_H + self.body_h() + FOOTER_H)
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            TITLEBAR_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ]
     }
 }
 
@@ -259,15 +220,8 @@ impl InGameWindow for StoragePasswordWindow {
         }
         let mut events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
-        let bg = if grf {
-            TextInputBg::Gray
-        } else {
-            TextInputBg::Default
-        };
+        let tc = text_color();
+        let bg = TextInputBg::Default;
 
         let body_h = self.body_h();
         let win_h = TITLE_H + body_h + FOOTER_H;
@@ -282,8 +236,8 @@ impl InGameWindow for StoragePasswordWindow {
         let (x, y) = (win.x, win.y);
         ui.interact(STORAGE_PASSWORD_WINDOW_ID, Rect::new(x, y, WIN_W, win_h));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
-        ui.text(x + 16.0, y + TITLE_H - 3.0, "Storage Password", tc);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
+        ui.text(x + 16.0, y + TITLE_H - 3.0, &rust_i18n::t!("storage_password.storage_password"), tc);
 
         let close_rect = Rect::new(
             x + WIN_W - CLOSE_BTN_SIZE - 3.0,
@@ -300,20 +254,16 @@ impl InGameWindow for StoragePasswordWindow {
             close_rect,
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
         if close_resp.clicked() {
             self.close();
-            ui.has_grf_textures = prev_grf;
             return events;
         }
 
         let body_y = y + TITLE_H;
-        draw_container(ui, x, body_y, WIN_W, body_h, grf);
-        draw_footer(ui, x, y + win_h - FOOTER_H, WIN_W, FOOTER_H, grf);
+        draw_container(ui, x, body_y, WIN_W, body_h);
+        draw_footer(ui, x, y + win_h - FOOTER_H, WIN_W, FOOTER_H);
 
         if self.focus_next {
             self.focus_next = false;
@@ -328,7 +278,7 @@ impl InGameWindow for StoragePasswordWindow {
 
         match self.mode {
             StoragePasswordMode::Enter => {
-                ui.text(x + PAD, row_y + 12.0, "Password :", tc);
+                ui.text(x + PAD, row_y + 12.0, &rust_i18n::t!("storage_password.password"), tc);
                 ui.text_input(
                     PASSWORD_INPUT_ID,
                     Rect::new(field_x, row_y, field_w, FIELD_H),
@@ -338,7 +288,7 @@ impl InGameWindow for StoragePasswordWindow {
                 row_y += ROW_H;
             }
             StoragePasswordMode::SetNew => {
-                ui.text(x + PAD, row_y + 12.0, "New Password :", tc);
+                ui.text(x + PAD, row_y + 12.0, &rust_i18n::t!("storage_password.new_password"), tc);
                 ui.text_input(
                     NEW_PASSWORD_INPUT_ID,
                     Rect::new(field_x, row_y, field_w, FIELD_H),
@@ -346,7 +296,7 @@ impl InGameWindow for StoragePasswordWindow {
                     bg,
                 );
                 row_y += ROW_H;
-                ui.text(x + PAD, row_y + 12.0, "Confirm :", tc);
+                ui.text(x + PAD, row_y + 12.0, &rust_i18n::t!("storage_password.confirm"), tc);
                 ui.text_input(
                     CONFIRM_INPUT_ID,
                     Rect::new(field_x, row_y, field_w, FIELD_H),
@@ -366,16 +316,11 @@ impl InGameWindow for StoragePasswordWindow {
         let btn_y = footer_y + (FOOTER_H - btn_h) / 2.0;
         let mut bx = x + WIN_W - PAD - btn_w;
         let cancel = ui
-            .button(
-                CANCEL_ID,
-                Rect::new(bx, btn_y, btn_w, btn_h),
-                &CANCEL_BTN,
-                "cancel",
-            )
+            .button(CANCEL_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("storage_password.cancel"))
             .clicked();
         bx -= btn_w + 4.0;
         let ok = ui
-            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), &OK_BTN, "OK")
+            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("common.ok"))
             .clicked();
 
         if cancel {
@@ -384,7 +329,6 @@ impl InGameWindow for StoragePasswordWindow {
             self.submit(&mut events);
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }

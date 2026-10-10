@@ -45,7 +45,7 @@ None of the resource files are committed (they are git-ignored). Place them unde
 ```
 classic-client/
   data/
-    data.grf        # required: GRF archive with maps, sprites, effects, textureswe
+    data.grf        # required for game content: GRF archive with maps, sprites, effects, textures
     BGM/            # optional: background music files (.mp3 / .wav)
     emblem/         # optional: guild emblem .bmp files (24-bit, 24x24)
     extracted/      # optional: loose files that override the archive (see data_dir)
@@ -54,6 +54,10 @@ classic-client/
 ```
 
 The GRF archive holds everything the renderer reads: maps (GAT/RSW/GND), sprites (SPR/ACT), effects (STR), 3D models (RSM/GR2), and textures. The client and every tool read resources by their Korean names, exactly as they are stored in the archive; we do not rename or repack them.
+
+The UI does not need the archive. Its windows, buttons and frames are drawn procedurally, so the login and game screens still render when no data is present. Only game content is read from the archive: item, skill and card icons, emotes, map images and character portraits. Missing content is skipped and logged once per file name.
+
+UI text is in English. It is kept in `lib/ui-component/locales/en.yml` and read through `rust-i18n`, so a translation only needs a new locale file. See [docs/internal/ui-system.md](docs/internal/ui-system.md#text-and-translations).
 
 Resources are resolved by priority. `data_dir` (loose extracted files) is checked first, then each archive in `grf_paths` in order, so the first archive wins over the later ones. This lets a second GRF, or a folder of extracted files, override individual resources without touching the base archive. The layout inside `data_dir` mirrors the archive's `data/` folder: to override `data/sprite/foo.spr`, place the file at `<data_dir>/sprite/foo.spr`.
 

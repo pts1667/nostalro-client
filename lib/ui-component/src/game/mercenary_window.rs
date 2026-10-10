@@ -1,32 +1,21 @@
 use crate::game::homun_window::{GaugeKind, bar};
 use crate::helper::window_chrome::{
-    GZE_BLUE_LEFT, TITLEBAR_TEX, draw_container, draw_hline, draw_sys_button, draw_titlebar,
-    gauge_texture_paths, label_color, text_color,
+    draw_container, draw_hline, draw_sys_button, draw_titlebar,
+    label_color, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::companion::{MercenaryState, aspd_display};
 use ragnarok_game::event::GameEvent;
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId};
+use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+
+
 
 pub const MERCENARY_WINDOW_ID: WidgetId = WidgetId(3000);
 const CLOSE_BTN_ID: WidgetId = WidgetId(3001);
 const DISMISS_BTN_ID: WidgetId = WidgetId(3002);
 const SKILL_BTN_ID: WidgetId = WidgetId(3003);
 
-const CLOSE_OFF_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_OFF;
-const CLOSE_ON_TEX: &str = ragnarok_resources::ui::basic::SYS_CLOSE_ON;
-
-const FIRED_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_FIRED,
-    hover: ragnarok_resources::ui::BTN_FIRED_A,
-    pressed: ragnarok_resources::ui::BTN_FIRED_B,
-};
-const SKILL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_SKILL,
-    hover: ragnarok_resources::ui::BTN_SKILL_A,
-    pressed: ragnarok_resources::ui::BTN_SKILL_B,
-};
 
 const WIN_W: f32 = 236.0;
 const TITLE_H: f32 = 17.0;
@@ -40,9 +29,7 @@ const BASELINE: f32 = 10.0;
 const EXPIRE_COLOR: [f32; 4] = crate::helper::colors::RED;
 
 pub struct MercenaryWindow {
-    pub has_grf_textures: bool,
     visible: bool,
-    bar_cap_w: f32,
     fired_size: (f32, f32),
     skill_size: (f32, f32),
 }
@@ -56,9 +43,7 @@ impl Default for MercenaryWindow {
 impl MercenaryWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             visible: false,
-            bar_cap_w: 4.0,
             fired_size: (42.0, 20.0),
             skill_size: (42.0, 20.0),
         }
@@ -81,20 +66,17 @@ impl MercenaryWindow {
         let Some(merc) = merc else {
             return Vec::new();
         };
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
         let mut events = Vec::new();
-        let tc = text_color(grf);
-        let lc = label_color(grf);
+        let tc = text_color();
+        let lc = label_color();
 
         let win = ui.window_at(MERCENARY_WINDOW_ID, WIN_W, WIN_H, TITLE_H, 240.0, 140.0);
         let x = win.x;
         let y = win.y;
         ui.interact(MERCENARY_WINDOW_ID, Rect::new(x, y, WIN_W, WIN_H));
 
-        draw_titlebar(ui, x, y, WIN_W, TITLE_H, grf);
-        ui.text(x + 16.0, y + 13.0, "Mercenary Info", tc);
+        draw_titlebar(ui, x, y, WIN_W, TITLE_H);
+        ui.text(x + 16.0, y + 13.0, &rust_i18n::t!("mercenary.mercenary_info"), tc);
 
         let sys_w = 11.0;
         let close_rect = Rect::new(x + WIN_W - 3.0 - sys_w, y + 3.0, sys_w, sys_w);
@@ -110,13 +92,10 @@ impl MercenaryWindow {
             close_rect,
             (sys_w, sys_w),
             close_resp.hovered(),
-            grf,
-            CLOSE_ON_TEX,
-            CLOSE_OFF_TEX,
             Some('x'),
         );
 
-        draw_container(ui, x, y + TITLE_H, WIN_W, PANEL_H, grf);
+        draw_container(ui, x, y + TITLE_H, WIN_W, PANEL_H);
 
         // Left stat column (boxed cells).
         let stats = [
@@ -145,23 +124,23 @@ impl MercenaryWindow {
         let right_edge = x + WIN_W - PAD;
         let mut ry = y + TITLE_H + 4.0;
 
-        ui.text(rx, ry + BASELINE, "Name", tc);
+        ui.text(rx, ry + BASELINE, &rust_i18n::t!("mercenary.name"), tc);
         ui.text_bold(rx + 34.0, ry + BASELINE, &merc.name, lc);
         ry += 20.0;
 
-        ui.text(rx, ry + BASELINE, &format!("lvl {}", merc.level), tc);
+        ui.text(rx, ry + BASELINE, &rust_i18n::t!("mercenary.level_short", level = merc.level), tc);
         let (sw, sh) = self.skill_size;
         let (fw, fh) = self.fired_size;
         let skill_rect = Rect::new(right_edge - sw, ry, sw, sh);
         let dismiss_rect = Rect::new(right_edge - sw - 4.0 - fw, ry, fw, fh);
         if ui
-            .button(DISMISS_BTN_ID, dismiss_rect, &FIRED_BTN, "Dismiss")
+            .button(DISMISS_BTN_ID, dismiss_rect, &rust_i18n::t!("mercenary.dismiss"))
             .clicked()
         {
             events.push(GameEvent::RequestMercenaryCommand { command: 2 });
         }
         if ui
-            .button(SKILL_BTN_ID, skill_rect, &SKILL_BTN, "Skill")
+            .button(SKILL_BTN_ID, skill_rect, &rust_i18n::t!("mercenary.skill"))
             .clicked()
         {
             events.push(GameEvent::ToggleMercenarySkillWindow);
@@ -178,10 +157,8 @@ impl MercenaryWindow {
             merc.hp,
             merc.max_hp,
             GaugeKind::Hp,
-            self.bar_cap_w,
             tc,
             lc,
-            grf,
         );
         ry = bar(
             ui,
@@ -192,14 +169,12 @@ impl MercenaryWindow {
             merc.sp,
             merc.max_sp,
             GaugeKind::Sp,
-            self.bar_cap_w,
             tc,
             lc,
-            grf,
         );
         ry += 6.0;
 
-        ui.text(rx, ry + BASELINE, "Expiration", tc);
+        ui.text(rx, ry + BASELINE, &rust_i18n::t!("mercenary.expiration"), tc);
         ui.text(
             rx + 60.0,
             ry + BASELINE,
@@ -209,15 +184,14 @@ impl MercenaryWindow {
         ry += 22.0;
 
         let mid = rx + (right_edge - rx) * 0.5;
-        ui.text(rx, ry + BASELINE, "Loyalty", tc);
+        ui.text(rx, ry + BASELINE, &rust_i18n::t!("mercenary.loyalty"), tc);
         ui.text(rx + 52.0, ry + BASELINE, &merc.faith.to_string(), tc);
-        ui.text(mid + 8.0, ry + BASELINE, "Kill", tc);
+        ui.text(mid + 8.0, ry + BASELINE, &rust_i18n::t!("mercenary.kill"), tc);
         ry += 16.0;
-        ui.text(rx, ry + BASELINE, "Summons", tc);
+        ui.text(rx, ry + BASELINE, &rust_i18n::t!("mercenary.summons"), tc);
         ui.text(rx + 52.0, ry + BASELINE, &merc.calls.to_string(), tc);
         ui.text_right(right_edge, ry + BASELINE, &merc.kills.to_string(), tc);
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
@@ -238,41 +212,8 @@ impl InGameWindow for MercenaryWindow {
 }
 
 impl Window for MercenaryWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, _)) = size_fn(GZE_BLUE_LEFT) {
-            self.bar_cap_w = w as f32;
-        }
-        if let Some((w, h)) = size_fn(FIRED_BTN.normal) {
-            self.fired_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(SKILL_BTN.normal) {
-            self.skill_size = (w as f32, h as f32);
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         (WIN_W, WIN_H)
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            CLOSE_OFF_TEX,
-            CLOSE_ON_TEX,
-            FIRED_BTN.normal,
-            FIRED_BTN.hover,
-            FIRED_BTN.pressed,
-            SKILL_BTN.normal,
-            SKILL_BTN.hover,
-            SKILL_BTN.pressed,
-        ];
-        paths.extend(gauge_texture_paths());
-        paths
     }
 }
 

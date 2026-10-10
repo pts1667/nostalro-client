@@ -2,8 +2,10 @@ use crate::Window;
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::skill::SkillEnum;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, UiFrame, WidgetId, WindowOrder};
+use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
+
+
 
 pub const WARP_LIST_WINDOW_ID: WidgetId = WidgetId(4600);
 const OK_ID: WidgetId = WidgetId(4601);
@@ -21,18 +23,6 @@ const BTN_BOTTOM: f32 = 4.0;
 const BTN_FIRST_RIGHT: f32 = 5.0;
 const BTN_SPACING: f32 = 3.0;
 
-const WIN_TEXTURE: &str = ragnarok_resources::ui::WIN_MSGBOX;
-
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
 
 const SELECTED_COLOR: [f32; 4] = [0.3, 0.3, 0.5, 0.5];
 
@@ -52,7 +42,6 @@ fn display_name(raw: &str) -> String {
 
 #[derive(Default)]
 pub struct WarpListWindow {
-    has_grf_textures: bool,
     open: bool,
     skill: Option<SkillEnum>,
     destinations: Vec<Destination>,
@@ -127,8 +116,6 @@ impl WarpListWindow {
             self.confirm(&mut events);
             return events;
         }
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
 
         let (btn_w, btn_h) = self.btn_size;
         let rows_h = self.destinations.len() as f32 * ROW_H;
@@ -142,41 +129,28 @@ impl WarpListWindow {
         let win = ui.window_fixed(WARP_LIST_WINDOW_ID, WIN_W, win_h, dx, dy);
         ui.interact(WARP_LIST_WINDOW_ID, win);
 
-        if self.has_grf_textures {
-            let (v, i) = draw::quad_vertices(dx, dy, WIN_W, win_h, [1.0, 1.0, 1.0, 1.0]);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::Named(WIN_TEXTURE.to_string()),
-            });
-        } else {
-            let (v, i) = draw::quad_vertices(dx, dy, WIN_W, win_h, [0.2, 0.2, 0.28, 0.97]);
+        let (v, i) = draw::quad_vertices(dx, dy, WIN_W, win_h, [0.2, 0.2, 0.28, 0.97]);
+        ui.draw_calls.push(DrawCall {
+            vertices: v.to_vec(),
+            indices: i.to_vec(),
+            texture: TextureRef::White,
+        });
+        let border = [0.5, 0.5, 0.6, 1.0];
+        for (bx, by, bw, bh) in [
+            (dx, dy, WIN_W, 1.0),
+            (dx, dy + win_h - 1.0, WIN_W, 1.0),
+            (dx, dy, 1.0, win_h),
+            (dx + WIN_W - 1.0, dy, 1.0, win_h),
+        ] {
+            let (v, i) = draw::quad_vertices(bx, by, bw, bh, border);
             ui.draw_calls.push(DrawCall {
                 vertices: v.to_vec(),
                 indices: i.to_vec(),
                 texture: TextureRef::White,
             });
-            let border = [0.5, 0.5, 0.6, 1.0];
-            for (bx, by, bw, bh) in [
-                (dx, dy, WIN_W, 1.0),
-                (dx, dy + win_h - 1.0, WIN_W, 1.0),
-                (dx, dy, 1.0, win_h),
-                (dx + WIN_W - 1.0, dy, 1.0, win_h),
-            ] {
-                let (v, i) = draw::quad_vertices(bx, by, bw, bh, border);
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: TextureRef::White,
-                });
-            }
         }
 
-        let text_color = if self.has_grf_textures {
-            [0.0, 0.0, 0.0, 1.0]
-        } else {
-            [1.0, 1.0, 1.0, 1.0]
-        };
+        let text_color = [1.0, 1.0, 1.0, 1.0];
 
         let mut clicked_index = None;
         for (idx, dest) in self.destinations.iter().enumerate() {
@@ -223,8 +197,8 @@ impl WarpListWindow {
             BTN_FIRST_RIGHT,
             BTN_SPACING,
         );
-        let cancel = ui.button(CANCEL_ID, btns[0], &CANCEL_BTN, "Cancel");
-        let ok = ui.button(OK_ID, btns[1], &OK_BTN, "OK");
+        let cancel = ui.button(CANCEL_ID, btns[0], &rust_i18n::t!("common.cancel"));
+        let ok = ui.button(OK_ID, btns[1], &rust_i18n::t!("common.ok"));
 
         if ok.clicked() {
             self.confirm(&mut events);
@@ -232,34 +206,11 @@ impl WarpListWindow {
             self.cancel(&mut events);
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
 
 impl Window for WarpListWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-    }
-    fn grf_texture_paths() -> Vec<&'static str> {
-        vec![
-            WIN_TEXTURE,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-        ]
-    }
 }
 
 #[cfg(test)]

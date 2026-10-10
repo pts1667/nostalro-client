@@ -1,5 +1,4 @@
 use super::lifecycle::SessionChange;
-use super::preload_window;
 use crate::App;
 use ragnarok_game::app_state::AppState;
 use ragnarok_game::entity::Entity;
@@ -8,12 +7,7 @@ use ragnarok_network::{
     KeepaliveMode, NetworkCommand, build_map_loaded_packet, build_select_accessible_map_packet,
     build_zone_enter_packet, ip_u32_to_string,
 };
-use ragnarok_ui_component::Window as UiWindow;
 use ragnarok_ui_component::account::char_select_window::CharSelectWindow;
-use ragnarok_ui_component::game::card_insert_dialog::CardInsertDialog;
-use ragnarok_ui_component::game::chat_room_board;
-use ragnarok_ui_component::game::drop_quantity_dialog::DropQuantityDialog;
-use ragnarok_ui_component::game::vending_board;
 use winit::event_loop::ActiveEventLoop;
 
 impl App {
@@ -41,9 +35,6 @@ impl App {
         }
         let mut char_win = CharSelectWindow::new(characters);
         char_win.preselect_slot(self.config.last_char_slot);
-        if let (Some(grf), Some(renderer)) = (&self.grf, &mut self.renderer) {
-            preload_window(&mut char_win, renderer, grf);
-        }
         self.char_select_window = Some(char_win);
         self.game.session.app_state = AppState::CharacterSelect;
     }
@@ -305,63 +296,7 @@ impl App {
         self.char_select_window = None;
 
         if let (Some(grf), Some(renderer)) = (&self.grf, &mut self.renderer) {
-            preload_window(&mut self.windows.chat_window, renderer, grf);
-            preload_window(&mut self.windows.system_menu, renderer, grf);
-            preload_window(&mut self.windows.inventory_window, renderer, grf);
-            preload_window(&mut self.windows.cart_window, renderer, grf);
-            preload_window(&mut self.windows.storage_window, renderer, grf);
-            preload_window(&mut self.windows.storage_password_window, renderer, grf);
-            preload_window(&mut self.windows.trade_window, renderer, grf);
-            preload_window(&mut self.windows.mailbox_window, renderer, grf);
-            preload_window(&mut self.windows.read_mail_window, renderer, grf);
-            preload_window(&mut self.windows.cart_select_window, renderer, grf);
-            preload_window(&mut self.windows.equipment_window, renderer, grf);
-            preload_window(&mut self.windows.npc_dialog, renderer, grf);
-            preload_window(&mut self.windows.warp_list_window, renderer, grf);
-            preload_window(&mut self.windows.item_list_selection_window, renderer, grf);
-            preload_window(&mut self.windows.make_item_window, renderer, grf);
-            preload_window(&mut self.windows.vending_shop_window, renderer, grf);
-            preload_window(&mut self.windows.vending_setup_window, renderer, grf);
-            preload_window(&mut self.windows.my_shop_window, renderer, grf);
-            preload_window(&mut self.windows.npc_shop, renderer, grf);
-            renderer.preload_textures(&chat_room_board::grf_texture_paths(), grf);
-            preload_window(&mut self.windows.chat_room_create_window, renderer, grf);
-            preload_window(&mut self.windows.chat_room_member_window, renderer, grf);
-            preload_window(&mut self.windows.emotion_window, renderer, grf);
-            preload_window(&mut self.windows.shortcut_list_window, renderer, grf);
-            preload_window(&mut self.windows.quest_window, renderer, grf);
-            preload_window(&mut self.windows.quest_detail_window, renderer, grf);
-            preload_window(&mut self.windows.item_info_window, renderer, grf);
-            preload_window(&mut self.windows.book_window, renderer, grf);
-            preload_window(&mut self.windows.monster_info_window, renderer, grf);
-            preload_window(&mut self.windows.sound_options, renderer, grf);
-            preload_window(&mut self.windows.graphic_options, renderer, grf);
-            preload_window(&mut self.windows.hotkey_config_window, renderer, grf);
-            preload_window(&mut self.windows.item_pickup_notification, renderer, grf);
-            preload_window(&mut self.windows.skill_tree_window, renderer, grf);
-            preload_window(&mut self.windows.hotkey_bar, renderer, grf);
-            preload_window(&mut self.windows.basic_info_window, renderer, grf);
-            preload_window(&mut self.windows.minimap_window, renderer, grf);
-            preload_window(&mut self.windows.world_map_window, renderer, grf);
-            preload_window(&mut self.windows.status_window, renderer, grf);
-            preload_window(&mut self.windows.levelup_notification, renderer, grf);
-            preload_window(&mut self.windows.party_friends_window, renderer, grf);
-            preload_window(&mut self.windows.party_helper_window, renderer, grf);
-            preload_window(&mut self.windows.guild_window, renderer, grf);
-            preload_window(&mut self.windows.emblem_picker_window, renderer, grf);
-            preload_window(&mut self.windows.homunculus_window, renderer, grf);
-            preload_window(&mut self.windows.mercenary_window, renderer, grf);
-            preload_window(&mut self.windows.pet_window, renderer, grf);
-            preload_window(&mut self.windows.mercenary_skill_window, renderer, grf);
-            preload_window(&mut self.windows.homun_skill_window, renderer, grf);
-            preload_window(&mut self.windows.companion_ai_config_window, renderer, grf);
-            preload_window(&mut self.windows.confirm_dialog, renderer, grf);
-            self.windows.drop_dialog_has_grf_textures =
-                renderer.preload_textures(&DropQuantityDialog::grf_texture_paths(), grf);
-            self.windows.card_insert_dialog_has_grf_textures =
-                renderer.preload_textures(&CardInsertDialog::grf_texture_paths(), grf);
 
-            renderer.preload_textures(&vending_board::grf_texture_paths(), grf);
 
             if let Some(current_map) = &self.game.session.current_map {
                 let minimap_path = ragnarok_resources::ui::minimap::of(current_map);

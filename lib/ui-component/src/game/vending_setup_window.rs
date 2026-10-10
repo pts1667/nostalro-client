@@ -1,15 +1,18 @@
 use crate::helper::format::format_thousands;
 use crate::helper::scrollbar::{self, SCROLLBAR_W, ScrollbarIds};
 use crate::helper::window_chrome::{
-    ITEMWIN_MID_TEX, SYS_BASE_OFF_TEX, SYS_BASE_ON_TEX, TITLEBAR_TEX, draw_container, draw_footer,
+    draw_container, draw_footer,
     draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::{ButtonTextures, TextInputBg, UiFrame, WidgetId};
+use ragnarok_ui::frame::{TextInputBg, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::text_input::TextInput;
+
+
+
 
 pub const VENDING_SETUP_WINDOW_ID: WidgetId = WidgetId(2300);
 const OK_ID: WidgetId = WidgetId(2301);
@@ -22,21 +25,6 @@ const RESET_ID: WidgetId = WidgetId(2307);
 const PRICE_BASE_ID: u32 = 2320;
 const ROW_DRAG_BASE_ID: u32 = 2340;
 
-const OK_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_OK,
-    hover: ragnarok_resources::ui::BTN_OK_A,
-    pressed: ragnarok_resources::ui::BTN_OK_B,
-};
-const CANCEL_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::BTN_CANCEL,
-    hover: ragnarok_resources::ui::BTN_CANCEL_A,
-    pressed: ragnarok_resources::ui::BTN_CANCEL_B,
-};
-const RESET_BTN: ButtonTextures = ButtonTextures {
-    normal: ragnarok_resources::ui::basic::seekparty::BTN_CLEAR_A,
-    hover: ragnarok_resources::ui::basic::seekparty::BTN_CLEAR_B,
-    pressed: ragnarok_resources::ui::basic::seekparty::BTN_CLEAR_C,
-};
 const FALLBACK_BTN_W: f32 = 42.0;
 const FALLBACK_BTN_H: f32 = 20.0;
 
@@ -78,7 +66,6 @@ struct SetupSlot {
 }
 
 pub struct VendingSetupWindow {
-    has_grf_textures: bool,
     open: bool,
     max_items: usize,
     slots: Vec<SetupSlot>,
@@ -98,7 +85,6 @@ impl Default for VendingSetupWindow {
 impl VendingSetupWindow {
     pub fn new() -> Self {
         Self {
-            has_grf_textures: false,
             open: false,
             max_items: 0,
             slots: Vec::new(),
@@ -185,10 +171,7 @@ impl VendingSetupWindow {
         }
         let events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
+        let tc = text_color();
 
         let grid_w = AVAIL_COLS as f32 * CELL;
         let grid_h = AVAIL_ROWS as f32 * CELL;
@@ -206,16 +189,16 @@ impl VendingSetupWindow {
         let (wx, wy) = (win.x, win.y);
         ui.interact(VENDING_AVAILABLE_WINDOW_ID, Rect::new(wx, wy, win_w, win_h));
 
-        draw_titlebar(ui, wx, wy, win_w, TITLE_H, grf);
+        draw_titlebar(ui, wx, wy, win_w, TITLE_H);
         ui.text(
             wx + 17.0,
             wy + TITLE_H - 3.0,
-            "Available items for Vending",
+            &rust_i18n::t!("vending_setup.available_items_for_vending"),
             tc,
         );
 
         let body_y = wy + TITLE_H;
-        draw_container(ui, wx, body_y, win_w, AVAIL_PAD + grid_h + AVAIL_PAD, grf);
+        draw_container(ui, wx, body_y, win_w, AVAIL_PAD + grid_h + AVAIL_PAD);
 
         let staged = self.staged_indices();
         let available: Vec<(u16, i16, Option<String>, bool)> = character
@@ -244,28 +227,13 @@ impl VendingSetupWindow {
             let cell_rect = Rect::new(cx, cy, CELL, CELL);
             let resp = ui.interact(WidgetId(AVAIL_CELL_BASE_ID + slot as u32), cell_rect);
 
-            if grf {
-                let (v, i) = draw::quad_vertices(
-                    cx + CELL_PAD,
-                    cy + CELL_PAD,
-                    CELL_ICON,
-                    CELL_ICON,
-                    [1.0; 4],
-                );
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: TextureRef::Named(ITEMWIN_MID_TEX.to_string()),
-                });
-            } else {
-                crate::helper::fallback::slot_cell(
-                    ui,
-                    cx + CELL_PAD,
-                    cy + CELL_PAD,
-                    CELL_ICON,
-                    CELL_ICON,
-                );
-            }
+            crate::helper::fallback::slot_cell(
+                ui,
+                cx + CELL_PAD,
+                cy + CELL_PAD,
+                CELL_ICON,
+                CELL_ICON,
+            );
 
             let item_idx = start + slot;
             let Some((index, count, icon, identified)) = available.get(item_idx) else {
@@ -330,52 +298,17 @@ impl VendingSetupWindow {
             );
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
 
 impl Window for VendingSetupWindow {
-    fn has_grf_textures(&self) -> bool {
-        self.has_grf_textures
-    }
-    fn set_has_grf_textures(&mut self, value: bool) {
-        self.has_grf_textures = value;
-    }
-    fn set_texture_sizes(&mut self, size_fn: &dyn Fn(&str) -> Option<(u32, u32)>) {
-        if let Some((w, h)) = size_fn(OK_BTN.normal) {
-            self.btn_size = (w as f32, h as f32);
-        }
-        if let Some((w, h)) = size_fn(RESET_BTN.normal) {
-            self.reset_size = (w as f32, h as f32);
-        }
-    }
     fn window_size(&self) -> (f32, f32) {
         let list_h = VISIBLE_ROWS as f32 * ROW_H;
         (
             WIN_W,
             TITLE_H + PAD + NAME_ROW_H + PAD + list_h + PAD + FOOTER_H,
         )
-    }
-
-    fn grf_texture_paths() -> Vec<&'static str> {
-        let mut paths = vec![
-            TITLEBAR_TEX,
-            ITEMWIN_MID_TEX,
-            SYS_BASE_OFF_TEX,
-            SYS_BASE_ON_TEX,
-            OK_BTN.normal,
-            OK_BTN.hover,
-            OK_BTN.pressed,
-            CANCEL_BTN.normal,
-            CANCEL_BTN.hover,
-            CANCEL_BTN.pressed,
-            RESET_BTN.normal,
-            RESET_BTN.hover,
-            RESET_BTN.pressed,
-        ];
-        paths.extend(scrollbar::grf_texture_paths());
-        paths
     }
 }
 
@@ -397,15 +330,8 @@ impl InGameWindow for VendingSetupWindow {
         }
         let mut events = Vec::new();
 
-        let prev_grf = ui.has_grf_textures;
-        ui.has_grf_textures = self.has_grf_textures;
-        let grf = self.has_grf_textures;
-        let tc = text_color(grf);
-        let bg = if grf {
-            TextInputBg::Gray
-        } else {
-            TextInputBg::Default
-        };
+        let tc = text_color();
+        let bg = TextInputBg::Default;
 
         let max_scroll = self.max_items.saturating_sub(VISIBLE_ROWS);
         if self.scroll_offset > max_scroll {
@@ -418,16 +344,16 @@ impl InGameWindow for VendingSetupWindow {
         let (dx, dy) = (win.x, win.y);
         ui.interact(VENDING_SETUP_WINDOW_ID, Rect::new(dx, dy, WIN_W, win_h));
 
-        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H, grf);
-        ui.text(dx + 6.0, dy + TITLE_H - 3.0, "Open a Shop", tc);
+        draw_titlebar(ui, dx, dy, WIN_W, TITLE_H);
+        ui.text(dx + 6.0, dy + TITLE_H - 3.0, &rust_i18n::t!("vending_setup.open_a_shop"), tc);
 
         let body_y = dy + TITLE_H;
         let body_h = PAD + NAME_ROW_H + PAD + list_h + PAD;
-        draw_container(ui, dx, body_y, WIN_W, body_h, grf);
-        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H, grf);
+        draw_container(ui, dx, body_y, WIN_W, body_h);
+        draw_footer(ui, dx, dy + win_h - FOOTER_H, WIN_W, FOOTER_H);
 
         let name_y = body_y + PAD;
-        ui.text(dx + PAD, name_y + NAME_ROW_H - 6.0, "Shop Name", tc);
+        ui.text(dx + PAD, name_y + NAME_ROW_H - 6.0, &rust_i18n::t!("vending_setup.shop_name"), tc);
         let name_rect = Rect::new(dx + PAD + 70.0, name_y, WIN_W - PAD * 2.0 - 70.0, 16.0);
         ui.text_input(TITLE_INPUT_ID, name_rect, &mut self.title, bg);
 
@@ -468,23 +394,13 @@ impl InGameWindow for VendingSetupWindow {
             // Available window to un-stage it.
             let icon_y = row_y + (ROW_H - ICON_SIZE) / 2.0;
             let cell_rect = Rect::new(list_x + 2.0, icon_y, ICON_SIZE, ICON_SIZE);
-            if grf {
-                let (v, i) =
-                    draw::quad_vertices(cell_rect.x, cell_rect.y, ICON_SIZE, ICON_SIZE, [1.0; 4]);
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: i.to_vec(),
-                    texture: TextureRef::Named(ITEMWIN_MID_TEX.to_string()),
-                });
-            } else {
-                crate::helper::fallback::slot_cell(
-                    ui,
-                    cell_rect.x,
-                    cell_rect.y,
-                    ICON_SIZE,
-                    ICON_SIZE,
-                );
-            }
+            crate::helper::fallback::slot_cell(
+                ui,
+                cell_rect.x,
+                cell_rect.y,
+                ICON_SIZE,
+                ICON_SIZE,
+            );
 
             let handle = ui.interact(WidgetId(ROW_DRAG_BASE_ID + vis as u32), cell_rect);
             if let Some(item) = self.slots[slot].item.as_ref() {
@@ -520,7 +436,7 @@ impl InGameWindow for VendingSetupWindow {
             }
 
             let price_label_x = list_x + list_w - PRICE_W - PRICE_LABEL_W;
-            ui.text(price_label_x, row_y + ROW_H - 12.0, "Price:", tc);
+            ui.text(price_label_x, row_y + ROW_H - 12.0, &rust_i18n::t!("vending_setup.price"), tc);
             let price_rect = Rect::new(
                 list_x + list_w - PRICE_W,
                 row_y + (ROW_H - 16.0) / 2.0,
@@ -566,25 +482,15 @@ impl InGameWindow for VendingSetupWindow {
 
         let mut bx = dx + WIN_W - PAD - btn_w;
         let cancel = ui
-            .button(
-                CANCEL_ID,
-                Rect::new(bx, btn_y, btn_w, btn_h),
-                &CANCEL_BTN,
-                "cancel",
-            )
+            .button(CANCEL_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("vending_setup.cancel"))
             .clicked();
         bx -= btn_w + 4.0;
         let ok = ui
-            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), &OK_BTN, "OK")
+            .button(OK_ID, Rect::new(bx, btn_y, btn_w, btn_h), &rust_i18n::t!("common.ok"))
             .clicked();
         bx -= reset_w + 4.0;
         let reset = ui
-            .button(
-                RESET_ID,
-                Rect::new(bx, reset_y, reset_w, reset_h),
-                &RESET_BTN,
-                "Reset",
-            )
+            .button(RESET_ID, Rect::new(bx, reset_y, reset_w, reset_h), &rust_i18n::t!("vending_setup.reset"))
             .clicked();
 
         if ok {
@@ -603,7 +509,6 @@ impl InGameWindow for VendingSetupWindow {
             self.open(self.max_items);
         }
 
-        ui.has_grf_textures = prev_grf;
         events
     }
 }
