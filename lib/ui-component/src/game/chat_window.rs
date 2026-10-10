@@ -174,6 +174,38 @@ struct ChatWindowState {
     drag_start_msg_h: f32,
     drag_start_chat_w: f32,
     drag_start_scroll: f32,
+    /// 0..1 opacity of the message backdrop, scrollbar and height handle.
+    msg_alpha: f32,
+    /// 0..1 opacity of the input row.
+    input_alpha: f32,
+    last_time: f32,
+}
+
+/// Seconds for a fade to run in (hover) and out (leave).
+const FADE_IN_SECS: f32 = 0.15;
+const FADE_OUT_SECS: f32 = 0.4;
+/// Opacity of the message backdrop at full strength.
+const BACKDROP_ALPHA: f32 = 0.8;
+const TEXT_OUTLINE: [f32; 4] = [0.0, 0.0, 0.0, 0.85];
+
+fn fade_toward(alpha: f32, visible: bool, dt: f32) -> f32 {
+    if visible {
+        (alpha + dt / FADE_IN_SECS).min(1.0)
+    } else {
+        (alpha - dt / FADE_OUT_SECS).max(0.0)
+    }
+}
+
+/// Scales the opacity of everything drawn since `from`.
+fn fade_calls(calls: &mut [ragnarok_ui::draw::DrawCall], alpha: f32) {
+    if alpha >= 1.0 {
+        return;
+    }
+    for call in calls {
+        for v in &mut call.vertices {
+            v.color[3] *= alpha;
+        }
+    }
 }
 
 pub struct ChatLine {
@@ -339,18 +371,21 @@ impl ChatWindow {
         h: f32,
         scroll_offset: usize,
         visual_lines: &[(String, [f32; 4])],
+        backdrop_alpha: f32,
     ) {
         use ragnarok_ui::draw;
         let line_h = LINE_H;
         let padding = PADDING;
 
-        let bg_color = [0.0, 0.0, 0.0, 0.8];
-        let (v, i) = draw::quad_vertices(x, y, w, h, bg_color);
-        ui.draw_calls.push(draw::DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: draw::TextureRef::White,
-        });
+        if backdrop_alpha > 0.0 {
+            let bg_color = [0.0, 0.0, 0.0, BACKDROP_ALPHA * backdrop_alpha];
+            let (v, i) = draw::quad_vertices(x, y, w, h, bg_color);
+            ui.draw_calls.push(draw::DrawCall {
+                vertices: v.to_vec(),
+                indices: i.to_vec(),
+                texture: draw::TextureRef::White,
+            });
+        }
 
         let max_lines = visible_line_count(h);
         let end = visual_lines.len().saturating_sub(scroll_offset);
@@ -359,7 +394,14 @@ impl ChatWindow {
 
         for (i, (text, color)) in visible.iter().enumerate() {
             let text_y = y + padding + (i as f32) * line_h + ui.atlas.line_height;
-            ui.text(x + padding, text_y, text, *color);
+            // The backdrop can be invisible, so the text carries its own outline.
+            ui.text_with_outline(
+                x + padding,
+                text_y,
+                text,
+                *color,
+                &draw::TextOutline::cross(TEXT_OUTLINE),
+            );
         }
     }
 
@@ -672,6 +714,8 @@ impl InGameWindow for ChatWindow {
             state.pos_x = padding;
             let default_h = SIZE_CYCLE[idx] + input_h;
             state.pos_y = screen_h - default_h - padding;
+            state.msg_alpha = 1.0;
+            state.input_alpha = 1.0;
             state.initialized = true;
         }
 
@@ -805,6 +849,28 @@ impl InGameWindow for ChatWindow {
             None | Some(INPUT_ID) | Some(WHISPER_INPUT_ID)
         );
         let enter = ui.enter_pressed() && owns_keyboard;
+
+        // Backdrop and input row fade separately, on hover.
+        let (msg_alpha, input_alpha) = {
+            let now = ui.elapsed_secs;
+            let over = |ui: &UiFrame, r: Rect| {
+                r.contains(ui.ctx.mouse_x, ui.ctx.mouse_y) && ui.pointer_available()
+            };
+            let input_row_y = chat_y + if show_messages { msg_area_h } else { 0.0 };
+            let msg_over = show_messages && over(ui, Rect::new(chat_x, chat_y, chat_w, msg_area_h));
+            let input_over = over(ui, Rect::new(chat_x, input_row_y, chat_w, input_h));
+            let st = ui.state.get_or_default::<ChatWindowState>(CHAT_WINDOW_ID);
+            let dt = if st.last_time > 0.0 {
+                (now - st.last_time).clamp(0.0, 0.1)
+            } else {
+                0.0
+            };
+            st.last_time = now;
+            let menus = st.channel_menu_open || self.whisper_menu_open;
+            st.msg_alpha = fade_toward(st.msg_alpha, msg_over || input_over || self.active || menus, dt);
+            st.input_alpha = fade_toward(st.input_alpha, input_over || self.active || menus, dt);
+            (st.msg_alpha, st.input_alpha)
+        };
 
         if enter && !self.active {
             self.active = true;
@@ -961,7 +1027,9 @@ impl InGameWindow for ChatWindow {
                 msg_area_h,
                 scroll_offset,
                 &visual_lines,
+                msg_alpha,
             );
+            let chrome_from = ui.draw_calls.len();
             self.draw_scrollbar_filtered(
                 ui,
                 chat_x + chat_w - scrollbar_w,
@@ -971,6 +1039,7 @@ impl InGameWindow for ChatWindow {
                 total_visual,
             );
             self.draw_height_handle(ui, chat_x, chat_y + msg_area_h, chat_w);
+            fade_calls(&mut ui.draw_calls[chrome_from..], msg_alpha);
         }
 
         let input_y = chat_y + if show_messages { msg_area_h } else { 0.0 };
@@ -1004,6 +1073,7 @@ impl InGameWindow for ChatWindow {
             .min(channel_bubble.x - INPUT_GAP);
         let msg_rect = Rect::new(msg_x, input_y, (msg_right - msg_x).max(20.0), input_h);
 
+        let row_from = ui.draw_calls.len();
         if self.active {
             let (v, i) = ragnarok_ui::draw::quad_vertices(
                 chat_x,
@@ -1056,6 +1126,30 @@ impl InGameWindow for ChatWindow {
             ui.text_input(INPUT_ID, msg_rect, &mut self.input, input_bg);
         } else {
             self.whisper_menu_open = false;
+            // Hovering the row shows empty fields; clicking one starts typing.
+            if input_alpha > 0.01 {
+                let (v, i) = ragnarok_ui::draw::quad_vertices(
+                    chat_x,
+                    input_y,
+                    chat_w,
+                    input_h,
+                    ragnarok_ui::theme::FallbackPalette::WIN_BODY,
+                );
+                ui.draw_calls.push(ragnarok_ui::draw::DrawCall {
+                    vertices: v.to_vec(),
+                    indices: i.to_vec(),
+                    texture: ragnarok_ui::draw::TextureRef::White,
+                });
+                ragnarok_ui::theme::fallback_text_input(ui, whisper_rect, false);
+                ragnarok_ui::theme::fallback_text_input(ui, msg_rect, false);
+                let on_field = whisper_rect.contains(ui.ctx.mouse_x, ui.ctx.mouse_y)
+                    || msg_rect.contains(ui.ctx.mouse_x, ui.ctx.mouse_y);
+                if on_field && ui.ctx.mouse_clicked && ui.pointer_available() {
+                    self.active = true;
+                    self.focused_input = INPUT_ID;
+                    ui.set_focus(INPUT_ID);
+                }
+            }
         }
 
         let sticky = ui
@@ -1076,6 +1170,7 @@ impl InGameWindow for ChatWindow {
             st.msg_area_h = SIZE_CYCLE[st.size_index];
             st.pos_y -= st.msg_area_h - old_h;
         }
+        fade_calls(&mut ui.draw_calls[row_from..], input_alpha);
         self.draw_channel_menu(ui, channel_bubble);
 
         {
@@ -1115,7 +1210,9 @@ impl InGameWindow for ChatWindow {
             }
         }
 
+        let handle_from = ui.draw_calls.len();
         self.draw_width_handle(ui, chat_x + chat_w, chat_y, total_h);
+        fade_calls(&mut ui.draw_calls[handle_from..], msg_alpha.max(input_alpha));
 
         events
     }
@@ -1174,6 +1271,62 @@ mod tests {
             assert_eq!(ws.size_index, expected_index);
             assert_eq!(ws.pos_y + ws.msg_area_h + INPUT_H, bottom);
         }
+    }
+
+    /// Runs one frame at `t` seconds with the pointer at `mouse`, and returns the
+    /// backdrop and input-row opacity.
+    fn fade_frame(
+        chat: &mut ChatWindow,
+        state: &mut StateCache,
+        t: f32,
+        mouse: (f32, f32),
+    ) -> (f32, f32) {
+        let mut character = Character::new();
+        let data = DataTable::new();
+        let mut ctx = UiContext::new(800.0, 600.0);
+        ctx.mouse_x = mouse.0;
+        ctx.mouse_y = mouse.1;
+        let mut ui = test_frame(&mut ctx, state);
+        ui.elapsed_secs = t;
+        chat.build(&mut ui, &mut crate::BuildCtx::test(&mut character, &data));
+        let ws = state.get::<ChatWindowState>(CHAT_WINDOW_ID).unwrap();
+        (ws.msg_alpha, ws.input_alpha)
+    }
+
+    #[test]
+    fn backdrop_and_input_fade_separately_on_hover() {
+        let mut chat = ChatWindow::new();
+        let mut state = StateCache::new();
+        let away = (700.0, 20.0);
+
+        // Idle: both fade out and stay out.
+        let mut t = 1.0;
+        let mut alphas = (1.0, 1.0);
+        for _ in 0..30 {
+            alphas = fade_frame(&mut chat, &mut state, t, away);
+            t += 0.05;
+        }
+        assert_eq!(alphas, (0.0, 0.0));
+
+        let ws = state.get::<ChatWindowState>(CHAT_WINDOW_ID).unwrap();
+        let msg_point = (ws.pos_x + 100.0, ws.pos_y + 20.0);
+        let input_point = (ws.pos_x + 100.0, ws.pos_y + ws.msg_area_h + INPUT_H / 2.0);
+
+        // Over the messages: the backdrop comes in, the input row does not.
+        for _ in 0..10 {
+            alphas = fade_frame(&mut chat, &mut state, t, msg_point);
+            t += 0.05;
+        }
+        assert_eq!(alphas.0, 1.0);
+        assert!(alphas.1 < 0.5, "input row stays hidden over the messages");
+
+        // Over the input row: it comes in, and fading is gradual, not a jump.
+        for _ in 0..30 {
+            fade_frame(&mut chat, &mut state, t, away);
+            t += 0.05;
+        }
+        let first = fade_frame(&mut chat, &mut state, t, input_point);
+        assert!(first.1 > 0.0 && first.1 < 1.0, "fade in is gradual: {first:?}");
     }
 
     #[test]

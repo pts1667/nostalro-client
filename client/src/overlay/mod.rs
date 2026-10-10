@@ -9,6 +9,7 @@ use ragnarok_renderer::{UiDrawCall, UiTextureRef};
 use ragnarok_ui_component::game::chat_room_board;
 use ragnarok_ui_component::game::vending_board;
 use ragnarok_ui_component::helper::dialog_container::DialogContainer;
+use ragnarok_ui_component::helper::fallback;
 
 /// Screen-space `[x0, y0, x1, y1]` of a vendor's shop board, centered above its
 /// head. Shared by the overlay renderer and the hover hit-test so they agree.
@@ -492,7 +493,8 @@ impl App {
         let Some(renderer) = &self.renderer else {
             return;
         };
-        let padding = 4.0;
+        let pad_x = 7.0;
+        let pad_y = 4.0;
         let lines = ragnarok_ui::draw::word_wrap(
             message,
             150.0,
@@ -501,32 +503,27 @@ impl App {
         );
 
         let line_h = renderer.font_atlas.line_height;
-        let total_h = line_h * lines.len() as f32 + padding * 2.0;
+        let total_h = line_h * lines.len() as f32 + pad_y * 2.0;
         let widest = lines
             .iter()
             .map(|l| renderer.font_atlas.measure_text(l))
             .fold(0.0_f32, f32::max);
-        let box_w = widest + padding * 2.0;
+        let box_w = widest + pad_x * 2.0;
         let box_x = center_x - box_w / 2.0;
-        let box_y = bottom_y - total_h;
+        // The tail's tip points at `bottom_y`, so the box sits above it.
+        let box_y = bottom_y - fallback::BUBBLE_TAIL - total_h;
 
-        let (bg_verts, bg_idx) =
-            ragnarok_ui::draw::quad_vertices(box_x, box_y, box_w, total_h, [0.0, 0.0, 0.0, 0.8]);
-        calls.push(UiDrawCall {
-            vertices: bg_verts.to_vec(),
-            indices: bg_idx.to_vec(),
-            texture: UiTextureRef::White,
-        });
+        fallback::speech_bubble_into(calls, box_x, box_y, box_w, total_h, center_x);
 
         for (i, line) in lines.iter().enumerate() {
             let line_w = renderer.font_atlas.measure_text(line);
             let lx = center_x - line_w / 2.0;
-            let ly = box_y + padding + line_h / 2.0 + line_h * i as f32;
+            let ly = box_y + pad_y + line_h / 2.0 + line_h * i as f32;
             let (verts, indices) = ragnarok_ui::draw::text_vertices(
                 line,
                 lx,
                 ly,
-                [1.0, 1.0, 1.0, 1.0],
+                [0.0, 0.0, 0.0, 1.0],
                 &renderer.font_atlas,
             );
             if !verts.is_empty() {

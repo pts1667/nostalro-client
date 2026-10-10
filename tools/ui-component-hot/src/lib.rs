@@ -3555,6 +3555,15 @@ fn build_fallback_gallery(ui: &mut UiFrame, name_field: &mut TextInput) {
     let mut level = 0.6;
     ui.slider(WidgetId(60003), Rect::new(bx + 50.0, 252.0, 100.0, 13.0), &mut level, 0.0, 1.0);
     ui.resize_handle(WidgetId(60004), Rect::new(bx + 170.0, 252.0, 12.0, 12.0));
+
+    // Speech bubble over a head
+    ui.text(bx, 292.0, "SPEECH BUBBLE", heading);
+    for (n, (text, w)) in [("hello", 40.0), ("Anyone want to party?", 118.0)].into_iter().enumerate() {
+        let x = bx + n as f32 * 80.0;
+        let (y, h) = (310.0, 20.0);
+        fallback::speech_bubble_into(&mut ui.draw_calls, x, y, w, h, x + w / 2.0);
+        ui.text(x + 7.0, y + 14.0, text, [0.0, 0.0, 0.0, 1.0]);
+    }
 }
 
 fn add_button<F>(

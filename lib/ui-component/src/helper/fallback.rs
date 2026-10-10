@@ -137,6 +137,43 @@ pub fn triangle_into(draw_calls: &mut Vec<DrawCall>, points: [(f32, f32); 3], co
     });
 }
 
+/// Height of the tail under a speech bubble.
+pub const BUBBLE_TAIL: f32 = 8.0;
+
+/// Speech bubble: a rimmed white rounded box over `(x, y, w, h)` with a tail
+/// hanging below its bottom edge at `tail_x`, tip `BUBBLE_TAIL` below the box.
+pub fn speech_bubble_into(
+    draw_calls: &mut Vec<DrawCall>,
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+    tail_x: f32,
+) {
+    const RIM: [f32; 4] = [0.30, 0.36, 0.52, 1.0];
+    const TOP: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+    const BOTTOM: [f32; 4] = [0.90, 0.93, 0.99, 1.0];
+    let r = 6.0_f32.min(h / 2.0);
+    let tail_x = tail_x.clamp(x + r + 5.0, x + w - r - 5.0);
+    let by = y + h;
+
+    let (v, i) = draw::rounded_rect(x, y, w, h, r, RIM);
+    draw_calls.push(DrawCall { vertices: v, indices: i, texture: TextureRef::White });
+    triangle_into(
+        draw_calls,
+        [(tail_x - 6.0, by - 1.0), (tail_x + 6.0, by - 1.0), (tail_x, by + BUBBLE_TAIL)],
+        RIM,
+    );
+    let (v, i) = draw::rounded_rect_vgrad(x + 1.0, y + 1.0, w - 2.0, h - 2.0, r - 1.0, TOP, BOTTOM);
+    draw_calls.push(DrawCall { vertices: v, indices: i, texture: TextureRef::White });
+    // The tail's fill covers the rim along the box edge so the two read as one.
+    triangle_into(
+        draw_calls,
+        [(tail_x - 5.0, by - 2.0), (tail_x + 5.0, by - 2.0), (tail_x, by + BUBBLE_TAIL - 2.0)],
+        BOTTOM,
+    );
+}
+
 /// Map arrow pointing along `angle_rad` (0 is up, positive turns clockwise on
 /// screen), with a dark edge so it reads on the map art.
 pub fn arrow(
