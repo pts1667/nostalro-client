@@ -1010,14 +1010,14 @@ impl InGameWindow for ChatWindow {
                 input_y,
                 chat_w,
                 input_h,
-                [0.0, 0.0, 0.0, 0.6],
+                ragnarok_ui::theme::FallbackPalette::WIN_BODY,
             );
             ui.draw_calls.push(ragnarok_ui::draw::DrawCall {
                 vertices: v.to_vec(),
                 indices: i.to_vec(),
                 texture: ragnarok_ui::draw::TextureRef::White,
             });
-            let input_bg = TextInputBg::Gray;
+            let input_bg = TextInputBg::Default;
 
             if self.pending_focus {
                 self.pending_focus = false;

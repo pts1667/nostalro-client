@@ -8,6 +8,7 @@ use ragnarok_game::sprite_path::OPTION_REMOVABLE_MASK;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
+use ragnarok_ui::theme::FallbackPalette;
 
 pub const EQ_WINDOW_ID: WidgetId = WidgetId(900);
 const EQ_CLOSE_BTN_ID: WidgetId = WidgetId(901);
@@ -24,12 +25,13 @@ const MINI_BTN_SIZE: f32 = 11.0;
 const SIDE_COL_W: f32 = 115.0;
 const CENTER_COL_W: f32 = 50.0;
 const ICON_SIZE: f32 = 24.0;
+const EMPTY_LABEL: [f32; 4] = [0.55, 0.60, 0.70, 1.0];
 const SLOT_ROWS: usize = 5;
 const TEXT_MAX_W: f32 = SIDE_COL_W - ICON_SIZE - 4.0 - 3.0;
 const REMOVE_OPTION_BTN_SIZE: f32 = 36.0;
 
 struct EquipSlot {
-    label: &'static str,
+    label: fn() -> String,
     location: EquipmentLocation,
     col: u8, // 0=left, 1=right, 2=center
     row: u8,
@@ -37,67 +39,67 @@ struct EquipSlot {
 
 const EQUIP_SLOTS: &[EquipSlot] = &[
     EquipSlot {
-        label: "Head Top",
+        label: || rust_i18n::t!("equipment.slot_head_top").to_string(),
         location: EquipmentLocation::HeadTop,
         col: 0,
         row: 0,
     },
     EquipSlot {
-        label: "Head Low",
+        label: || rust_i18n::t!("equipment.slot_head_low").to_string(),
         location: EquipmentLocation::HeadLow,
         col: 0,
         row: 1,
     },
     EquipSlot {
-        label: "Weapon",
+        label: || rust_i18n::t!("equipment.slot_weapon").to_string(),
         location: EquipmentLocation::HandRight,
         col: 0,
         row: 2,
     },
     EquipSlot {
-        label: "Garment",
+        label: || rust_i18n::t!("equipment.slot_garment").to_string(),
         location: EquipmentLocation::Garment,
         col: 0,
         row: 3,
     },
     EquipSlot {
-        label: "Accessory",
+        label: || rust_i18n::t!("equipment.slot_accessory_left").to_string(),
         location: EquipmentLocation::AccessoryLeft,
         col: 0,
         row: 4,
     },
     EquipSlot {
-        label: "Head Mid",
+        label: || rust_i18n::t!("equipment.slot_head_mid").to_string(),
         location: EquipmentLocation::HeadMid,
         col: 1,
         row: 0,
     },
     EquipSlot {
-        label: "Armor",
+        label: || rust_i18n::t!("equipment.slot_armor").to_string(),
         location: EquipmentLocation::Armor,
         col: 1,
         row: 1,
     },
     EquipSlot {
-        label: "Shield",
+        label: || rust_i18n::t!("equipment.slot_shield").to_string(),
         location: EquipmentLocation::HandLeft,
         col: 1,
         row: 2,
     },
     EquipSlot {
-        label: "Shoes",
+        label: || rust_i18n::t!("equipment.slot_shoes").to_string(),
         location: EquipmentLocation::Shoes,
         col: 1,
         row: 3,
     },
     EquipSlot {
-        label: "Accessory",
+        label: || rust_i18n::t!("equipment.slot_accessory_right").to_string(),
         location: EquipmentLocation::AccessoryRight,
         col: 1,
         row: 4,
     },
     EquipSlot {
-        label: "Ammo",
+        label: || rust_i18n::t!("equipment.slot_ammo").to_string(),
         location: EquipmentLocation::Ammo,
         col: 2,
         row: 0,
@@ -381,6 +383,29 @@ impl InGameWindow for EquipmentWindow {
             let icon_y = slot_y + icon_pad;
             let icon_rect = Rect::new(icon_x, icon_y, icon, icon);
             let response = ui.interact(widget_id, icon_rect);
+
+            // A framed cell marks every slot; an empty side slot also names itself.
+            if slot.col != 2 && slot.row > 0 {
+                let (v, i) = draw::quad_vertices(
+                    slot_x + 2.0,
+                    slot_y,
+                    slot_w - 4.0,
+                    1.0,
+                    FallbackPalette::WIN_BORDER,
+                );
+                ui.draw_calls.push(DrawCall {
+                    vertices: v.to_vec(),
+                    indices: i.to_vec(),
+                    texture: TextureRef::White,
+                });
+            }
+            crate::helper::fallback::slot_cell(ui, icon_rect.x, icon_rect.y, icon, icon);
+            if show_text && inventory.equipped_in_slot(slot.location).is_none() {
+                let label = (slot.label)();
+                let label_w = ui.atlas.measure_text(&label);
+                let lx = if right_align { text_x - label_w } else { text_x };
+                ui.text(lx, slot_y + slot_h / 2.0 + 4.0, &label, EMPTY_LABEL);
+            }
 
             if let Some(item) = inventory.equipped_in_slot(slot.location) {
                 if let Some(icon_path) = item.icon_path() {
