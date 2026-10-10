@@ -2,7 +2,6 @@ use crate::helper::window_chrome::{draw_sys_button, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::character::{Character, job_class_name};
 use ragnarok_game::event::GameEvent;
-use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
@@ -115,7 +114,7 @@ impl BasicInfoWindow {
         let y = win.y;
         let delta = ui.elapsed_secs;
 
-        crate::helper::fallback::panel(ui, x, y, WIN_W, WIN_H_LARGE);
+        crate::helper::fallback::titled_panel(ui, x, y, WIN_W, WIN_H_LARGE);
 
         let close_rect = Rect::new(x + 4.0, y + 3.0, self.sys_btn_size.0, self.sys_btn_size.1);
         let close_resp = ui.interact(CLOSE_BTN_ID, close_rect);
@@ -327,7 +326,7 @@ impl BasicInfoWindow {
         let x = win.x;
         let y = win.y;
 
-        crate::helper::fallback::panel(ui, x, y, WIN_W, WIN_H_SMALL);
+        crate::helper::fallback::titled_panel(ui, x, y, WIN_W, WIN_H_SMALL);
 
         let name = if character.name.is_empty() {
             "Unknown"

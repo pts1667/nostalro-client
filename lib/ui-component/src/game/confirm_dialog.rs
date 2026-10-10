@@ -1,5 +1,5 @@
 use crate::Window;
-use ragnarok_ui::draw::{self, DrawCall, TextureRef};
+use ragnarok_ui::draw;
 use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
 
@@ -11,7 +11,7 @@ const OK_BTN_ID: WidgetId = WidgetId(400);
 const CANCEL_BTN_ID: WidgetId = WidgetId(401);
 
 const DIALOG_W: f32 = 220.0;
-const DIALOG_H: f32 = 40.0;
+const DIALOG_H: f32 = 56.0;
 const PADDING: f32 = 4.0;
 const BTN_BOTTOM: f32 = 4.0;
 const BTN_FIRST_RIGHT: f32 = 5.0;
@@ -162,34 +162,16 @@ impl ConfirmDialog {
         let extra_lines = lines.len().saturating_sub(1) as f32;
         let dialog_h = base_h + extra_lines * ui.atlas.line_height;
         let dx = ((ui.ctx.screen_width - dialog_w) / 2.0).floor();
-        let dy = ((ui.ctx.screen_height - dialog_h) / 2.0).floor();
+        let top = ((ui.ctx.screen_height - dialog_h - crate::helper::fallback::TITLE_H) / 2.0).floor();
+        let dy = top + crate::helper::fallback::TITLE_H;
 
-        let (v, i) = draw::quad_vertices(dx, dy, dialog_w, dialog_h, [0.2, 0.2, 0.28, 1.0]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::White,
-        });
-        let border_color = [0.5, 0.5, 0.6, 1.0];
-        for (bx, by, bw, bh) in [
-            (dx, dy, dialog_w, 1.0),
-            (dx, dy + dialog_h - 1.0, dialog_w, 1.0),
-            (dx, dy, 1.0, dialog_h),
-            (dx + dialog_w - 1.0, dy, 1.0, dialog_h),
-        ] {
-            let (v, i) = draw::quad_vertices(bx, by, bw, bh, border_color);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
-        }
+        crate::helper::fallback::titled_panel(ui, dx, top, dialog_w, dialog_h + crate::helper::fallback::TITLE_H);
 
         let (btn_w, btn_h) = self.btn_size;
         let container = Rect::new(dx, dy, dialog_w, dialog_h);
 
         if state.no_buttons {
-            let text_color = [1.0, 1.0, 1.0, 1.0];
+            let text_color = [0.0, 0.0, 0.0, 1.0];
             draw_wrapped_lines(
                 ui,
                 &container,
@@ -211,7 +193,7 @@ impl ConfirmDialog {
             BTN_SPACING,
         );
 
-        let text_color = [1.0, 1.0, 1.0, 1.0];
+        let text_color = [0.0, 0.0, 0.0, 1.0];
         draw_wrapped_lines(ui, &container, &lines, PADDING, btns[0].y, text_color);
 
         let mut callback = state.onclose.take();
@@ -262,7 +244,7 @@ fn draw_wrapped_lines(
     let lh = ui.atlas.line_height;
     let top = container.y + padding;
     let block_h = lines.len() as f32 * lh;
-    let mut y = top + ((bottom_y - top - block_h) / 2.0).max(0.0);
+    let mut y = top + ((bottom_y - top - block_h) / 2.0).max(0.0) + lh;
     for line in lines {
         ui.text(container.x + padding, y, line, color);
         y += lh;
@@ -278,6 +260,7 @@ mod tests {
     use super::*;
 
     use ragnarok_ui::context::UiContext;
+    use ragnarok_ui::draw::TextureRef;
     use ragnarok_ui::state::StateCache;
     use ragnarok_ui::test_support::test_frame;
     use std::cell::RefCell;

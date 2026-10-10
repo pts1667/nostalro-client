@@ -790,10 +790,11 @@ fn create_single(name: &str) -> State {
                 data: DataTable::new(),
             }
         }
-        "confirm_dialog" => State::ConfirmDialog {
-            dialog: ConfirmDialog::new(),
-            open: false,
-        },
+        "confirm_dialog" => {
+            let mut dialog = ConfirmDialog::new();
+            dialog.show_confirm("Do you really want to leave the party?");
+            State::ConfirmDialog { dialog, open: true }
+        }
         "number_input" => State::NumberInput {
             dialog: InputDialog::new(
                 InputDialogConfig {
@@ -924,7 +925,7 @@ fn create_single(name: &str) -> State {
         }
         "system_menu" => {
             let mut menu = SystemMenu::new();
-            menu.open = false;
+            menu.open = true;
             State::SystemMenu {
                 menu,
                 character: Character::new(),

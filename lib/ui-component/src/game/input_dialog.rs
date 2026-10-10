@@ -171,13 +171,12 @@ impl InputDialog {
         } else {
             PADDING * 2.0 + ui.atlas.line_height
         };
-        let win = ui.window(self.win_id(), dw, dh, title_bar_h);
+        let win = ui.window(self.win_id(), dw, dh + crate::helper::fallback::TITLE_H, title_bar_h + crate::helper::fallback::TITLE_H);
         ui.interact(self.win_id(), win);
         let dx = win.x;
-        let dy = win.y;
+        let dy = win.y + crate::helper::fallback::TITLE_H;
 
-        self.container
-            .draw(&mut ui.draw_calls, dx, dy, dw, dh, [1.0, 1.0, 1.0, 1.0]);
+        crate::helper::fallback::titled_panel(ui, win.x, win.y, dw, dh + crate::helper::fallback::TITLE_H);
 
         let text_color = self.container.text_color();
         let (btn_w, btn_h) = self.btn_size;
@@ -369,7 +368,7 @@ mod tests {
         let mut state = StateCache::new();
         let mut ctx = UiContext::new(800.0, 600.0);
         let win_x = ((800.0 - COUNT_W) / 2.0).floor();
-        let win_y = ((600.0 - COUNT_H) / 2.0).floor();
+        let win_y = ((600.0 - COUNT_H - crate::helper::fallback::TITLE_H) / 2.0).floor() + crate::helper::fallback::TITLE_H;
 
         ctx.mouse_clicked = true;
         ctx.mouse_x = win_x + COUNT_W - COUNT_BTN_RIGHT + 1.0;

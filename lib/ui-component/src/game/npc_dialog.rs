@@ -249,22 +249,15 @@ impl InGameWindow for NpcDialog {
             let win = ui.window_at(
                 NPC_DIALOG_WINDOW_ID,
                 dialog_w,
-                dialog_h,
-                dialog_h,
+                dialog_h + crate::helper::fallback::TITLE_H,
+                dialog_h + crate::helper::fallback::TITLE_H,
                 DIALOG_DEFAULT_X,
                 DIALOG_DEFAULT_Y,
             );
             ui.interact(NPC_DIALOG_WINDOW_ID, win);
-            let (dx, dy) = (win.x, win.y);
+            let (dx, dy) = (win.x, win.y + crate::helper::fallback::TITLE_H);
 
-            self.container.draw(
-                &mut ui.draw_calls,
-                dx,
-                dy,
-                dialog_w,
-                dialog_h,
-                [1.0, 1.0, 1.0, 0.95],
-            );
+            crate::helper::fallback::titled_panel(ui, win.x, win.y, dialog_w, dialog_h + crate::helper::fallback::TITLE_H);
 
             let text_color = self.container.text_color();
             let mut text_y = dy + padding + ui.atlas.line_height;
@@ -406,22 +399,15 @@ impl NpcDialog {
         let win = ui.window_at(
             NPC_MENU_WINDOW_ID,
             menu_w,
-            menu_h,
-            menu_h,
+            menu_h + crate::helper::fallback::TITLE_H,
+            menu_h + crate::helper::fallback::TITLE_H,
             MENU_DEFAULT_X,
             MENU_DEFAULT_Y,
         );
         ui.interact(NPC_MENU_WINDOW_ID, win);
-        let (dx, menu_y) = (win.x, win.y);
+        let (dx, menu_y) = (win.x, win.y + crate::helper::fallback::TITLE_H);
 
-        self.container.draw(
-            &mut ui.draw_calls,
-            dx,
-            menu_y,
-            menu_w,
-            menu_h,
-            [1.0, 1.0, 1.0, 0.95],
-        );
+        crate::helper::fallback::titled_panel(ui, win.x, win.y, menu_w, menu_h + crate::helper::fallback::TITLE_H);
 
         let content_rect = Rect::new(dx + padding, menu_y + padding, text_area_w, content_h);
         cancel_drag_on_press(ui, NPC_MENU_WINDOW_ID, &[content_rect]);
@@ -543,31 +529,12 @@ impl NpcDialog {
         let dy = (ui.ctx.screen_height / 1.5).floor();
 
         ui.ensure_in_z_order_with(NPC_DEAL_WINDOW_ID, WindowOrder::Foreground);
-        let win = ui.window_fixed(NPC_DEAL_WINDOW_ID, dialog_w, dialog_h, dx, dy);
+        let win = ui.window_fixed(NPC_DEAL_WINDOW_ID, dialog_w, dialog_h + crate::helper::fallback::TITLE_H, dx, dy);
         ui.interact(NPC_DEAL_WINDOW_ID, win);
 
-        let (v, i) = draw::quad_vertices(dx, dy, dialog_w, dialog_h, [0.2, 0.2, 0.28, 1.0]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::White,
-        });
-        let border_color = [0.5, 0.5, 0.6, 1.0];
-        for (bx, by, bw, bh) in [
-            (dx, dy, dialog_w, 1.0),
-            (dx, dy + dialog_h - 1.0, dialog_w, 1.0),
-            (dx, dy, 1.0, dialog_h),
-            (dx + dialog_w - 1.0, dy, 1.0, dialog_h),
-        ] {
-            let (v, i) = draw::quad_vertices(bx, by, bw, bh, border_color);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
-        }
+        crate::helper::fallback::titled_panel(ui, dx, dy, dialog_w, dialog_h + crate::helper::fallback::TITLE_H);
 
-        let container = Rect::new(dx, dy, dialog_w, dialog_h);
+        let container = Rect::new(dx, dy + crate::helper::fallback::TITLE_H, dialog_w, dialog_h);
         let btns = container.buttons_bottom_right(
             3,
             btn_w,
@@ -580,8 +547,8 @@ impl NpcDialog {
         let message = "Please select a Deal type";
         let (text_y, text_x) =
             container.text_dialog_alignment(PADDING, btns[0].y, ui.atlas.line_height);
-        let text_color = [1.0, 1.0, 1.0, 1.0];
-        ui.text(text_x, text_y, message, text_color);
+        let text_color = self.container.text_color();
+        ui.text(text_x, text_y + ui.atlas.line_height, message, text_color);
 
         let cancel = ui.button(DEAL_CANCEL_BTN_ID, btns[0], &rust_i18n::t!("common.cancel"));
         let sell = ui.button(SELL_BTN_ID, btns[1], &rust_i18n::t!("npc.sell"));
@@ -728,7 +695,7 @@ mod tests {
 
         let mut press_body = UiContext::new(800.0, 600.0);
         press_body.mouse_x = 210.0;
-        press_body.mouse_y = 400.0;
+        press_body.mouse_y = 400.0 + crate::helper::fallback::TITLE_H;
         press_body.mouse_clicked = true;
         press_body.mouse_down = true;
         let mut ui = test_frame(&mut press_body, &mut state);
@@ -736,7 +703,7 @@ mod tests {
 
         let mut drag = UiContext::new(800.0, 600.0);
         drag.mouse_x = 250.0;
-        drag.mouse_y = 440.0;
+        drag.mouse_y = 440.0 + crate::helper::fallback::TITLE_H;
         drag.mouse_down = true;
         let mut ui = test_frame(&mut drag, &mut state);
         npc.build(&mut ui, &mut crate::BuildCtx::test(&mut character, &data));
@@ -751,7 +718,7 @@ mod tests {
 
         let mut press_row = UiContext::new(800.0, 600.0);
         press_row.mouse_x = 340.0;
-        press_row.mouse_y = 355.0;
+        press_row.mouse_y = 355.0 + crate::helper::fallback::TITLE_H;
         press_row.mouse_clicked = true;
         press_row.mouse_down = true;
         let mut ui = test_frame(&mut press_row, &mut state);
@@ -759,7 +726,7 @@ mod tests {
 
         let mut drag_row = UiContext::new(800.0, 600.0);
         drag_row.mouse_x = 400.0;
-        drag_row.mouse_y = 415.0;
+        drag_row.mouse_y = 415.0 + crate::helper::fallback::TITLE_H;
         drag_row.mouse_down = true;
         let mut ui = test_frame(&mut drag_row, &mut state);
         npc.build(&mut ui, &mut crate::BuildCtx::test(&mut character, &data));
@@ -795,7 +762,7 @@ mod tests {
 
         let mut click_row = UiContext::new(800.0, 600.0);
         click_row.mouse_x = 300.0;
-        click_row.mouse_y = 330.0;
+        click_row.mouse_y = 330.0 + crate::helper::fallback::TITLE_H;
         click_row.mouse_clicked = true;
         let claimed = frame(&mut state, &mut npc, &mut click_row);
         assert_eq!(npc.dialog.selected_menu_index, 1);
@@ -828,7 +795,7 @@ mod tests {
 
         let mut click_buy = UiContext::new(800.0, 600.0);
         click_buy.mouse_x = 410.0;
-        click_buy.mouse_y = 500.0;
+        click_buy.mouse_y = 500.0 + crate::helper::fallback::TITLE_H;
         click_buy.mouse_clicked = true;
         let events = frame(&mut state, &mut npc, &mut click_buy);
         assert!(
@@ -865,7 +832,7 @@ mod tests {
 
         let mut double_click = UiContext::new(800.0, 600.0);
         double_click.mouse_x = 300.0;
-        double_click.mouse_y = 330.0;
+        double_click.mouse_y = 330.0 + crate::helper::fallback::TITLE_H;
         double_click.mouse_clicked = true;
         double_click.mouse_double_clicked = true;
         let events = frame(&mut state, &mut npc, &mut double_click);

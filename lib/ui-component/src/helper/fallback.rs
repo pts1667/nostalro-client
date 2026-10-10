@@ -59,6 +59,16 @@ pub fn titlebar(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
     sys_button(ui, bx, by, bs, hovered, None);
 }
 
+/// Height of the glossy title bar.
+pub const TITLE_H: f32 = 17.0;
+
+/// Title bar over a light body, `h` tall in total. The caller places content
+/// from `y + TITLE_H`.
+pub fn titled_panel(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
+    titlebar(ui, x, y, w, TITLE_H);
+    window_body(ui, x, y + TITLE_H, w, h - TITLE_H);
+}
+
 /// Light window body (middle section) with left/right edge borders.
 pub fn container(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32) {
     fill(ui, x, y, w, h, P::WIN_BODY);

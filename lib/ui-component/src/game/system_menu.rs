@@ -4,7 +4,6 @@ use std::rc::Rc;
 use super::confirm_dialog::{ConfirmDialog, ConfirmResult};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
-use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
 use ragnarok_ui::rect::Rect;
 
@@ -253,30 +252,11 @@ impl SystemMenu {
         let n = buttons.len() as f32;
         let menu_h = PADDING_TOP + n * FALLBACK_BTN_H + (n - 1.0) * BTN_SPACING + PADDING_BOTTOM;
         let mx = ((ui.ctx.screen_width - MENU_W) / 2.0).floor();
-        let my = ((ui.ctx.screen_height - menu_h) / 2.0).floor();
+        let top = ((ui.ctx.screen_height - menu_h - crate::helper::fallback::TITLE_H) / 2.0).floor();
+        let my = top + crate::helper::fallback::TITLE_H;
 
-        self.claim_pointer(ui, Rect::new(mx, my, MENU_W, menu_h));
-
-        let (v, i) = draw::quad_vertices(mx, my, MENU_W, menu_h, [0.2, 0.2, 0.28, 0.95]);
-        ui.draw_calls.push(DrawCall {
-            vertices: v.to_vec(),
-            indices: i.to_vec(),
-            texture: TextureRef::White,
-        });
-        let border_color = [0.5, 0.5, 0.6, 1.0];
-        for (bx, by, bw, bh) in [
-            (mx, my, MENU_W, 1.0),
-            (mx, my + menu_h - 1.0, MENU_W, 1.0),
-            (mx, my, 1.0, menu_h),
-            (mx + MENU_W - 1.0, my, 1.0, menu_h),
-        ] {
-            let (v, i) = draw::quad_vertices(bx, by, bw, bh, border_color);
-            ui.draw_calls.push(DrawCall {
-                vertices: v.to_vec(),
-                indices: i.to_vec(),
-                texture: TextureRef::White,
-            });
-        }
+        self.claim_pointer(ui, Rect::new(mx, top, MENU_W, menu_h + crate::helper::fallback::TITLE_H));
+        crate::helper::fallback::titled_panel(ui, mx, top, MENU_W, menu_h + crate::helper::fallback::TITLE_H);
 
         let btn_x = mx + (MENU_W - FALLBACK_BTN_W) / 2.0;
         let btn_y = |idx: usize| my + PADDING_TOP + idx as f32 * (FALLBACK_BTN_H + BTN_SPACING);
@@ -381,9 +361,9 @@ mod tests {
 
         let mut ctx = UiContext::new(800.0, 600.0);
         let dialog_w: f32 = 220.0;
-        let dialog_h: f32 = 40.0;
+        let dialog_h: f32 = 56.0;
         let dx = ((800.0 - dialog_w) / 2.0).floor();
-        let dy = ((600.0 - dialog_h) / 2.0).floor();
+        let dy = ((600.0 - dialog_h - crate::helper::fallback::TITLE_H) / 2.0).floor() + crate::helper::fallback::TITLE_H;
         let btn_w = 42.0;
         let btn_h = 20.0;
         let btn_x = dx + dialog_w - 5.0 - btn_w * 2.0 - 3.0;
@@ -421,9 +401,9 @@ mod tests {
 
         let mut ctx = UiContext::new(800.0, 600.0);
         let dialog_w: f32 = 220.0;
-        let dialog_h: f32 = 40.0;
+        let dialog_h: f32 = 56.0;
         let dx = ((800.0 - dialog_w) / 2.0).floor();
-        let dy = ((600.0 - dialog_h) / 2.0).floor();
+        let dy = ((600.0 - dialog_h - crate::helper::fallback::TITLE_H) / 2.0).floor() + crate::helper::fallback::TITLE_H;
         let btn_w = 42.0;
         let btn_h = 20.0;
         let btn_x = dx + dialog_w - 5.0 - btn_w * 2.0 - 3.0;
@@ -448,9 +428,9 @@ mod tests {
 
         let mut ctx = UiContext::new(800.0, 600.0);
         let dialog_w: f32 = 220.0;
-        let dialog_h: f32 = 40.0;
+        let dialog_h: f32 = 56.0;
         let dx = ((800.0 - dialog_w) / 2.0).floor();
-        let dy = ((600.0 - dialog_h) / 2.0).floor();
+        let dy = ((600.0 - dialog_h - crate::helper::fallback::TITLE_H) / 2.0).floor() + crate::helper::fallback::TITLE_H;
         let btn_w = 42.0;
         let btn_h = 20.0;
         let cancel_btn_x = dx + dialog_w - 5.0 - btn_w;
@@ -469,7 +449,7 @@ mod tests {
         let n = button_count as f32;
         let menu_h = PADDING_TOP + n * FALLBACK_BTN_H + (n - 1.0) * BTN_SPACING + PADDING_BOTTOM;
         let btn_x = ((800.0 - MENU_W) / 2.0).floor() + (MENU_W - FALLBACK_BTN_W) / 2.0;
-        let my = ((screen_h - menu_h) / 2.0).floor();
+        let my = ((screen_h - menu_h - crate::helper::fallback::TITLE_H) / 2.0).floor() + crate::helper::fallback::TITLE_H;
         let btn_y = my + PADDING_TOP + idx as f32 * (FALLBACK_BTN_H + BTN_SPACING);
         (btn_x + FALLBACK_BTN_W / 2.0, btn_y + FALLBACK_BTN_H / 2.0)
     }
