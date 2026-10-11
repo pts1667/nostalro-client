@@ -121,6 +121,8 @@ struct App {
     reference: Option<reference::ReferenceClient>,
     /// Pictures the database window asked for, loaded a few per frame.
     reference_textures: std::collections::VecDeque<String>,
+    /// Worker that looks up item drop tables for the floor-item glow.
+    rarity_client: Option<reference::ReferenceClient>,
     input: InputState,
     ui_context: Option<UiContext>,
     ui_state_cache: StateCache,
@@ -219,6 +221,7 @@ impl App {
             gr2_loader: None,
             reference: None,
             reference_textures: std::collections::VecDeque::new(),
+            rarity_client: None,
             input: InputState::new(),
             ui_context: None,
             ui_state_cache: StateCache::new(),

@@ -23,6 +23,7 @@ impl Default for WindowStateEntry {
     }
 }
 
+pub use ragnarok_game::automation::QolOptions;
 pub use ragnarok_game::cursor::MouseSnapPrefs;
 pub use ragnarok_game::display::DisplayOptions;
 pub use ragnarok_game::keybinding::{EmotionKeys, KeyBindings};
@@ -394,6 +395,9 @@ pub struct Config {
     /// out of the sell basket moves all of it instead of asking for a count.
     pub no_item_amount_question: bool,
     pub display: DisplayOptions,
+    /// Auto-loot and rare-item glow. Autofarm itself is never persisted: it
+    /// starts off every session.
+    pub qol: QolOptions,
     #[serde(default)]
     pub snap: MouseSnapPrefs,
     /// Slot of the character selected last, restored to preselect it (and its page)
@@ -485,6 +489,7 @@ impl Default for Config {
             no_item_amount_question: false,
             refuse_party_invite: false,
             display: DisplayOptions::default(),
+            qol: QolOptions::default(),
             snap: MouseSnapPrefs::default(),
             last_char_slot: None,
             map_recovery_command: default_map_recovery_command(),
@@ -667,6 +672,11 @@ mod tests {
         let config: Config = serde_json::from_str(json).unwrap();
         assert!(config.custom.skill.al_teleport.separate_lvl);
         assert!(!config.custom.skill.al_teleport.skip_lvl1_menu);
+        assert!(!config.qol.auto_loot, "auto-loot is opt-in");
+        assert!(config.qol.auto_loot_pause_when_heavy);
+        assert!(config.qol.rare_item_glow);
+        assert!(!config.qol.autofarm_enabled, "autofarm is opt-in");
+        assert!(config.qol.loot_filter.is_open());
         assert!(!config.custom.boss_aura);
         assert!(config.custom.filtering.world);
         assert!(config.custom.filtering.effects);
@@ -677,6 +687,39 @@ mod tests {
         let json = r#"{"custom": {"fog_scale": 2.5}}"#;
         let config: Config = serde_json::from_str(json).unwrap();
         assert_eq!(config.custom.fog_scale, 2.5);
+    }
+
+    #[test]
+    fn qol_options_parse_and_roundtrip() {
+        let config: Config =
+            serde_json::from_str(r#"{"qol": {"auto_loot": true, "rare_item_glow": false}}"#).unwrap();
+        assert!(config.qol.auto_loot);
+        assert!(!config.qol.rare_item_glow);
+        assert!(config.qol.auto_loot_pause_when_heavy, "unlisted options keep their default");
+
+        let reparsed: Config = serde_json::from_str(&serde_json::to_string(&config).unwrap()).unwrap();
+        assert_eq!(reparsed.qol, config.qol);
+    }
+
+    #[test]
+    fn autofarm_and_filter_settings_parse_with_partial_sections() {
+        let json = r#"{"qol": {
+            "autofarm_enabled": true,
+            "toolbar_minimized": true,
+            "farm": {"heavy_percent": 70, "return_when_hurt": false},
+            "loot_filter": {"min_rarity": "Rare", "kinds": {"etc": false}}
+        }}"#;
+        let config: Config = serde_json::from_str(json).unwrap();
+        assert!(config.qol.autofarm_enabled && config.qol.toolbar_minimized);
+        assert_eq!(config.qol.farm.heavy_percent, 70);
+        assert!(!config.qol.farm.return_when_hurt);
+        assert_eq!(config.qol.farm.flee_hp_percent, 25, "unlisted farm options keep their default");
+        assert_eq!(config.qol.loot_filter.min_rarity, ragnarok_game::automation::Rarity::Rare);
+        assert!(!config.qol.loot_filter.kinds.etc);
+        assert!(config.qol.loot_filter.kinds.card, "unlisted kinds stay on");
+
+        let reparsed: Config = serde_json::from_str(&serde_json::to_string(&config).unwrap()).unwrap();
+        assert_eq!(reparsed.qol, config.qol);
     }
 
     #[test]

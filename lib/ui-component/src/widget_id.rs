@@ -74,6 +74,9 @@ pub const ID_BLOCKS: &[IdBlock] = &[
     block("game/world_map_window.rs", 5800, 5899),
     block("game/monster_info_window.rs", 5900, 5999),
     block("game/reference_window.rs", 6000, 6099),
+    block("game/qol_toolbar.rs", 6100, 6199),
+    block("game/autofarm_window.rs", 6200, 6299),
+    block("game/loot_filter_window.rs", 6300, 6399),
 ];
 
 #[cfg(test)]

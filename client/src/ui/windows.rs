@@ -79,6 +79,9 @@ use ragnarok_ui_component::game::skill_tree_window::SKILL_WINDOW_ID;
 use ragnarok_ui_component::game::skill_tree_window::SkillTreeWindow;
 use ragnarok_ui_component::game::sound_options::SOUND_OPTIONS_WINDOW_ID;
 use ragnarok_ui_component::game::sound_options::SoundOptionsWindow;
+use ragnarok_ui_component::game::autofarm_window::{AUTOFARM_WINDOW_ID, AutofarmWindow};
+use ragnarok_ui_component::game::loot_filter_window::{LOOT_FILTER_WINDOW_ID, LootFilterWindow};
+use ragnarok_ui_component::game::qol_toolbar::QolToolbar;
 use ragnarok_ui_component::game::status_icon_bar::StatusIconBarWindow;
 use ragnarok_ui_component::game::status_window::STATUS_WINDOW_ID;
 use ragnarok_ui_component::game::status_window::StatusWindow;
@@ -144,6 +147,9 @@ pub struct Windows {
     pub hotkey_bar: HotkeyBarWindow,
     pub minimap_window: MinimapWindow,
     pub status_icon_bar: StatusIconBarWindow,
+    pub qol_toolbar: QolToolbar,
+    pub autofarm_window: AutofarmWindow,
+    pub loot_filter_window: LootFilterWindow,
     pub levelup_notification: LevelUpNotificationWindow,
     pub guild_window: GuildWindow,
     pub emblem_picker_window: EmblemPickerWindow,
@@ -214,6 +220,9 @@ impl Windows {
             hotkey_bar: HotkeyBarWindow::new(),
             minimap_window: MinimapWindow::new(),
             status_icon_bar: StatusIconBarWindow::new(),
+            qol_toolbar: QolToolbar::new(),
+            autofarm_window: AutofarmWindow::new(),
+            loot_filter_window: LootFilterWindow::new(),
             levelup_notification: LevelUpNotificationWindow::new(),
             guild_window: GuildWindow::new(),
             emblem_picker_window: EmblemPickerWindow::new(),
@@ -369,6 +378,14 @@ pub(crate) const REGISTRY: &[(WidgetId, Dispatch)] = &[
     (
         HOTKEY_CONFIG_WINDOW_ID,
         Dispatch::Trait(|w| &mut w.hotkey_config_window as &mut dyn InGameWindow),
+    ),
+    (
+        AUTOFARM_WINDOW_ID,
+        Dispatch::Trait(|w| &mut w.autofarm_window as &mut dyn InGameWindow),
+    ),
+    (
+        LOOT_FILTER_WINDOW_ID,
+        Dispatch::Trait(|w| &mut w.loot_filter_window as &mut dyn InGameWindow),
     ),
     (
         COMPANION_AI_CONFIG_WINDOW_ID,

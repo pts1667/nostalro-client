@@ -1076,6 +1076,17 @@ pub enum GameEvent {
     OpenReference {
         path: String,
     },
+    /// A quality-of-life setting changed: the settings window, the QoL toolbar,
+    /// the autofarm window or the loot filter. Carries the whole set.
+    QolSettingsChanged {
+        options: crate::automation::QolOptions,
+    },
+    /// Starts or stops autofarm (its button or hotkey).
+    ToggleAutofarm,
+    /// Opens or closes the autofarm window (a QoL toolbar button).
+    ToggleAutofarmWindow,
+    /// Opens or closes the loot filter window (a QoL toolbar button).
+    ToggleLootFilterWindow,
     /// Pins the description of the hotbar skill in `slot`.
     DescribeHotkeySkill {
         skill: SkillEnum,

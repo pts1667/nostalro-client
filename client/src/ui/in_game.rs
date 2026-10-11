@@ -173,6 +173,8 @@ pub fn build_in_game_ui(
 
     events.extend(windows.status_icon_bar.build(ui, &mut ctx));
 
+    events.extend(windows.qol_toolbar.build(ui, &mut ctx));
+
     events.extend(windows.npc_dialog.build(ui, &mut ctx));
     events.extend(windows.npc_shop.build(ui, &mut ctx));
     events.extend(windows.warp_list_window.build(ui));

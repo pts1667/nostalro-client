@@ -25,10 +25,11 @@ pub enum HotkeyAction {
     CycleMinimap,
     MercenaryFollow,
     ToggleWorldMap,
+    ToggleAutofarm,
 }
 
 impl HotkeyAction {
-    pub const ALL: [HotkeyAction; 22] = [
+    pub const ALL: [HotkeyAction; 23] = [
         HotkeyAction::ToggleInventory,
         HotkeyAction::ToggleEquipment,
         HotkeyAction::ToggleSkillTree,
@@ -51,6 +52,7 @@ impl HotkeyAction {
         HotkeyAction::CycleMinimap,
         HotkeyAction::MercenaryFollow,
         HotkeyAction::ToggleWorldMap,
+        HotkeyAction::ToggleAutofarm,
     ];
 
     pub fn label(self) -> &'static str {
@@ -77,6 +79,7 @@ impl HotkeyAction {
             HotkeyAction::CycleMinimap => "Minimap",
             HotkeyAction::MercenaryFollow => "Merc. Follow",
             HotkeyAction::ToggleWorldMap => "World Map",
+            HotkeyAction::ToggleAutofarm => "Autofarm",
         }
     }
 }
@@ -244,6 +247,7 @@ impl KeyBindings {
             (HotkeyAction::CycleMinimap, ctrl("Tab")),
             (HotkeyAction::MercenaryFollow, ctrl("KeyT")),
             (HotkeyAction::ToggleWorldMap, ctrl("Backquote")),
+            (HotkeyAction::ToggleAutofarm, ctrl("KeyF")),
         ]);
         Self { map }
     }
@@ -344,5 +348,19 @@ mod tests {
         assert!(ctrl_p.is_reserved_trigger());
         assert!(bindings.action_for(&ctrl_p).is_none());
         assert!(!KeyChord::new("KeyP", true, false, false).is_reserved_trigger());
+    }
+
+    #[test]
+    fn every_action_has_its_own_default_key() {
+        let bindings = KeyBindings::defaults();
+        for action in HotkeyAction::ALL {
+            let chord = bindings.get(action).unwrap_or_else(|| panic!("{action:?} is unbound"));
+            assert_eq!(bindings.conflict(chord, action), None, "{action:?} shares {chord:?}");
+            assert!(!chord.is_reserved(), "{action:?} is bound to a reserved key");
+        }
+        assert_eq!(
+            bindings.get(HotkeyAction::ToggleAutofarm),
+            Some(&KeyChord::new("KeyF", false, true, false))
+        );
     }
 }

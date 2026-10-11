@@ -176,7 +176,7 @@ impl App {
 
     /// Returns whether the target ended up engaged: a swing went out, or a walk
     /// toward it started.
-    fn begin_attack(&mut self, target_id: u32, locked: bool) -> bool {
+    pub(crate) fn begin_attack(&mut self, target_id: u32, locked: bool) -> bool {
         if self.player_hidden() {
             return false;
         }

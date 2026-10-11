@@ -6,6 +6,7 @@ use crate::ui::windows::{Dispatch, REGISTRY, Windows};
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::pet::PetRoulette;
 use ragnarok_ui::frame::{UiFrame, WidgetId};
+use ragnarok_ui_component::game::autofarm_window::AUTOFARM_WINDOW_ID;
 use ragnarok_ui_component::game::book_window::BOOK_WINDOW_ID;
 use ragnarok_ui_component::game::cart_select_window::CART_SELECT_WINDOW_ID;
 use ragnarok_ui_component::game::cart_window::CART_WINDOW_ID;
@@ -21,6 +22,7 @@ use ragnarok_ui_component::game::homun_skill_window::HOMUN_SKILL_WINDOW_ID;
 use ragnarok_ui_component::game::homun_window::HOMUN_WINDOW_ID;
 use ragnarok_ui_component::game::hotkey_config_window::HOTKEY_CONFIG_WINDOW_ID;
 use ragnarok_ui_component::game::inventory_window::INV_WINDOW_ID;
+use ragnarok_ui_component::game::loot_filter_window::LOOT_FILTER_WINDOW_ID;
 use ragnarok_ui_component::game::mailbox_window::MAILBOX_WINDOW_ID;
 use ragnarok_ui_component::game::make_item_window::MAKE_ITEM_WINDOW_ID;
 use ragnarok_ui_component::game::mercenary_skill_window::MERCENARY_SKILL_WINDOW_ID;
@@ -85,6 +87,8 @@ pub const ESC_WINDOW_NAMES: &[(&str, WidgetId)] = &[
     ("Sound", SOUND_OPTIONS_WINDOW_ID),
     ("Graphics", GRAPHIC_OPTIONS_WINDOW_ID),
     ("Hotkeys", HOTKEY_CONFIG_WINDOW_ID),
+    ("Autofarm", AUTOFARM_WINDOW_ID),
+    ("Loot Filter", LOOT_FILTER_WINDOW_ID),
     ("Make Item", MAKE_ITEM_WINDOW_ID),
     ("Vending Setup", VENDING_SETUP_WINDOW_ID),
     ("Vending Shop", VENDING_SHOP_WINDOW_ID),

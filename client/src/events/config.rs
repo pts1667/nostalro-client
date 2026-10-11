@@ -45,6 +45,7 @@ impl App {
                 self.config.custom.filtering.sprite_upscale,
             );
         }
+        self.windows.graphic_options.set_qol(self.config.qol);
         self.windows.graphic_options.toggle();
     }
 

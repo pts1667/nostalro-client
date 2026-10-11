@@ -922,7 +922,7 @@ fn build_page(path: &str, value: &Value) -> Page {
         Shape::Entry => {
             let mut lines = Vec::new();
             lines.extend(banner_of(path, value));
-            push_value(&mut lines, 0, None, value);
+            push_entry(&mut lines, path, value);
             Page::new(lines, None)
         }
     }
@@ -1063,6 +1063,83 @@ fn push_array(out: &mut Vec<Line>, indent: u8, label: Option<String>, items: &[V
         } else {
             push_value(out, child, Some(&format!("#{}", n + 1)), item);
         }
+    }
+}
+
+/// The fields of an entry, one by one. The item description and the quest prerequisites have their own layout; the
+/// other fields go through `push_value`.
+fn push_entry(out: &mut Vec<Line>, path: &str, entry: &Value) {
+    let Some(fields) = entry.as_object() else {
+        push_value(out, 0, None, entry);
+        return;
+    };
+    let category = category_of(path);
+    for (key, field) in fields {
+        match (category, key.as_str()) {
+            (Some("items"), "description") => push_item_description(out, field),
+            (Some("quests"), "prerequisites") => push_prerequisites(out, field),
+            (Some("maps"), "quests") => push_map_quests(out, field),
+            _ => push_value(out, 0, Some(key.as_str()), field),
+        }
+    }
+}
+
+/// An item's description: the identified lines as they are, one row each, then the unidentified ones under their own
+/// heading. Nothing is joined, so each line keeps its own wording.
+fn push_item_description(out: &mut Vec<Line>, description: &Value) {
+    let lines_of = |key: &str| -> Vec<String> {
+        description
+            .get(key)
+            .and_then(Value::as_array)
+            .map(|lines| lines.iter().filter_map(scalar_text).filter(|line| !line.trim().is_empty()).collect())
+            .unwrap_or_default()
+    };
+    let identified = lines_of("identified");
+    let unidentified = lines_of("unidentified");
+    if identified.is_empty() && unidentified.is_empty() {
+        return;
+    }
+    out.push(Line::heading(0, "description".to_string()));
+    out.extend(identified.into_iter().map(|line| Line::value(1, None, line)));
+    if !unidentified.is_empty() {
+        out.push(Line::heading(1, "unidentified".to_string()));
+        out.extend(unidentified.into_iter().map(|line| Line::value(2, None, line)));
+    }
+}
+
+/// The quests that must be started or finished first: a link to each quest's entry, with the script line that checks
+/// it underneath. An empty list says so; null (the quest has no text, so nothing is known) shows nothing.
+fn push_prerequisites(out: &mut Vec<Line>, prerequisites: &Value) {
+    let Some(items) = prerequisites.as_array() else {
+        return;
+    };
+    if items.is_empty() {
+        out.push(Line::value(0, Some("prerequisites".to_string()), "none".to_string()));
+        return;
+    }
+    out.push(Line::heading(0, format!("prerequisites ({})", items.len())));
+    for item in items {
+        let Some(quest) = item.get("quest").and_then(Value::as_u64) else {
+            continue;
+        };
+        let state = item.get("state").and_then(Value::as_str).unwrap_or("started");
+        out.push(Line::link(1, None, format!("Quest #{quest} (must be {state})"), format!("/db/quests/{quest}")));
+        if let Some(quote) = item.get("quote").and_then(Value::as_str).filter(|quote| !quote.is_empty()) {
+            out.push(Line::value(2, None, quote.to_string()));
+        }
+    }
+}
+
+/// The quests a map's NPCs start: a link row to each quest's entry under a heading that says where they come from. A map
+/// with none shows nothing.
+fn push_map_quests(out: &mut Vec<Line>, quests: &Value) {
+    let links: Vec<&Value> = quests.as_array().map(|quests| quests.iter().filter(|quest| is_link(quest)).collect()).unwrap_or_default();
+    if links.is_empty() {
+        return;
+    }
+    out.push(Line::heading(0, format!("quests started here ({})", links.len())));
+    for quest in links {
+        out.push(Line::link(1, None, link_text(quest), link_href(quest).unwrap_or_default().to_string()));
     }
 }
 
@@ -1214,6 +1291,67 @@ mod tests {
         let drop = find("Poring (#1002)   rate: 70");
         assert_eq!(drop.link.as_deref(), Some("/db/mobs/1002"));
         assert_eq!(find("Drops (#1113)").link.as_deref(), Some("/db/mobs/1113"));
+    }
+
+    #[test]
+    fn item_description_keeps_each_line_and_puts_unidentified_under_its_own_heading() {
+        let value = json!({
+            "id": 501,
+            "description": {
+                "identified": ["A potion made from grinded Red Herbs.", "Class: Restorative", "Heal: 45 - 65 HP", "Weight: 7"],
+                "unidentified": ["..."]
+            }
+        });
+        let lines = build_page("/db/items/501", &value).lines;
+        let at = lines.iter().position(|l| l.heading && l.text == "description").expect("description heading");
+        assert_eq!(lines[at + 1].text, "A potion made from grinded Red Herbs.");
+        assert_eq!(lines[at + 1].indent, 1);
+        assert_eq!(lines[at + 4].text, "Weight: 7");
+        assert!(lines[at + 5].heading && lines[at + 5].text == "unidentified");
+        assert_eq!(lines[at + 6].text, "...");
+        assert!(lines.iter().all(|l| l.label.as_deref() != Some("description")));
+
+        let none = build_page("/db/items/1", &json!({ "description": null })).lines;
+        assert!(none.iter().all(|l| !l.heading));
+    }
+
+    #[test]
+    fn quest_prerequisites_link_to_each_quest_with_its_check() {
+        let value = json!({
+            "prerequisites": [{ "quest": 8132, "state": "started", "quote": "if (isbegin_quest(8132) == 1)" }],
+            "description": "Bring the thing."
+        });
+        let lines = build_page("/db/quests/8133", &value).lines;
+        let at = lines.iter().position(|l| l.heading && l.text == "prerequisites (1)").expect("prerequisites heading");
+        assert_eq!(lines[at + 1].text, "Quest #8132 (must be started)");
+        assert_eq!(lines[at + 1].link.as_deref(), Some("/db/quests/8132"));
+        assert_eq!(lines[at + 2].text, "if (isbegin_quest(8132) == 1)");
+
+        let none = build_page("/db/quests/1", &json!({ "prerequisites": [] })).lines;
+        assert_eq!(none[0].label.as_deref(), Some("prerequisites"));
+        assert_eq!(none[0].text, "none");
+        assert!(build_page("/db/quests/1", &json!({ "prerequisites": null })).lines.is_empty());
+    }
+
+    #[test]
+    fn map_quests_are_links_under_their_own_heading() {
+        let value = json!({
+            "name": "prontera",
+            "quests": [
+                { "id": 1001, "name": "Jobs Lesson", "href": "/db/quests/1001" },
+                { "id": 1002, "name": "1002", "href": "/db/quests/1002" }
+            ]
+        });
+        let lines = build_page("/db/maps/prontera", &value).lines;
+        let at = lines.iter().position(|l| l.heading && l.text == "quests started here (2)").expect("quests heading");
+        assert_eq!(lines[at + 1].text, "Jobs Lesson (#1001)");
+        assert_eq!(lines[at + 1].link.as_deref(), Some("/db/quests/1001"));
+        assert_eq!(lines[at + 1].indent, 1);
+        assert_eq!(lines[at + 2].link.as_deref(), Some("/db/quests/1002"));
+        assert!(lines.iter().all(|l| l.label.as_deref() != Some("quests")));
+
+        let none = build_page("/db/maps/payon", &json!({ "name": "payon", "quests": [] })).lines;
+        assert!(none.iter().all(|l| !l.text.starts_with("quests")));
     }
 
     #[test]

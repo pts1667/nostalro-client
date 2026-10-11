@@ -160,6 +160,13 @@ Below what has been implemented and validated with rathena packetver 20120307
 - Book reader
 - Confirmation dialog
 - Context menu (right-click)
+- Auto-loot: walks to and picks up items within 6 cells while idle (Graphic Settings, off by default); pauses above 80% carry weight unless that option is cleared
+- Rare-item glow: floor items glow blue (rare, drops under 2%), purple (epic, under 0.5%) or gold (legendary, 0.1% or less, cycling colours) by how rarely monsters drop them, read from the server's `/db` API; cards glow until that is known
+- Hold Alt to show the names of all items on the floor
+- QoL toolbar: small draggable toolbar in the bottom-right corner (foldable to a single button) with the autofarm switch, its settings window and the loot filter window
+- Autofarm: off until "Enable autofarm" is ticked in the Graphic Settings; then the toolbar button or Ctrl+F attacks a random living, non-boss monster in view and picks up the drops. It stops on a world click, death or a map change
+- Autofarm settings window: stop above a carry weight (default 80%) and flee below an HP percentage (default 25%), each optionally returning to the save point with a Butterfly Wing; heals below an HP percentage with healing items or the character's own Heal skill; uses SP items below an SP percentage
+- Loot filter window: restricts what auto-loot and autofarm pick up by minimum rarity (uncommon under 10%, rare under 2%, epic under 0.5%, legendary 0.1% or less) and by item type, judged from the server's `/db` entry; items it cannot identify are picked up
 - Poptip / tooltips
 
 ## Social

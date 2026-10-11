@@ -5,6 +5,7 @@ use crate::game_updates::CREATE_PREVIEW_GID;
 use crate::{App, ClipData};
 use ragnarok_game::ailment;
 use ragnarok_game::app_state::AppState;
+use ragnarok_game::automation::glow_pulse;
 use ragnarok_game::cursor::{RenderEntry, RenderEntryKind};
 use ragnarok_game::effect::{BlendKind, EffectPrimitiveDraw};
 use ragnarok_game::entity::EntityState;
@@ -30,6 +31,8 @@ const SHADOW_SCALE: f32 = 1.2;
 
 /// Floor items take a much smaller shadow than actors: `1.2 * 0.4`.
 const FLOOR_ITEM_SHADOW_SCALE: f32 = SHADOW_SCALE * 0.4;
+/// Size and strength of each halo drawn behind a glowing floor item, widest first.
+const FLOOR_ITEM_GLOW_LAYERS: [(f32, f32); 3] = [(1.7, 0.22), (1.4, 0.35), (1.18, 0.55)];
 
 impl App {
     /// Stealth-visibility relationship of the local player to `gid`: their own
@@ -553,6 +556,18 @@ impl App {
                     {
                         let blink_active = floor_item.blink_active(elapsed);
                         let light = self.actor_light((floor_item.x as f32, floor_item.y as f32));
+                        // A rare item shines: tinted copies of its sprite, grown and
+                        // added over what is behind, pulsing out of step with its
+                        // neighbours.
+                        let glow = if self.config.qol.rare_item_glow {
+                            self.game
+                                .automation
+                                .rarity_of(floor_item.item_id)
+                                .glow_color(elapsed)
+                                .map(|rgb| (rgb, glow_pulse(elapsed, floor_item.id)))
+                        } else {
+                            None
+                        };
 
                         let center = entry.screen_anchor;
 
@@ -603,12 +618,36 @@ impl App {
                                 if let Some((mut vertices, indices, tex_idx)) =
                                     build_clip_quad(clip, tex, center, entry.depth, [0.0, 0.0])
                                 {
+                                    let unscaled = glow.map(|_| vertices.clone());
                                     scale_clip_vertices(
                                         &mut vertices,
                                         center,
                                         entry.sprite_scale,
                                         entry.depth_gradient,
                                     );
+                                    if let (Some((rgb, pulse)), Some(base)) = (glow, unscaled)
+                                        && tex_idx < tex.bind_groups.len()
+                                    {
+                                        for (grow, strength) in FLOOR_ITEM_GLOW_LAYERS {
+                                            let mut halo = base.clone();
+                                            scale_clip_vertices(
+                                                &mut halo,
+                                                center,
+                                                entry.sprite_scale * grow,
+                                                entry.depth_gradient,
+                                            );
+                                            for v in &mut halo {
+                                                v.color = [rgb[0], rgb[1], rgb[2], strength * pulse];
+                                            }
+                                            sprite_batches.push(SpriteBatch {
+                                                vertices: halo,
+                                                indices: indices.clone(),
+                                                texture: &tex.bind_groups[tex_idx],
+                                                additive: true,
+                                                no_depth: false,
+                                            });
+                                        }
+                                    }
                                     if blink_active {
                                         for v in &mut vertices {
                                             v.color = [1.0, 0.0, 0.0, 1.0];

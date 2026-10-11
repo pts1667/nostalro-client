@@ -934,6 +934,7 @@ impl App {
                 GameEvent::FloorItemDisappeared { id } => {
                     self.game.world.floor_items.remove(&id);
                     self.game.assets.floor_item_sprites.remove(&id);
+                    self.game.automation.loot.forget(id);
                 }
 
                 GameEvent::ChatMessage { gid, message } => {
@@ -2193,21 +2194,7 @@ impl App {
                     }
                 }
                 GameEvent::RequestUseItem { index } => {
-                    if self.player_hidden() {
-                        continue;
-                    }
-                    let account_id = self
-                        .game
-                        .session
-                        .login_session
-                        .as_ref()
-                        .map(|s| s.account_id)
-                        .unwrap_or(0);
-                    self.channel.send_packet(build_use_item_packet(
-                        index,
-                        account_id,
-                        self.active_packetver,
-                    ));
+                    self.send_use_item(index);
                 }
                 GameEvent::RequestEquipItem { index, location } => {
                     self.channel.send_packet(build_equip_item_packet(
@@ -2221,6 +2208,10 @@ impl App {
                         .send_packet(build_unequip_item_packet(index, self.active_packetver));
                 }
                 GameEvent::RequestDropItem { index, count } => {
+                    if let Some(item) = self.game.character.inventory.get_item(index) {
+                        let now = self.start_time.elapsed().as_secs_f32();
+                        self.game.automation.loot.note_own_drop(item.item_id, now);
+                    }
                     self.channel.send_packet(build_drop_item_packet(
                         index,
                         count,
@@ -2763,6 +2754,22 @@ impl App {
                         sprite_upscale,
                         persist,
                     );
+                }
+                GameEvent::QolSettingsChanged { options } => {
+                    self.config.qol = options;
+                    self.config.save("config.json");
+                    if !options.autofarm_enabled {
+                        self.stop_autofarm("Autofarm stopped: it was disabled in the settings.");
+                    }
+                }
+                GameEvent::ToggleAutofarm => {
+                    self.toggle_autofarm();
+                }
+                GameEvent::ToggleAutofarmWindow => {
+                    self.windows.autofarm_window.toggle();
+                }
+                GameEvent::ToggleLootFilterWindow => {
+                    self.windows.loot_filter_window.toggle();
                 }
                 GameEvent::ToggleHotkeyConfig => {
                     if !self.windows.hotkey_config_window.is_open() {

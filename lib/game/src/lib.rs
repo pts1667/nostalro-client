@@ -3,6 +3,7 @@ pub mod animation;
 pub mod app_state;
 pub mod arrow;
 pub mod autocounter;
+pub mod automation;
 pub mod banner;
 pub mod book;
 pub mod boss_info;

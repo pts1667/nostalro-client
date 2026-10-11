@@ -57,6 +57,10 @@ impl App {
             .map(|gat| gat.get_height(cell_x + 0.5, cell_y + 0.5))
             .unwrap_or(0.0);
         self.game.world.floor_items.insert(id, floor_item);
+        if self.game.automation.loot.claim_own_drop(item_id, elapsed) {
+            self.game.automation.loot.ignore(id);
+        }
+        self.request_item_info(item_id);
 
         if self.game.assets.shadow_sprite.is_none()
             && let Some(grf) = &self.grf

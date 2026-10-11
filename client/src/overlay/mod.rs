@@ -45,6 +45,9 @@ const TALKBOX_BUBBLE_LIFT: f32 = 20.0;
 const FLOOR_ITEM_NAME_COLOR: [f32; 4] = [1.0, 0.937, 0.584, 1.0];
 const FLOOR_ITEM_LABEL_DROP: f32 = 20.0;
 const FLOOR_ITEM_LABEL_TEXT_INSET: f32 = 4.0;
+/// Alt-held floor-item labels sit this many pixels (perspective-scaled) above
+/// the item's anchor.
+const FLOOR_ITEM_ALT_LABEL_RISE: f32 = 20.0;
 const OUTLINE_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 /// At plate font size a glyph's own edge alpha is as low as 0.2, so a single ring
 /// reads grey next to the letter's vertical stems. Repeating it accumulates towards
@@ -96,6 +99,9 @@ impl App {
         self.build_vending_boards(render_list, &mut calls);
         self.build_chat_room_boards(render_list, &mut calls);
         self.build_floor_item_tooltip(hovered_floor_item_id, floor_item_render_list, &mut calls);
+        if self.input.alt_pressed {
+            self.build_floor_item_names(floor_item_render_list, &mut calls);
+        }
         self.build_debug_pick_bounds(render_list, floor_item_render_list, &mut calls);
 
         calls
@@ -633,6 +639,42 @@ impl App {
             &renderer.font_atlas,
             calls,
         );
+    }
+
+    /// Names above every item on the floor, shown while Alt is held. Rare items
+    /// are written in their glow colour.
+    fn build_floor_item_names(
+        &self,
+        floor_item_render_list: &[RenderEntry],
+        calls: &mut Vec<UiDrawCall>,
+    ) {
+        let Some(renderer) = &self.renderer else {
+            return;
+        };
+        let elapsed = self.start_time.elapsed().as_secs_f32();
+        for entry in floor_item_render_list {
+            let Some(floor_item) = self.game.world.floor_items.get(&entry.id) else {
+                continue;
+            };
+            let label = floor_item
+                .label(self.game.data_table.msg_string.as_ref())
+                .unwrap_or_else(|| floor_item.name.clone());
+            let color = self
+                .game
+                .automation
+                .rarity_of(floor_item.item_id)
+                .glow_color(elapsed)
+                .map_or(FLOOR_ITEM_NAME_COLOR, |[r, g, b]| [r, g, b, 1.0]);
+            let text_w = self.plate_text_width(&label, &renderer.font_atlas);
+            self.build_plate_text(
+                &label,
+                entry.screen_anchor[0] - text_w / 2.0,
+                entry.screen_anchor[1] - FLOOR_ITEM_ALT_LABEL_RISE * entry.sprite_scale,
+                color,
+                &renderer.font_atlas,
+                calls,
+            );
+        }
     }
 
     fn build_debug_pick_bounds(

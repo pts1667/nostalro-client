@@ -1,6 +1,7 @@
 use crate::helper::dropdown::Dropdown;
 use crate::helper::window_chrome::{draw_sys_button, draw_titlebar, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
+use ragnarok_game::automation::{HEAVY_PERCENT, QolOptions};
 use ragnarok_game::cursor::MouseSnapPrefs;
 use ragnarok_game::display::DisplayOptions;
 use ragnarok_game::event::GameEvent;
@@ -29,6 +30,10 @@ const FILTER_WORLD_CB_ID: WidgetId = WidgetId(4218);
 const FILTER_EFFECT_CB_ID: WidgetId = WidgetId(4219);
 const FILTER_SPRITE_CB_ID: WidgetId = WidgetId(4220);
 const SPRITE_UPSCALE_CB_ID: WidgetId = WidgetId(4221);
+const AUTO_LOOT_CB_ID: WidgetId = WidgetId(4222);
+const AUTO_LOOT_HEAVY_CB_ID: WidgetId = WidgetId(4223);
+const RARE_GLOW_CB_ID: WidgetId = WidgetId(4224);
+const AUTOFARM_CB_ID: WidgetId = WidgetId(4225);
 const UI_SCALE_OPTION_BASE: u32 = 4230;
 
 const UI_SCALE_OPTIONS: [u32; 6] = [75, 100, 125, 150, 175, 200];
@@ -37,7 +42,7 @@ const WIN_W: f32 = 280.0;
 const TITLE_H: f32 = 20.0;
 const CLOSE_SIZE: f32 = 11.0;
 const ROW_H: f32 = 22.0;
-const ROW_COUNT: f32 = 12.0;
+const ROW_COUNT: f32 = 16.0;
 const PAD: f32 = 8.0;
 const WIN_H: f32 = TITLE_H + PAD + ROW_COUNT * ROW_H + PAD;
 const CB_SIZE: f32 = 11.0;
@@ -58,6 +63,7 @@ pub struct GraphicOptionsWindow {
     filter_effects: bool,
     filter_sprites: bool,
     sprite_upscale: bool,
+    qol: QolOptions,
     dropdown: Dropdown,
 }
 
@@ -104,6 +110,11 @@ impl GraphicOptionsWindow {
         self.filter_effects = filter_effects;
         self.filter_sprites = filter_sprites;
         self.sprite_upscale = sprite_upscale;
+    }
+
+    /// The auto-loot and glow settings, which have their own change event.
+    pub fn set_qol(&mut self, qol: QolOptions) {
+        self.qol = qol;
     }
 
     pub fn toggle(&mut self) {
@@ -431,6 +442,41 @@ impl InGameWindow for GraphicOptionsWindow {
             &mut self.accessibility,
         );
 
+        let before = self.qol;
+        check_row(
+            ui,
+            12,
+            AUTO_LOOT_CB_ID,
+            x0,
+            "Auto-loot nearby items",
+            &mut self.qol.auto_loot,
+        );
+        check_row(
+            ui,
+            13,
+            AUTO_LOOT_HEAVY_CB_ID,
+            x0,
+            &format!("Pause auto-loot above {HEAVY_PERCENT}% weight"),
+            &mut self.qol.auto_loot_pause_when_heavy,
+        );
+        check_row(
+            ui,
+            14,
+            RARE_GLOW_CB_ID,
+            x0,
+            "Glow around rare items",
+            &mut self.qol.rare_item_glow,
+        );
+        check_row(
+            ui,
+            15,
+            AUTOFARM_CB_ID,
+            x0,
+            "Enable autofarm (toolbar button and hotkey)",
+            &mut self.qol.autofarm_enabled,
+        );
+        let qol_changed = self.qol != before;
+
         if let Some(overlay) = dd_resp.overlay_rect {
             let label_refs: Vec<&str> = labels.iter().map(|s| s.as_str()).collect();
             if let Some(idx) =
@@ -446,6 +492,9 @@ impl InGameWindow for GraphicOptionsWindow {
 
         if changed {
             events.push(self.changed_event());
+        }
+        if qol_changed {
+            events.push(GameEvent::QolSettingsChanged { options: self.qol });
         }
 
         events
@@ -714,6 +763,71 @@ mod tests {
                 assert!(*filter_effects, "the effects box is untouched");
             }
             other => panic!("unexpected event: {other:?}"),
+        }
+    }
+
+    fn click_row(win: &mut GraphicOptionsWindow, row: usize, x: f32) -> Vec<GameEvent> {
+        let mut state = StateCache::new();
+        let wy = (600.0 - WIN_H) / 2.0;
+        let cb_y = wy + TITLE_H + PAD + row as f32 * ROW_H + (ROW_H - CB_SIZE) / 2.0 - 2.0;
+        build_at(
+            win,
+            &mut state,
+            Some(((800.0 - WIN_W) / 2.0 + x + CB_SIZE / 2.0, cb_y + CB_SIZE / 2.0)),
+        )
+    }
+
+    #[test]
+    fn auto_loot_checkbox_sends_its_own_event() {
+        let mut win = GraphicOptionsWindow::new();
+        win.set_qol(QolOptions::default());
+        win.toggle();
+
+        let events = click_row(&mut win, 12, 10.0);
+        match events.as_slice() {
+            [GameEvent::QolSettingsChanged { options }] => {
+                assert!(options.auto_loot);
+                assert!(options.auto_loot_pause_when_heavy);
+                assert!(options.rare_item_glow);
+            }
+            other => panic!("unexpected events: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn weight_pause_and_glow_checkboxes_flip_their_own_option() {
+        let mut win = GraphicOptionsWindow::new();
+        win.set_qol(QolOptions::default());
+        win.toggle();
+
+        match click_row(&mut win, 13, 10.0).as_slice() {
+            [GameEvent::QolSettingsChanged { options }] => {
+                assert!(!options.auto_loot_pause_when_heavy);
+                assert!(options.rare_item_glow);
+            }
+            other => panic!("unexpected events: {other:?}"),
+        }
+        match click_row(&mut win, 14, 10.0).as_slice() {
+            [GameEvent::QolSettingsChanged { options }] => {
+                assert!(!options.rare_item_glow);
+                assert!(!options.auto_loot_pause_when_heavy, "the earlier flip stays");
+            }
+            other => panic!("unexpected events: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn autofarm_checkbox_enables_it_and_starts_off() {
+        let mut win = GraphicOptionsWindow::new();
+        win.set_qol(QolOptions::default());
+        win.toggle();
+
+        match click_row(&mut win, 15, 10.0).as_slice() {
+            [GameEvent::QolSettingsChanged { options }] => {
+                assert!(options.autofarm_enabled);
+                assert!(!options.auto_loot, "the other options are untouched");
+            }
+            other => panic!("unexpected events: {other:?}"),
         }
     }
 
