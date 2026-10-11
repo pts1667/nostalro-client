@@ -1,5 +1,6 @@
 use crate::helper::fallback;
 use crate::{BuildCtx, InGameWindow, Window};
+use crate::game::context_menu::info_menu;
 use ragnarok_game::event::GameEvent;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
@@ -12,7 +13,17 @@ const ZOOM_IN_BTN_ID: WidgetId = WidgetId(1601);
 const ZOOM_OUT_BTN_ID: WidgetId = WidgetId(1602);
 
 
-const MAP_AREA_SIZE: f32 = 128.0;
+const MAP_SIZE_MIN: f32 = 128.0;
+const MAP_SIZE_MAX: f32 = 320.0;
+/// Fraction of the screen's shorter side the minimap takes up.
+const MAP_SIZE_FRACTION: f32 = 0.2;
+
+/// Minimap edge for a screen: a fraction of its shorter side, clamped.
+fn map_size_for(screen_w: f32, screen_h: f32) -> f32 {
+    (screen_w.min(screen_h) * MAP_SIZE_FRACTION)
+        .round()
+        .clamp(MAP_SIZE_MIN, MAP_SIZE_MAX)
+}
 const ZOOM_BTN_SIZE: f32 = 12.0;
 const ARROW_SIZE: f32 = 12.0;
 
@@ -154,6 +165,7 @@ impl MinimapWindow {
         uv_max: [f32; 2],
         map_area_x: f32,
         map_area_y: f32,
+        map_size: f32,
     ) -> Option<(f32, f32)> {
         let (nx, ny) = self.cell_to_uv(cell_x, cell_y);
         let u_span = uv_max[0] - uv_min[0];
@@ -167,8 +179,8 @@ impl MinimapWindow {
             return None;
         }
         Some((
-            map_area_x + rel_x * MAP_AREA_SIZE,
-            map_area_y + rel_y * MAP_AREA_SIZE,
+            map_area_x + rel_x * map_size,
+            map_area_y + rel_y * map_size,
         ))
     }
 
@@ -244,15 +256,22 @@ impl InGameWindow for MinimapWindow {
             MinimapVisibility::Hidden => return Vec::new(),
         };
 
-        let x = (ui.ctx.screen_width - MAP_AREA_SIZE - 2.0).max(0.0);
+        let size = map_size_for(ui.ctx.screen_width, ui.ctx.screen_height);
+        let x = (ui.ctx.screen_width - size - 2.0).max(0.0);
         let y = 2.0;
         ui.ensure_in_z_order_with(MINIMAP_WINDOW_ID, WindowOrder::Foreground);
-        ui.window_fixed(MINIMAP_WINDOW_ID, MAP_AREA_SIZE, MAP_AREA_SIZE, x, y);
+        ui.window_fixed(MINIMAP_WINDOW_ID, size, size, x, y);
 
-        let win_rect = Rect::new(x, y, MAP_AREA_SIZE, MAP_AREA_SIZE);
+        let win_rect = Rect::new(x, y, size, size);
         let resp = ui.interact(MINIMAP_WINDOW_ID, win_rect);
         if resp.hovered() {
             ui.any_interactive_hovered = true;
+        }
+        let mut events = Vec::new();
+        if resp.right_clicked()
+            && let Some(map) = self.map_name.as_deref().map(map_key).filter(|m| !m.is_empty())
+        {
+            events.push(info_menu(ui, Some(format!("/db/maps/{map}")), None));
         }
 
         let (uv_min, uv_max) = self.compute_uv_region();
@@ -261,8 +280,8 @@ impl InGameWindow for MinimapWindow {
             let (v, i) = draw::quad_vertices_uv(
                 x,
                 y,
-                MAP_AREA_SIZE,
-                MAP_AREA_SIZE,
+                size,
+                size,
                 uv_min,
                 uv_max,
                 tex_color,
@@ -274,7 +293,7 @@ impl InGameWindow for MinimapWindow {
             });
         } else {
             let placeholder = [0.05, 0.05, 0.08, alpha];
-            let (v, i) = draw::quad_vertices(x, y, MAP_AREA_SIZE, MAP_AREA_SIZE, placeholder);
+            let (v, i) = draw::quad_vertices(x, y, size, size, placeholder);
             ui.draw_calls.push(DrawCall {
                 vertices: v.to_vec(),
                 indices: i.to_vec(),
@@ -285,7 +304,7 @@ impl InGameWindow for MinimapWindow {
         let mark_visible = (ui.elapsed_secs / MARK_BLINK_SECS) as u32 % 2 == 0;
         let mut hovered_name: Option<(f32, f32, String)> = None;
         for marker in &self.entity_markers {
-            let Some((sx, sy)) = self.map_to_screen(marker.x, marker.y, uv_min, uv_max, x, y)
+            let Some((sx, sy)) = self.map_to_screen(marker.x, marker.y, uv_min, uv_max, x, y, size)
             else {
                 continue;
             };
@@ -331,14 +350,14 @@ impl InGameWindow for MinimapWindow {
         }
 
         if let Some((px, py)) = self.player_position
-            && let Some((sx, sy)) = self.map_to_screen(px, py, uv_min, uv_max, x, y)
+            && let Some((sx, sy)) = self.map_to_screen(px, py, uv_min, uv_max, x, y, size)
         {
             let angle = Self::direction_angle(self.player_direction);
             let color = [1.0, 1.0, 1.0, alpha];
             fallback::arrow(&mut ui.draw_calls, sx, sy, ARROW_SIZE, angle, color);
         }
 
-        let zoom_x = x + MAP_AREA_SIZE - ZOOM_BTN_SIZE;
+        let zoom_x = x + size - ZOOM_BTN_SIZE;
         let zoom_in_rect = Rect::new(zoom_x, y, ZOOM_BTN_SIZE, ZOOM_BTN_SIZE);
         let zoom_in_resp = ui.button(ZOOM_IN_BTN_ID, zoom_in_rect, "+");
         if zoom_in_resp.clicked() && self.zoom_level < ZOOM_LEVELS.len() - 1 {
@@ -351,13 +370,27 @@ impl InGameWindow for MinimapWindow {
             self.zoom_level -= 1;
         }
 
-        Vec::new()
+        events
     }
+}
+
+/// The key of the map in the database: its name without the file extension.
+fn map_key(name: &str) -> &str {
+    name.split('.').next().unwrap_or(name)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const MAP_AREA_SIZE: f32 = 128.0;
+
+    #[test]
+    fn map_keys_drop_the_file_extension() {
+        assert_eq!(map_key("prontera.gat"), "prontera");
+        assert_eq!(map_key("prontera"), "prontera");
+        assert_eq!(map_key(""), "");
+    }
 
     #[test]
     fn visibility_cycles_through_all_states() {
@@ -429,7 +462,7 @@ mod tests {
 
         let uv_min = [0.0, 0.0];
         let uv_max = [1.0, 1.0];
-        let result = minimap.map_to_screen(100.0, 100.0, uv_min, uv_max, 0.0, 0.0);
+        let result = minimap.map_to_screen(100.0, 100.0, uv_min, uv_max, 0.0, 0.0, MAP_AREA_SIZE);
         assert!(result.is_some());
         let (sx, sy) = result.unwrap();
         assert!((sx - MAP_AREA_SIZE / 2.0).abs() < 0.01);
@@ -449,16 +482,24 @@ mod tests {
         let margin = (392.0 - 312.0) / 2.0 * cell;
 
         let (sx, sy) = minimap
-            .map_to_screen(0.0, 0.0, uv_min, uv_max, 0.0, 0.0)
+            .map_to_screen(0.0, 0.0, uv_min, uv_max, 0.0, 0.0, MAP_AREA_SIZE)
             .unwrap();
         assert!((sx - margin).abs() < 0.01);
         assert!((sy - MAP_AREA_SIZE).abs() < 0.01);
 
         let (sx, sy) = minimap
-            .map_to_screen(312.0, 392.0, uv_min, uv_max, 0.0, 0.0)
+            .map_to_screen(312.0, 392.0, uv_min, uv_max, 0.0, 0.0, MAP_AREA_SIZE)
             .unwrap();
         assert!((sx - (MAP_AREA_SIZE - margin)).abs() < 0.01);
         assert!(sy.abs() < 0.01);
+    }
+
+    #[test]
+    fn map_size_scales_with_screen_and_is_clamped() {
+        assert_eq!(map_size_for(800.0, 600.0), 128.0);
+        assert_eq!(map_size_for(1920.0, 1080.0), 216.0);
+        assert_eq!(map_size_for(3840.0, 2160.0), 320.0);
+        assert_eq!(map_size_for(2560.0, 400.0), 128.0);
     }
 
     #[test]

@@ -27,6 +27,7 @@ const RESURRECT_ID: WidgetId = WidgetId(505);
 const GRAPHICS_ID: WidgetId = WidgetId(506);
 const SHORTCUT_ID: WidgetId = WidgetId(507);
 const HOTKEY_ID: WidgetId = WidgetId(508);
+const DATABASE_ID: WidgetId = WidgetId(509);
 
 const MENU_W: f32 = 140.0;
 const FALLBACK_BTN_W: f32 = 120.0;
@@ -145,6 +146,7 @@ enum MenuButton {
     Sound,
     Shortcut,
     Hotkeys,
+    Database,
     CharSelect,
     Quit,
     Restart,
@@ -159,6 +161,7 @@ impl MenuButton {
             MenuButton::Sound => OPTION_ID,
             MenuButton::Shortcut => SHORTCUT_ID,
             MenuButton::Hotkeys => HOTKEY_ID,
+            MenuButton::Database => DATABASE_ID,
             MenuButton::CharSelect => CHARSELECT_ID,
             MenuButton::Quit => QUIT_ID,
             MenuButton::Restart => RESTART_ID,
@@ -173,6 +176,7 @@ impl MenuButton {
             MenuButton::Sound => "Sound",
             MenuButton::Shortcut => "Shortcut",
             MenuButton::Hotkeys => "Hotkeys",
+            MenuButton::Database => "Database",
             MenuButton::CharSelect => "Character Select",
             MenuButton::Quit => "Quit Game",
             MenuButton::Restart => "Restart",
@@ -208,6 +212,7 @@ impl SystemMenu {
                 MenuButton::Sound,
                 MenuButton::Shortcut,
                 MenuButton::Hotkeys,
+                MenuButton::Database,
                 MenuButton::CharSelect,
                 MenuButton::Quit,
             ]
@@ -231,6 +236,10 @@ impl SystemMenu {
             }
             MenuButton::Hotkeys => {
                 events.push(GameEvent::ToggleHotkeyConfig);
+                self.open = false;
+            }
+            MenuButton::Database => {
+                events.push(GameEvent::ToggleReferenceWindow);
                 self.open = false;
             }
             MenuButton::CharSelect => self.pending_confirm = PendingConfirm::CharacterSelect,
@@ -309,7 +318,7 @@ mod tests {
         let data = DataTable::new();
 
         let mut ctx = UiContext::new(800.0, 600.0);
-        let (mx, my) = button_center(600.0, 7, 0);
+        let (mx, my) = button_center(600.0, 8, 0);
         ctx.mouse_x = mx;
         ctx.mouse_y = my;
         ctx.mouse_clicked = true;
@@ -327,7 +336,7 @@ mod tests {
         let data = DataTable::new();
 
         let mut ctx = UiContext::new(800.0, 600.0);
-        let (mx, my) = button_center(600.0, 7, 1);
+        let (mx, my) = button_center(600.0, 8, 1);
         ctx.mouse_x = mx;
         ctx.mouse_y = my;
         ctx.mouse_clicked = true;
@@ -342,6 +351,29 @@ mod tests {
     }
 
     #[test]
+    fn database_button_emits_toggle_and_closes() {
+        let mut menu = SystemMenu::new();
+        menu.open = true;
+        let mut state = StateCache::new();
+        let mut character = Character::new();
+        let data = DataTable::new();
+
+        let mut ctx = UiContext::new(800.0, 600.0);
+        let (mx, my) = button_center(600.0, 8, 5);
+        ctx.mouse_x = mx;
+        ctx.mouse_y = my;
+        ctx.mouse_clicked = true;
+        let mut ui = test_frame(&mut ctx, &mut state);
+        let events = menu.build(&mut ui, &mut crate::BuildCtx::test(&mut character, &data));
+        assert!(
+            events
+                .iter()
+                .any(|e| matches!(e, GameEvent::ToggleReferenceWindow))
+        );
+        assert!(!menu.open);
+    }
+
+    #[test]
     fn charselect_opens_confirm_then_emits_event() {
         let mut menu = SystemMenu::new();
         menu.open = true;
@@ -350,7 +382,7 @@ mod tests {
         let data = DataTable::new();
 
         let mut ctx = UiContext::new(800.0, 600.0);
-        let (mx, my) = button_center(600.0, 7, 5);
+        let (mx, my) = button_center(600.0, 8, 6);
         ctx.mouse_x = mx;
         ctx.mouse_y = my;
         ctx.mouse_clicked = true;
@@ -390,7 +422,7 @@ mod tests {
         let data = DataTable::new();
 
         let mut ctx = UiContext::new(800.0, 600.0);
-        let (mx, my) = button_center(600.0, 7, 6);
+        let (mx, my) = button_center(600.0, 8, 7);
         ctx.mouse_x = mx;
         ctx.mouse_y = my;
         ctx.mouse_clicked = true;
@@ -461,7 +493,7 @@ mod tests {
         let mut state = StateCache::new();
         let mut character = Character::new();
         let data = DataTable::new();
-        let (mx, my) = button_center(600.0, 7, 0);
+        let (mx, my) = button_center(600.0, 8, 0);
 
         let mut frame = |clicked: bool| {
             let mut ctx = UiContext::new(800.0, 600.0);

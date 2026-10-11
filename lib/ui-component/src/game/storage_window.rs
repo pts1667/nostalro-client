@@ -10,7 +10,8 @@ use crate::helper::window_chrome::{
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::character::Character;
 use ragnarok_game::display_name::format_equipment_display_name;
-use ragnarok_game::event::GameEvent;
+use crate::game::context_menu::{info_menu, item_info_path};
+use ragnarok_game::event::{Describe, GameEvent};
 use ragnarok_game::item::InventoryTab;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
@@ -297,9 +298,11 @@ impl InGameWindow for StorageWindow {
                 drag_index = Some((item.index, item.icon_path()));
             }
             if resp.right_clicked() {
-                events.push(GameEvent::ShowItemInfoDirect {
-                    item: Box::new((*item).clone()),
-                });
+                events.push(info_menu(
+                    ui,
+                    Some(item_info_path(item.item_id)),
+                    Some(Describe::ItemDirect(Box::new((*item).clone()))),
+                ));
             }
             if resp.double_clicked() {
                 withdraw = Some(item.index);
@@ -497,8 +500,12 @@ mod tests {
         assert!(
             events
                 .iter()
-                .any(|e| matches!(e, GameEvent::ShowItemInfoDirect { item } if item.index == 5)),
-            "expected item info, got {events:?}"
+                .any(|e| matches!(
+                    e,
+                    GameEvent::OpenInfoMenu { describe: Some(Describe::ItemDirect(item)), .. }
+                        if item.index == 5
+                )),
+            "expected the info menu, got {events:?}"
         );
         assert!(
             !events

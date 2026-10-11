@@ -22,6 +22,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 winit = { workspace = true }
 tokio = { workspace = true }
+ureq = { version = "3", default-features = false, features = ["rustls"] }
 
 [dev-dependencies]
 ragnarok-ui = { workspace = true, features = ["test-support"] }

@@ -2,6 +2,7 @@ use super::homun_skill_window::{HOMUN_SKILL_WINDOW_ID, draw_companion_skill_tool
 use super::inventory_window::INV_WINDOW_ID;
 use super::mercenary_skill_window::MERCENARY_SKILL_WINDOW_ID;
 use super::skill_tree_window::{SKILL_WINDOW_ID, draw_skill_tooltip};
+use crate::game::context_menu::{info_menu, item_info_path};
 use crate::game::equipment_window::EQ_WINDOW_ID;
 use crate::helper::colors;
 use crate::helper::dialog_container::DialogContainer;
@@ -11,7 +12,7 @@ use ragnarok_game::character::Character;
 use ragnarok_game::data_table::skill_name_table::format_skill_display_name;
 use ragnarok_game::data_table::skill_use_level_table::SkillUseLevelTable;
 use ragnarok_game::display_name::format_equipment_display_name;
-use ragnarok_game::event::{GameEvent, SkillInfo};
+use ragnarok_game::event::{Describe, GameEvent, SkillInfo};
 use ragnarok_game::hotkey::{HOTKEY_COLS, HOTKEY_ROWS, HotkeySlotContent};
 use ragnarok_game::item::InventoryTab;
 use ragnarok_game::skill::{SkillEnum, skill_icon_path};
@@ -130,6 +131,15 @@ impl Default for HotkeyBarWindow {
 }
 
 impl HotkeyBarWindow {
+    /// Pins the description of the skill in `slot`, or unpins it when it is
+    /// already shown.
+    pub fn describe_skill(&mut self, skill: SkillEnum, slot: usize) {
+        self.described_skill = match self.described_skill {
+            Some((shown, _)) if shown == skill => None,
+            _ => Some((skill, slot)),
+        };
+    }
+
     pub fn new() -> Self {
         Self {
             chat_is_active: false,
@@ -561,15 +571,18 @@ impl InGameWindow for HotkeyBarWindow {
                 if resp.right_clicked() {
                     match content {
                         HotkeySlotContent::Skill { skill, .. } => {
-                            self.described_skill = match self.described_skill {
-                                Some((shown, _)) if shown == skill => None,
-                                _ => Some((skill, slot_index)),
-                            };
+                            events.push(info_menu(
+                                ui,
+                                Some(format!("/db/skills/{}", skill.id())),
+                                Some(Describe::HotkeySkill { skill, slot: slot_index }),
+                            ));
                         }
                         HotkeySlotContent::Item { item_id } => {
-                            if let Some(item) = character.inventory.find_by_item_id(item_id) {
-                                events.push(GameEvent::ShowItemInfo { index: item.index });
-                            }
+                            let describe = character
+                                .inventory
+                                .find_by_item_id(item_id)
+                                .map(|item| Describe::Item { index: item.index });
+                            events.push(info_menu(ui, Some(item_info_path(item_id)), describe));
                         }
                         HotkeySlotContent::Empty => {}
                     }
@@ -886,6 +899,16 @@ mod tests {
                 &mut ui,
                 &mut crate::BuildCtx::test(character, &DataTable::default()),
             );
+            // Choosing "Description" in the menu pins the skill's tooltip.
+            for event in &events {
+                if let GameEvent::OpenInfoMenu {
+                    describe: Some(Describe::HotkeySkill { skill, slot }),
+                    ..
+                } = event
+                {
+                    bar.describe_skill(*skill, *slot);
+                }
+            }
             (
                 events,
                 ui.draw_calls.len(),
@@ -894,7 +917,10 @@ mod tests {
         };
 
         let (_, closed_calls, _) = frame(None, &mut character);
-        assert!(frame(Some(0), &mut character).0.is_empty());
+        assert!(matches!(
+            frame(Some(0), &mut character).0.as_slice(),
+            [GameEvent::OpenInfoMenu { info: Some(info), .. }] if info == "/db/skills/19"
+        ));
         let (_, pinned_calls, no_overlay) = frame(None, &mut character);
         assert!(pinned_calls > closed_calls);
         assert!(no_overlay, "the pinned tooltip must stay under the cursor");
@@ -903,7 +929,11 @@ mod tests {
 
         assert!(matches!(
             frame(Some(1), &mut character).0.as_slice(),
-            [GameEvent::ShowItemInfo { index: 9 }]
+            [GameEvent::OpenInfoMenu {
+                info: Some(info),
+                describe: Some(Describe::Item { index: 9 }),
+                ..
+            }] if info == "/db/items/501"
         ));
     }
 

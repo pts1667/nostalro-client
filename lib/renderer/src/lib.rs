@@ -671,6 +671,24 @@ impl Renderer {
         all_loaded
     }
 
+    /// Registers an image built in memory (straight RGBA, `width * height * 4`
+    /// bytes) so UI draw calls can name it with `key`.
+    pub fn register_rgba_texture(&mut self, key: &str, rgba: &[u8], width: u32, height: u32) {
+        let bind_group = texture::create_texture_bind_group_from_rgba(
+            &self.device.device,
+            &self.device.queue,
+            rgba,
+            width,
+            height,
+            &self.texture_cache.bind_group_layout,
+            key,
+            wgpu::FilterMode::Linear,
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::AddressMode::ClampToEdge,
+        );
+        self.texture_cache.insert(key, bind_group, width, height);
+    }
+
     /// Builds a Graffiti message decal and registers it under `key`. Returns false
     /// when the alphabet atlas is missing from the GRF.
     pub fn build_graffiti_texture(&mut self, key: &str, message: &str, grf: &GrfArchive) -> bool {

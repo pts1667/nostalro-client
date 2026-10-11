@@ -1,4 +1,5 @@
 use crate::game::homun_skill_window::draw_companion_skill_tooltip;
+use crate::game::context_menu::info_menu;
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::window_chrome::{
     draw_container, draw_footer, draw_sys_button, draw_titlebar,
@@ -156,6 +157,10 @@ impl MercenarySkillWindow {
                 &rust_i18n::t!("common.sp_cost", sp = skill.sp_cost),
                 tc,
             );
+
+            if row_resp.right_clicked() {
+                events.push(info_menu(ui, Some(format!("/db/skills/{}", skill.skill.id())), None));
+            }
 
             if row_resp.double_clicked() {
                 events.push(GameEvent::RequestCompanionUseSkill {

@@ -1,3 +1,4 @@
+use crate::game::context_menu::info_menu;
 use crate::helper::dialog_container::DialogContainer;
 use crate::helper::window_chrome::{
     draw_container, draw_footer, draw_sys_button, draw_titlebar,
@@ -155,7 +156,7 @@ impl HomunSkillWindow {
                 let btn_y = row_y + (ROW_H - lup_h) * 0.5;
                 let btn_id = WidgetId(SKILL_LEVELUP_BASE_ID + idx as u32);
                 let btn_rect = Rect::new(btn_x, btn_y, lup_w, lup_h);
-                if ui.button(btn_id, btn_rect, "+").clicked() {
+                if crate::helper::fallback::plus_button(ui, btn_id, btn_rect).clicked() {
                     events.push(GameEvent::RequestSkillLevelUp { skill: skill.skill });
                 }
                 sp_right = btn_x - 4.0;
@@ -166,6 +167,10 @@ impl HomunSkillWindow {
                 &rust_i18n::t!("common.sp_cost", sp = skill.sp_cost),
                 tc,
             );
+
+            if row_resp.right_clicked() {
+                events.push(info_menu(ui, Some(format!("/db/skills/{}", skill.skill.id())), None));
+            }
 
             if row_resp.double_clicked() {
                 events.push(GameEvent::RequestCompanionUseSkill {

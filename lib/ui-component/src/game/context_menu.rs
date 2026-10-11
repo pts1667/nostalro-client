@@ -1,5 +1,5 @@
 use crate::helper::window_chrome::text_color;
-use ragnarok_game::event::GameEvent;
+use ragnarok_game::event::{Describe, GameEvent};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
@@ -71,6 +71,22 @@ pub enum ContextMenuAction {
     AccountName {
         aid: u32,
     },
+    /// Opens the database window at `path`.
+    ShowInfo {
+        path: String,
+    },
+    Describe(Describe),
+}
+
+/// The event a right-click on something with a database entry sends: a menu at
+/// the pointer with "Info" for `info` and "Description" for `describe`.
+pub fn info_menu(ui: &UiFrame, info: Option<String>, describe: Option<Describe>) -> GameEvent {
+    GameEvent::OpenInfoMenu { x: ui.ctx.mouse_x, y: ui.ctx.mouse_y, info, describe }
+}
+
+/// The database path of an item.
+pub fn item_info_path(item_id: u16) -> String {
+    format!("/db/items/{item_id}")
 }
 
 pub struct ContextMenuItem {
@@ -232,6 +248,16 @@ impl ContextMenu {
                 ContextMenuAction::AccountName { aid } => {
                     events.push(GameEvent::RequestAccountName { aid });
                 }
+                ContextMenuAction::ShowInfo { path } => {
+                    events.push(GameEvent::OpenReference { path });
+                }
+                ContextMenuAction::Describe(what) => events.push(match what {
+                    Describe::Item { index } => GameEvent::ShowItemInfo { index },
+                    Describe::ItemDirect(item) => GameEvent::ShowItemInfoDirect { item },
+                    Describe::HotkeySkill { skill, slot } => {
+                        GameEvent::DescribeHotkeySkill { skill, slot }
+                    }
+                }),
             }
             self.close();
         } else if ui.ctx.mouse_pressed && !any_hovered {
@@ -250,6 +276,49 @@ mod tests {
     use ragnarok_ui::context::UiContext;
     use ragnarok_ui::state::StateCache;
     use ragnarok_ui::test_support::test_frame;
+
+    #[test]
+    fn info_menu_opens_at_the_pointer() {
+        let mut state = StateCache::new();
+        let mut ctx = UiContext::new(800.0, 600.0);
+        ctx.mouse_x = 30.0;
+        ctx.mouse_y = 40.0;
+        let ui = test_frame(&mut ctx, &mut state);
+        match info_menu(&ui, Some(item_info_path(501)), None) {
+            GameEvent::OpenInfoMenu { x, y, info, describe } => {
+                assert_eq!((x, y), (30.0, 40.0));
+                assert_eq!(info.as_deref(), Some("/db/items/501"));
+                assert!(describe.is_none());
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+    }
+
+    #[test]
+    fn choosing_info_asks_for_the_database_entry() {
+        let mut state = StateCache::new();
+        let mut menu = ContextMenu::new();
+        menu.open_at(
+            100.0,
+            100.0,
+            vec![ContextMenuItem {
+                label: "Info".to_string(),
+                action: ContextMenuAction::ShowInfo { path: "/db/mobs/1002".to_string() },
+            }],
+        );
+        let mut ctx = UiContext::new(800.0, 600.0);
+        ctx.mouse_x = 110.0;
+        ctx.mouse_y = 105.0;
+        ctx.mouse_pressed = true;
+        ctx.mouse_clicked = true;
+        let mut ui = test_frame(&mut ctx, &mut state);
+        let events = menu.build(&mut ui);
+        assert!(matches!(
+            events.as_slice(),
+            [GameEvent::OpenReference { path }] if path == "/db/mobs/1002"
+        ));
+        assert!(!menu.is_open());
+    }
 
     #[test]
     fn a_press_the_world_consumed_still_closes_the_menu() {

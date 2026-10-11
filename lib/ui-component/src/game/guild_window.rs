@@ -1084,10 +1084,11 @@ impl GuildWindow {
 
             if remaining > 0 && s.upgradable {
                 let up_rect = Rect::new(x + WIN_W - 76.0, row_y + 4.0, 18.0, 18.0);
-                let up = ui.button(WidgetId(SKILL_UP_BASE + row as u32), up_rect, "+");
-                if up.hovered() {
-                    ui.any_interactive_hovered = true;
-                }
+                let up = crate::helper::fallback::plus_button(
+                    ui,
+                    WidgetId(SKILL_UP_BASE + row as u32),
+                    up_rect,
+                );
                 if up.clicked() {
                     self.adjust_pending(s.skill, 1);
                 }

@@ -11,6 +11,7 @@
   "fullscreen": false,
   "dpi_scale": 125.0,
   "data_url": "http://127.0.0.1:6903/data",
+  "reference_url": "http://127.0.0.1:6904",
   "grf_paths": [],
   "data_dir": null,
   "bgm_path": "data/BGM",

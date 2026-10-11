@@ -363,6 +363,9 @@ pub struct Config {
     /// (`sprite/…`, `texture/…`, `bgm/…`). Takes priority over `grf_paths`, and
     /// is itself overridden by `data_dir`. `None` or empty reads GRFs only.
     pub data_url: Option<String>,
+    /// Base URL of the server's read-only reference API (`/db`), which the
+    /// database window reads. `None` or empty leaves the window without data.
+    pub reference_url: Option<String>,
     /// Keep the files downloaded from `data_url` on disk, so each is fetched
     /// once and only changed ones again. `None` decides by the server: on for a
     /// remote one, off when `data_url` points at this machine (localhost,
@@ -429,6 +432,9 @@ pub struct Config {
 /// Where a local rust-ro server publishes the client data.
 const DEFAULT_DATA_URL: &str = "http://127.0.0.1:6903/data";
 
+/// Where a local rust-ro server publishes the reference API.
+const DEFAULT_REFERENCE_URL: &str = "http://127.0.0.1:6904";
+
 fn default_account_backgrounds() -> Vec<String> {
     vec![
         ragnarok_resources::ui::RAG_TITLE.to_string(),
@@ -463,6 +469,7 @@ impl Default for Config {
             dpi_scale: 125.0,
             grf_paths: Vec::new(),
             data_url: Some(DEFAULT_DATA_URL.to_string()),
+            reference_url: Some(DEFAULT_REFERENCE_URL.to_string()),
             data_cache: None,
             data_cache_dir: None,
             data_dir: None,

@@ -2772,6 +2772,40 @@ impl App {
                     }
                     self.windows.hotkey_config_window.toggle();
                 }
+                GameEvent::ToggleReferenceWindow => {
+                    self.windows.reference_window.toggle();
+                }
+                GameEvent::OpenInfoMenu { x, y, info, describe } => {
+                    use ragnarok_ui_component::game::context_menu::{
+                        ContextMenuAction, ContextMenuItem,
+                    };
+                    let mut items = Vec::new();
+                    if let Some(what) = describe {
+                        items.push(ContextMenuItem {
+                            label: "Description".to_string(),
+                            action: ContextMenuAction::Describe(what),
+                        });
+                    }
+                    if let Some(path) = info {
+                        items.push(ContextMenuItem {
+                            label: "Info".to_string(),
+                            action: ContextMenuAction::ShowInfo { path },
+                        });
+                    }
+                    self.windows.context_menu.open_at(x, y, items);
+                }
+                GameEvent::OpenReference { path } => {
+                    self.windows.reference_window.open_at(&path);
+                }
+                GameEvent::DescribeHotkeySkill { skill, slot } => {
+                    self.windows.hotkey_bar.describe_skill(skill, slot);
+                }
+                GameEvent::RequestReference { path } => {
+                    self.request_reference(path);
+                }
+                GameEvent::RequestReferenceTexture { path } => {
+                    self.reference_textures.push_back(path);
+                }
                 GameEvent::TogglePartyWindow => {
                     self.windows.party_friends_window.open_party_tab();
                 }

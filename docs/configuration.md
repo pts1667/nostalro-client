@@ -28,6 +28,7 @@ are lost on the next save.
 | `fullscreen` | Start borderless fullscreen. Also toggled from the graphic options window. | `false` | No |
 | `dpi_scale` | UI scale in percent. `125.0` means 1.25x. Values at or below `0` fall back to 1.0x. | `125.0` | No |
 | `data_url` | Base URL of the server's `/data` endpoint, which serves the client data. See [Client data](#client-data). Empty or `null` reads GRF archives only. | `"http://127.0.0.1:6903/data"` | Yes, unless `grf_paths` is set |
+| `reference_url` | Base URL of the server's read-only reference API (`/db`), read by the Database window (System menu, Database). Empty or `null` leaves the window without data. | `"http://127.0.0.1:6904"` | No |
 | `data_cache` | Keep files downloaded from `data_url` on disk. `null` turns it on for a remote server and off for one on this machine; `true`/`false` force it. See [Cache](#cache). | `null` | No |
 | `data_cache_dir` | Folder of the download cache. `null` uses `%APPDATA%
 ostalro\data`. | `null` | No |

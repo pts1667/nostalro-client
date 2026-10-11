@@ -5,13 +5,14 @@ use models::enums::class::JobName;
 use models::enums::skill_enums::SkillEnum;
 use ragnarok_game::ailment::OPT2_BLIND;
 use ragnarok_game::app_state::AppState;
-use ragnarok_game::entity::{EntityState, EntityType};
+use ragnarok_game::entity::{EntityCategory, EntityState, EntityType};
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::keybinding::{HotkeyAction, KeyChord};
 use ragnarok_network::build_action_request_packet;
 use ragnarok_renderer::camera::CameraControl;
 use ragnarok_ui::context::{DOUBLE_CLICK_DISTANCE, DOUBLE_CLICK_THRESHOLD_MS};
 use ragnarok_ui_component::game::context_menu::{ContextMenuAction, ContextMenuItem};
+use ragnarok_ui_component::game::reference_window::npc_path;
 use std::collections::HashMap;
 use winit::dpi::PhysicalSize;
 use winit::event::{ElementState, KeyEvent, Modifiers, MouseButton};
@@ -150,6 +151,7 @@ impl App {
                                 self.game.companions.companion_attack_target[0] = None;
                                 if !self.open_companion_context_menu(self.input.right_press_target)
                                     && !self.open_pet_context_menu(self.input.right_press_target)
+                                    && !self.open_monster_context_menu(self.input.right_press_target)
                                 {
                                     self.open_entity_context_menu(self.input.right_press_entity);
                                 }
@@ -314,6 +316,34 @@ impl App {
                 action: ContextMenuAction::PetCommand { csub: 3 },
             },
         ];
+        self.windows
+            .context_menu
+            .open_at(mx as f32, my as f32, items);
+        true
+    }
+
+    /// A monster or an NPC offers its database entry. Pets are handled before
+    /// this.
+    fn open_monster_context_menu(&mut self, entity_id: Option<u32>) -> bool {
+        let Some(entity) = entity_id.and_then(|id| self.game.world.entities.get(id)) else {
+            return false;
+        };
+        let path = if entity.entity_type == EntityType::Monster {
+            format!("/db/mobs/{}", entity.job)
+        } else if entity.category() == EntityCategory::Npc {
+            let map = self.game.session.current_map.as_deref();
+            match (map, entity.name.as_deref()) {
+                (Some(map), Some(name)) => npc_path(map, name),
+                _ => return false,
+            }
+        } else {
+            return false;
+        };
+        let (mx, my) = self.input.mouse_position;
+        let items = vec![ContextMenuItem {
+            label: "Info".to_string(),
+            action: ContextMenuAction::ShowInfo { path },
+        }];
         self.windows
             .context_menu
             .open_at(mx as f32, my as f32, items);

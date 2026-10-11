@@ -4,6 +4,7 @@ mod effects;
 pub(crate) mod falcon;
 mod floor_item;
 pub(crate) mod gr2_loader;
+pub(crate) mod thumbnail;
 
 pub(crate) use cart::CartVisual;
 pub(crate) use falcon::FalconVisual;

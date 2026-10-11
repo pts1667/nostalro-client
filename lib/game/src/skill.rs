@@ -62,7 +62,13 @@ pub fn skill_needs_talkbox(skill: SkillEnum) -> bool {
 
 /// The skill window / hotkey icon for `skill`, named after its internal id.
 pub fn skill_icon_path(skill: SkillEnum) -> String {
-    ragnarok_resources::ui::item::icon(&skill.to_name().to_lowercase())
+    skill_icon_path_for_name(skill.to_name())
+}
+
+/// Icon of the skill called `name` (`NV_BASIC`), for callers that only have the
+/// name, such as the server's reference data.
+pub fn skill_icon_path_for_name(name: &str) -> String {
+    ragnarok_resources::ui::item::icon(&name.to_lowercase())
 }
 
 pub const TALKBOX_MESSAGE_MAX_LEN: usize = 79;

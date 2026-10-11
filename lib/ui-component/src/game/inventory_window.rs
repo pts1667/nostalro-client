@@ -5,7 +5,8 @@ use crate::helper::window_chrome::{
     draw_container, draw_footer, draw_sys_button, draw_titlebar, text_color,
 };
 use ragnarok_game::display_name::format_equipment_display_name;
-use ragnarok_game::event::GameEvent;
+use crate::game::context_menu::{info_menu, item_info_path};
+use ragnarok_game::event::{Describe, GameEvent};
 use ragnarok_game::item::{InventoryTab, Item};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
@@ -312,7 +313,11 @@ impl InGameWindow for InventoryWindow {
                 }
 
                 if response.right_clicked() {
-                    events.push(GameEvent::ShowItemInfo { index: item.index });
+                    events.push(info_menu(
+                        ui,
+                        Some(item_info_path(item.item_id)),
+                        Some(Describe::Item { index: item.index }),
+                    ));
                 }
                 if response.double_clicked() {
                     if character.storage.is_open() {

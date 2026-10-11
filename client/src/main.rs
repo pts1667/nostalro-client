@@ -7,6 +7,7 @@ mod hover;
 mod input;
 mod input_action;
 mod overlay;
+mod reference;
 mod scene;
 mod sound;
 mod sprite;
@@ -116,6 +117,10 @@ struct App {
     map_fog: Option<ragnarok_formats::fog_table::FogEntry>,
     grf: Option<std::sync::Arc<GrfArchive>>,
     gr2_loader: Option<sprite::gr2_loader::Gr2Loader>,
+    /// Worker behind the database window, started on its first request.
+    reference: Option<reference::ReferenceClient>,
+    /// Pictures the database window asked for, loaded a few per frame.
+    reference_textures: std::collections::VecDeque<String>,
     input: InputState,
     ui_context: Option<UiContext>,
     ui_state_cache: StateCache,
@@ -212,6 +217,8 @@ impl App {
             map_fog: None,
             grf: None,
             gr2_loader: None,
+            reference: None,
+            reference_textures: std::collections::VecDeque::new(),
             input: InputState::new(),
             ui_context: None,
             ui_state_cache: StateCache::new(),

@@ -42,6 +42,7 @@ pub mod party_helper_window;
 pub mod pet_window;
 pub mod quest_window;
 pub mod read_mail_window;
+pub mod reference_window;
 pub mod shortcut_list_window;
 pub mod skill_talkbox_dialog;
 pub mod skill_tree_window;

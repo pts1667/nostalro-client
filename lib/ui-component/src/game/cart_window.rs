@@ -7,7 +7,8 @@ use crate::helper::window_chrome::{
 };
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::display_name::format_equipment_display_name;
-use ragnarok_game::event::GameEvent;
+use crate::game::context_menu::{info_menu, item_info_path};
+use ragnarok_game::event::{Describe, GameEvent};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
@@ -273,9 +274,11 @@ impl InGameWindow for CartWindow {
                     );
                 }
                 if response.right_clicked() {
-                    events.push(GameEvent::ShowItemInfoDirect {
-                        item: Box::new((*item).clone()),
-                    });
+                    events.push(info_menu(
+                        ui,
+                        Some(item_info_path(item.item_id)),
+                        Some(Describe::ItemDirect(Box::new((*item).clone()))),
+                    ));
                 }
                 if response.double_clicked() {
                     events.push(GameEvent::RequestMoveItemCartToBody {
@@ -434,9 +437,13 @@ mod tests {
         assert!(
             events.iter().any(|e| matches!(
                 e,
-                GameEvent::ShowItemInfoDirect { item } if item.item_id == 502
+                GameEvent::OpenInfoMenu {
+                    info: Some(info),
+                    describe: Some(Describe::ItemDirect(item)),
+                    ..
+                } if info == "/db/items/502" && item.item_id == 502
             )),
-            "right click must describe the cart item: {events:?}"
+            "right click must offer the cart item: {events:?}"
         );
     }
 

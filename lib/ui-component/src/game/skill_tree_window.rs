@@ -1,5 +1,6 @@
 use ragnarok_game::data_table::DataTable;
 use ragnarok_game::event::GameEvent;
+use crate::game::context_menu::info_menu;
 use ragnarok_game::skill::{SkillData, SkillEnum, SkillTargetType};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
@@ -276,7 +277,7 @@ impl InGameWindow for SkillTreeWindow {
                 let btn_y = row_y + (ROW_H - lup_h) / 2.0;
                 let btn_id = WidgetId(SKILL_LEVELUP_BASE_ID + vis_i as u32);
                 let btn_rect = Rect::new(btn_x, btn_y, lup_w, lup_h);
-                let btn_resp = ui.button(btn_id, btn_rect, "+");
+                let btn_resp = crate::helper::fallback::plus_button(ui, btn_id, btn_rect);
 
                 if btn_resp.clicked() {
                     events.push(GameEvent::RequestSkillLevelUp { skill: skill.skill });
@@ -301,6 +302,10 @@ impl InGameWindow for SkillTreeWindow {
                         (ICON_SIZE, ICON_SIZE),
                     );
                 }
+            }
+
+            if row_resp.right_clicked() && !pointer_on_row_widget {
+                events.push(info_menu(ui, Some(format!("/db/skills/{}", skill.skill.id())), None));
             }
 
             if row_resp.hovered() {
@@ -487,6 +492,30 @@ mod tests {
             .filter(|c| c.vertices.iter().all(|v| v.color[0] == GREY))
             .count();
         assert_eq!(grey_lines, 2, "the second line lost the open colour");
+    }
+
+    #[test]
+    fn right_clicking_a_skill_offers_its_database_entry() {
+        let mut win = SkillTreeWindow::new();
+        let mut character = character_with_upgradable_skill();
+        let data = DataTable::new();
+        let mut state = StateCache::new();
+
+        let mut ctx = UiContext::new(1024.0, 768.0);
+        ctx.mouse_x = 400.0 + PAD_X + 5.0;
+        ctx.mouse_y = 100.0 + TITLE_H + ROW_H / 2.0;
+        ctx.mouse_right_clicked = true;
+        let mut ui = test_frame(&mut ctx, &mut state);
+        let events = win.build(&mut ui, &mut crate::BuildCtx::test(&mut character, &data));
+
+        let expected = format!("/db/skills/{}", SkillEnum::SmBash.id());
+        assert!(
+            matches!(
+                events.as_slice(),
+                [GameEvent::OpenInfoMenu { info: Some(info), describe: None, .. }] if *info == expected
+            ),
+            "{events:?}"
+        );
     }
 
     #[test]

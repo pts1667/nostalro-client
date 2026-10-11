@@ -80,6 +80,20 @@ pub fn entity_type_from_job(job: u16) -> EntityType {
     }
 }
 
+/// Prefix of a texture key that stands for a sprite's first idle frame, drawn
+/// as a still picture in a window. The rest of the key is the sprite's base
+/// path, without extension.
+pub const SPRITE_THUMB_PREFIX: &str = "thumb:";
+
+pub fn sprite_thumbnail_key(base_path: &str) -> String {
+    format!("{SPRITE_THUMB_PREFIX}{base_path}")
+}
+
+/// The sprite base path inside a [`sprite_thumbnail_key`].
+pub fn sprite_thumbnail_base(key: &str) -> Option<&str> {
+    key.strip_prefix(SPRITE_THUMB_PREFIX)
+}
+
 pub fn npc_sprite_path(name: &str) -> String {
     ragnarok_resources::sprite::npc::of(name)
 }

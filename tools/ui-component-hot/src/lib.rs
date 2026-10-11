@@ -96,6 +96,7 @@ use ragnarok_ui_component::game::quest_window::{
     QUEST_DETAIL_WINDOW_ID, QUEST_WINDOW_ID, QuestDetailWindow, QuestWindow,
 };
 use ragnarok_ui_component::game::read_mail_window::{READ_MAIL_WINDOW_ID, ReadMailWindow};
+use ragnarok_ui_component::game::reference_window::{REFERENCE_WINDOW_ID, ReferenceWindow};
 use ragnarok_ui_component::game::shortcut_list_window::{
     SHORTCUT_LIST_WINDOW_ID, ShortcutListWindow,
 };
@@ -144,6 +145,7 @@ const GAME_COMPONENTS: &[&str] = &[
     "graphic_options",
     "hotkey_config",
     "monster_info",
+    "reference",
 ];
 const MAP_COMPONENTS: &[&str] = &["world_map", "minimap"];
 const SOCIAL_COMPONENTS: &[&str] = &[
@@ -274,6 +276,11 @@ enum State {
     },
     MonsterInfo {
         win: MonsterInfoWindow,
+        character: Character,
+        data: DataTable,
+    },
+    Reference {
+        win: ReferenceWindow,
         character: Character,
         data: DataTable,
     },
@@ -556,6 +563,41 @@ fn wrap_texture_size_fn(f: TextureSizeFn) -> impl Fn(&str) -> Option<(u32, u32)>
             None
         }
     }
+}
+
+fn reference_fixture_categories() -> serde_json::Value {
+    serde_json::json!({
+        "categories": [
+            { "name": "items", "href": "/db/items", "count": 12000 },
+            { "name": "mobs", "href": "/db/mobs", "count": 1100 },
+            { "name": "skills", "href": "/db/skills", "count": 900 }
+        ],
+        "wiki": "/wiki/index.md"
+    })
+}
+
+fn reference_fixture_item() -> serde_json::Value {
+    serde_json::json!({
+        "id": 501,
+        "name": "Red Potion",
+        "type": "Healing",
+        "weight": 70,
+        "buy": 50,
+        "sell": 25,
+        "slots": 0,
+        "stackable": true,
+        "description": "A potion made from red herbs. It restores a small amount of HP when used and can be bought from any Tool Dealer in the major towns.",
+        "dropped_by": [
+            { "mob": { "id": 1002, "name": "Poring", "href": "/db/mobs/1002" }, "rate": 7 },
+            { "mob": { "id": 1113, "name": "Drops", "href": "/db/mobs/1113" }, "rate": 4 },
+            { "mob": { "id": 1031, "name": "Poporing", "href": "/db/mobs/1031" }, "rate": 2 },
+            { "mob": { "id": 1063, "name": "Lunatic", "href": "/db/mobs/1063" }, "rate": 9 }
+        ],
+        "sold_by": [
+            { "id": 0, "name": "Tool Dealer", "href": "/db/npcs/prontera/Tool%20Dealer" }
+        ],
+        "metadata": { "route": "heal", "heal_hp": "45~65" }
+    })
 }
 
 fn create_single(name: &str) -> State {
@@ -1139,6 +1181,25 @@ fn create_single(name: &str) -> State {
                 win,
                 character: Character::new(),
                 data: DataTable::new(),
+            }
+        }
+        "reference" => {
+            let mut win = ReferenceWindow::new();
+            win.open_at("/db/items/501");
+            win.deliver("/db", Ok(reference_fixture_categories()));
+            win.deliver("/db/items/501", Ok(reference_fixture_item()));
+            // The icon the client would have loaded for the item.
+            let icon = "빨간포션";
+            let mut data = DataTable::new();
+            data.item_resource = Some(ItemResourceTable::from_entries(
+                HashMap::from([(501, icon.to_string())]),
+                HashMap::new(),
+            ));
+            win.texture_loaded(&ragnarok_resources::ui::item::icon(icon), Some((24, 24)));
+            State::Reference {
+                win,
+                character: Character::new(),
+                data,
             }
         }
         "chat_room_create" => {
@@ -2122,6 +2183,7 @@ pub const SCENE_NAMES: &[&str] = &[
     "item_info",
     "book",
     "monster_info",
+    "reference",
     "chat_room_create",
     "emotion",
     "shortcut_list",
@@ -2353,6 +2415,7 @@ fn grf_init_single(
         State::SkillTree { .. } => {}
         State::Book { .. } => {}
         State::MonsterInfo { .. } => {}
+        State::Reference { .. } => {}
         State::ChatRoomCreate { .. } => {}
         State::Emotion { .. } => {}
         State::ShortcutList { .. } => {}
@@ -2446,6 +2509,7 @@ fn z_order_id(state: &State) -> Option<WidgetId> {
         State::SkillTree { .. } => Some(SKILL_WINDOW_ID),
         State::Book { .. } => Some(BOOK_WINDOW_ID),
         State::MonsterInfo { .. } => Some(MONSTER_INFO_WINDOW_ID),
+        State::Reference { .. } => Some(REFERENCE_WINDOW_ID),
         State::ChatRoomCreate { .. } => Some(CHAT_ROOM_CREATE_WINDOW_ID),
         State::Emotion { .. } => Some(EMOTION_WINDOW_ID),
         State::ShortcutList { .. } => Some(SHORTCUT_LIST_WINDOW_ID),
@@ -2489,6 +2553,7 @@ fn gallery_windows(state: &State) -> Vec<(WidgetId, (f32, f32))> {
         State::ItemInfo { win, .. } => Some((ITEM_INFO_WINDOW_ID, win)),
         State::Book { win, .. } => Some((BOOK_WINDOW_ID, win)),
         State::MonsterInfo { win, .. } => Some((MONSTER_INFO_WINDOW_ID, win)),
+        State::Reference { win, .. } => Some((REFERENCE_WINDOW_ID, win)),
         State::ChatRoomCreate { win, .. } => Some((CHAT_ROOM_CREATE_WINDOW_ID, win)),
         State::Emotion { win, .. } => Some((EMOTION_WINDOW_ID, win)),
         State::ShortcutList { win, .. } => Some((SHORTCUT_LIST_WINDOW_ID, win)),
@@ -3271,6 +3336,13 @@ fn build_single(state: &mut State, ui: &mut UiFrame) {
             win.build(ui, &mut d.ctx(character, data));
         }
         State::ShortcutList {
+            win,
+            character,
+            data,
+        } => {
+            win.build(ui, &mut d.ctx(character, data));
+        }
+        State::Reference {
             win,
             character,
             data,

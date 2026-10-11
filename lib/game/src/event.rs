@@ -15,6 +15,15 @@ use models::enums::skill::SkillTargetType;
 use models::enums::skill_enums::SkillEnum;
 use models::enums::vanish::VanishType;
 
+/// What the "Description" entry of an info menu shows: the in-game description
+/// window an item or skill already opened on right-click.
+#[derive(Debug, Clone)]
+pub enum Describe {
+    Item { index: u16 },
+    ItemDirect(Box<Item>),
+    HotkeySkill { skill: SkillEnum, slot: usize },
+}
+
 #[derive(Debug)]
 pub enum GameEvent {
     LoginAccepted {
@@ -1052,6 +1061,37 @@ pub enum GameEvent {
     ToggleGraphicOptions,
     ToggleSystemMenu,
     ToggleHotkeyConfig,
+    /// Opens or closes the database window.
+    ToggleReferenceWindow,
+    /// Right-click on something with a database entry: opens a menu at `(x, y)`
+    /// with "Info" (the entry at `info`, a `/db/...` path) and, when the thing
+    /// has one, "Description".
+    OpenInfoMenu {
+        x: f32,
+        y: f32,
+        info: Option<String>,
+        describe: Option<Describe>,
+    },
+    /// Shows the database window at the entry `path` (`/db/items/501`).
+    OpenReference {
+        path: String,
+    },
+    /// Pins the description of the hotbar skill in `slot`.
+    DescribeHotkeySkill {
+        skill: SkillEnum,
+        slot: usize,
+    },
+    /// The database window wants the page at `path` of the server's reference
+    /// API (`/db/items/501`); the answer goes back through `ReferenceWindow::deliver`.
+    RequestReference {
+        path: String,
+    },
+    /// The database window wants a picture drawn: an icon path, or a
+    /// `sprite_path::sprite_thumbnail_key`. The client loads it and answers
+    /// with `ReferenceWindow::texture_loaded`.
+    RequestReferenceTexture {
+        path: String,
+    },
     GraphicsSettingsChanged {
         ui_scale: f32,
         fullscreen: bool,

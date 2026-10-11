@@ -7,7 +7,8 @@ use crate::helper::window_chrome::{
     draw_footer, draw_titlebar, text_color,
 };
 use crate::{BuildCtx, InGameWindow, Window};
-use ragnarok_game::event::GameEvent;
+use crate::game::context_menu::{info_menu, item_info_path};
+use ragnarok_game::event::{Describe, GameEvent};
 use ragnarok_game::npc_shop::{NpcShopData, NpcShopMode};
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId, WindowOrder};
@@ -355,9 +356,11 @@ impl NpcShop {
             if response.right_clicked()
                 && let Some(item) = self.shop.item_at(item_idx)
             {
-                events.push(GameEvent::ShowItemInfoDirect {
-                    item: Box::new(item.clone()),
-                });
+                events.push(info_menu(
+                    ui,
+                    Some(item_info_path(item.item_id)),
+                    Some(Describe::ItemDirect(Box::new(item.clone()))),
+                ));
             }
         }
 
@@ -553,9 +556,11 @@ impl NpcShop {
             if response.right_clicked()
                 && let Some(item) = self.shop.item_at(basket_item.source_index)
             {
-                events.push(GameEvent::ShowItemInfoDirect {
-                    item: Box::new(item.clone()),
-                });
+                events.push(info_menu(
+                    ui,
+                    Some(item_info_path(item.item_id)),
+                    Some(Describe::ItemDirect(Box::new(item.clone()))),
+                ));
             }
 
             if response.clicked() {
@@ -1248,7 +1253,11 @@ mod tests {
         let events = shop_ui.build(&mut ui, &mut crate::BuildCtx::test(&mut character, &data));
         assert!(events.iter().any(|e| matches!(
             e,
-            GameEvent::ShowItemInfoDirect { item } if item.item_id == 501
+            GameEvent::OpenInfoMenu {
+                info: Some(info),
+                describe: Some(Describe::ItemDirect(item)),
+                ..
+            } if info == "/db/items/501" && item.item_id == 501
         )));
     }
 }

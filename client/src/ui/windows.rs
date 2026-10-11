@@ -71,6 +71,7 @@ use ragnarok_ui_component::game::quest_window::{QUEST_DETAIL_WINDOW_ID, QUEST_WI
 use ragnarok_ui_component::game::quest_window::{QuestDetailWindow, QuestWindow};
 use ragnarok_ui_component::game::read_mail_window::READ_MAIL_WINDOW_ID;
 use ragnarok_ui_component::game::read_mail_window::ReadMailWindow;
+use ragnarok_ui_component::game::reference_window::{REFERENCE_WINDOW_ID, ReferenceWindow};
 use ragnarok_ui_component::game::shortcut_list_window::SHORTCUT_LIST_WINDOW_ID;
 use ragnarok_ui_component::game::shortcut_list_window::ShortcutListWindow;
 use ragnarok_ui_component::game::skill_talkbox_dialog::SkillTalkboxDialog;
@@ -121,6 +122,7 @@ pub struct Windows {
     pub chat_room_member_window: ChatRoomMemberWindow,
     pub emotion_window: EmotionWindow,
     pub shortcut_list_window: ShortcutListWindow,
+    pub reference_window: ReferenceWindow,
     pub quest_window: QuestWindow,
     pub quest_detail_window: QuestDetailWindow,
     pub system_menu: SystemMenu,
@@ -190,6 +192,7 @@ impl Windows {
             chat_room_member_window: ChatRoomMemberWindow::new(),
             emotion_window: EmotionWindow::new(),
             shortcut_list_window: ShortcutListWindow::new(),
+            reference_window: ReferenceWindow::new(),
             quest_window: QuestWindow::new(),
             quest_detail_window: QuestDetailWindow::new(),
             system_menu: SystemMenu::new(),
@@ -386,6 +389,10 @@ pub(crate) const REGISTRY: &[(WidgetId, Dispatch)] = &[
     (
         SHORTCUT_LIST_WINDOW_ID,
         Dispatch::Trait(|w| &mut w.shortcut_list_window as &mut dyn InGameWindow),
+    ),
+    (
+        REFERENCE_WINDOW_ID,
+        Dispatch::Trait(|w| &mut w.reference_window as &mut dyn InGameWindow),
     ),
     (
         QUEST_WINDOW_ID,

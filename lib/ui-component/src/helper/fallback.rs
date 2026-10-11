@@ -1,5 +1,5 @@
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
-use ragnarok_ui::frame::UiFrame;
+use ragnarok_ui::frame::{Response, UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 use ragnarok_ui::theme::{CORNER_RADIUS, FallbackPalette as P, gloss_disc, lift, line, mix};
 
@@ -280,6 +280,51 @@ pub fn sys_button(ui: &mut UiFrame, x: f32, y: f32, size: f32, hovered: bool, gl
     if let Some(ch) = glyph {
         sys_glyph(ui, ch, cx, cy, size);
     }
+}
+
+/// Round glossy "+" button (stat / skill level-up). The disc is the shared blue
+/// gloss; the plus is a beveled white-grey cross: a dark drop shadow below, a
+/// white-to-grey face and a bright top edge. Hover brightens, pressed nudges the
+/// glyph down a pixel.
+pub fn plus_button(ui: &mut UiFrame, id: WidgetId, rect: Rect) -> Response {
+    let resp = ui.interact(id, rect);
+    if resp.hovered() {
+        ui.any_interactive_hovered = true;
+    }
+    let pressed = resp.hovered() && (ui.ctx.mouse_clicked || ui.ctx.mouse_down);
+    let size = rect.w.min(rect.h);
+    let (cx, cy) = (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0);
+    gloss_disc(ui, cx, cy, size / 2.0 - 0.3, resp.hovered());
+
+    let cy = if pressed { cy + 1.0 } else { cy };
+    let arm = (size * 0.27).max(2.0);
+    let t = (size * 0.2).max(2.0);
+    let r = t / 2.0;
+    let bar = |ui: &mut UiFrame, ox: f32, oy: f32, grow: f32, top: [f32; 4], bot: [f32; 4]| {
+        for (w, h) in [(arm * 2.0 + t, t), (t, arm * 2.0 + t)] {
+            let (w, h) = (w + grow * 2.0, h + grow * 2.0);
+            let (v, i) = draw::rounded_rect_vgrad(
+                cx - w / 2.0 + ox,
+                cy - h / 2.0 + oy,
+                w,
+                h,
+                r + grow,
+                top,
+                bot,
+            );
+            rounded(ui, v, i);
+        }
+    };
+    let shadow = [P::GLOSS_RIM[0], P::GLOSS_RIM[1], P::GLOSS_RIM[2], 0.55];
+    bar(ui, 0.0, 1.0, 0.5, shadow, shadow);
+    let rim = [0.42, 0.46, 0.56, 1.0];
+    bar(ui, 0.0, 0.0, 0.5, rim, rim);
+    let (top, bot) = ([1.0, 1.0, 1.0, 1.0], [0.74, 0.77, 0.83, 1.0]);
+    bar(ui, 0.0, 0.0, -0.3, top, bot);
+    // Bevel highlight along the top edges of the glyph.
+    fill(ui, cx - arm - t / 2.0 + r, cy - t / 2.0 + 0.3, arm * 2.0 + t - 2.0 * r, 0.8, [1.0, 1.0, 1.0, 0.9]);
+    fill(ui, cx - t / 2.0 + 0.3, cy - arm - t / 2.0 + r, 0.8, arm * 2.0 + t - 2.0 * r, [1.0, 1.0, 1.0, 0.6]);
+    resp
 }
 
 /// Recessed slot cell: white with a soft blue-gray inset (inventory/equip/cart).

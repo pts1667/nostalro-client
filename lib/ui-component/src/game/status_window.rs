@@ -1,7 +1,6 @@
 use crate::helper::window_chrome::{draw_sys_button, draw_titlebar, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::event::GameEvent;
-use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
@@ -264,27 +263,13 @@ impl InGameWindow for StatusWindow {
             if can_raise {
                 let arr_y = y + UP_TOP + i as f32 * (arr_h + 5.0);
                 let arr_rect = Rect::new(x + UP_LEFT, arr_y, arr_w, arr_h);
-                let resp = ui.interact(up_id, arr_rect);
-                if resp.hovered() {
-                    ui.any_interactive_hovered = true;
-                }
+                let resp = crate::helper::fallback::plus_button(ui, up_id, arr_rect);
                 if resp.clicked() {
                     events.push(GameEvent::RequestStatChange {
                         status_id,
                         amount: 1,
                     });
                 }
-                let c = if resp.hovered() {
-                    [0.95, 0.95, 0.4, 1.0]
-                } else {
-                    [0.7, 0.7, 0.3, 1.0]
-                };
-                let (v, ii) = draw::quad_vertices(arr_rect.x, arr_rect.y, arr_w, arr_h, c);
-                ui.draw_calls.push(DrawCall {
-                    vertices: v.to_vec(),
-                    indices: ii.to_vec(),
-                    texture: TextureRef::White,
-                });
             }
             ui.text_right(x + REQ_LEFT + REQ_WIDTH, baseline, &cost.to_string(), tc);
         }
