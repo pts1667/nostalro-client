@@ -10,9 +10,8 @@
   "keep_login_id": true,
   "fullscreen": false,
   "dpi_scale": 125.0,
-  "grf_paths": [
-    "data/data.grf"
-  ],
+  "data_url": "http://127.0.0.1:6903/data",
+  "grf_paths": [],
   "data_dir": null,
   "bgm_path": "data/BGM",
   "emblem_path": "data/emblem",

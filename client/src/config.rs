@@ -355,7 +355,22 @@ pub struct Config {
     /// and the zoom clamp. Off keeps the original game's bands.
     pub free_camera: bool,
     pub dpi_scale: f32,
+    /// GRF archives to mount, in priority order. Empty by default: the client
+    /// data comes from `data_url`. Archives listed here only supply what the
+    /// endpoint does not serve.
     pub grf_paths: Vec<String>,
+    /// Base URL of the server's `/data` endpoint, which serves the client data
+    /// (`sprite/…`, `texture/…`, `bgm/…`). Takes priority over `grf_paths`, and
+    /// is itself overridden by `data_dir`. `None` or empty reads GRFs only.
+    pub data_url: Option<String>,
+    /// Keep the files downloaded from `data_url` on disk, so each is fetched
+    /// once and only changed ones again. `None` decides by the server: on for a
+    /// remote one, off when `data_url` points at this machine (localhost,
+    /// 127.x, ::1), where a copy would only add a step. `true` forces it on,
+    /// handy to test the cache against a local server.
+    pub data_cache: Option<bool>,
+    /// Folder of the download cache. `None` uses `%APPDATA%\nostalro\data`.
+    pub data_cache_dir: Option<String>,
     /// Optional directory of files extracted from a GRF. Its contents mirror the
     /// inside of the archive's `data/` folder (e.g. `sprite/…`, `texture/…`) and
     /// take priority over every entry in `grf_paths`.
@@ -411,6 +426,9 @@ pub struct Config {
 }
 
 
+/// Where a local rust-ro server publishes the client data.
+const DEFAULT_DATA_URL: &str = "http://127.0.0.1:6903/data";
+
 fn default_account_backgrounds() -> Vec<String> {
     vec![
         ragnarok_resources::ui::RAG_TITLE.to_string(),
@@ -443,7 +461,10 @@ impl Default for Config {
             emblem_path: "emblem".to_string(),
             free_camera: false,
             dpi_scale: 125.0,
-            grf_paths: vec![ragnarok_resources::grf::DEFAULT_ARCHIVE.to_string()],
+            grf_paths: Vec::new(),
+            data_url: Some(DEFAULT_DATA_URL.to_string()),
+            data_cache: None,
+            data_cache_dir: None,
             data_dir: None,
             debug_network_delay_ms: 0,
             debug: DebugConfig::default(),
@@ -543,7 +564,10 @@ mod tests {
         assert_eq!(parsed.login_servers[0].port, 6900);
         assert_eq!(parsed.login_servers[0].packetver, 20111102);
         assert_eq!(parsed.screen_width, 1024);
-        assert_eq!(parsed.grf_paths, vec!["data/data.grf"]);
+        assert!(parsed.grf_paths.is_empty());
+        assert_eq!(parsed.data_url.as_deref(), Some("http://127.0.0.1:6903/data"));
+        assert_eq!(parsed.data_cache, None);
+        assert_eq!(parsed.data_cache_dir, None);
         assert_eq!(parsed.account_backgrounds.len(), 3);
     }
 
@@ -747,7 +771,8 @@ mod tests {
 
         assert_eq!(config.login_servers.len(), 1);
         assert_eq!(config.login_servers[0].packetver, 20111102);
-        assert_eq!(config.grf_paths, vec!["data/data.grf".to_string()]);
+        assert!(config.grf_paths.is_empty());
+        assert_eq!(config.data_url.as_deref(), Some("http://127.0.0.1:6903/data"));
         assert!(config.saved_username.is_empty());
         assert!(config.admin_account_ids.is_empty());
         assert!(config.window_state.is_empty());

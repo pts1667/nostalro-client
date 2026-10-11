@@ -27,9 +27,13 @@ are lost on the next save.
 | `screen_height` | Requested initial window height, in logical pixels. Same handling as `screen_width`. | `768` | No |
 | `fullscreen` | Start borderless fullscreen. Also toggled from the graphic options window. | `false` | No |
 | `dpi_scale` | UI scale in percent. `125.0` means 1.25x. Values at or below `0` fall back to 1.0x. | `125.0` | No |
-| `grf_paths` | GRF archives to mount, in priority order. | `["data/data.grf"]` | Yes |
-| `data_dir` | Directory of files extracted from a GRF. Its contents mirror the inside of the archive's `data/` folder (`sprite/…`, `texture/…`) and take priority over every entry in `grf_paths`. | `null` | No |
-| `bgm_path` | Directory on disk holding the BGM tracks. Read from the filesystem, not from the GRF. | `"BGM"` | No |
+| `data_url` | Base URL of the server's `/data` endpoint, which serves the client data. See [Client data](#client-data). Empty or `null` reads GRF archives only. | `"http://127.0.0.1:6903/data"` | Yes, unless `grf_paths` is set |
+| `data_cache` | Keep files downloaded from `data_url` on disk. `null` turns it on for a remote server and off for one on this machine; `true`/`false` force it. See [Cache](#cache). | `null` | No |
+| `data_cache_dir` | Folder of the download cache. `null` uses `%APPDATA%
+ostalro\data`. | `null` | No |
+| `grf_paths` | GRF archives to mount, in priority order. They rank below `data_url`, so they only supply what the endpoint does not serve. | `[]` | Yes, unless `data_url` is set |
+| `data_dir` | Directory of files extracted from a GRF. Its contents mirror the inside of the archive's `data/` folder (`sprite/…`, `texture/…`) and take priority over `data_url` and every entry in `grf_paths`. | `null` | No |
+| `bgm_path` | Directory on disk holding the BGM tracks. Tried first; a track not found there is read as `bgm/<track>` from the client data (`data_url`, then the GRF). | `"BGM"` | No |
 | `emblem_path` | Directory where downloaded guild emblems are cached. | `"emblem"` | No |
 | `bgm_volume` | Background music volume, `0.0` to `1.0`. | `0.8` | No |
 | `sfx_volume` | Sound effect volume, `0.0` to `1.0`. | `0.8` | No |
@@ -59,6 +63,54 @@ are lost on the next save.
 | `debug` | Trace toggles. See [debug](#debug). | `{"trace_packet": "none", "trace_effects": false, "trace_input": false, "trace_texture_load": false, "trace_sprite_scale": false}` | No |
 | `accessibility` | Name plate weight, and the geometry and colours of the overhead HP, monster HP, SP and cast bars. See [accessibility](#accessibility). | `{"bold_name_plates": false, "hp_bar": {"width": 60.0, "height": 5.0, "background_color": "#424242", "border_color": "#10189C", "fill_color": "#10EF21", "fill_color_low": "#FF0000"}, "monster_hp_bar": {…, "fill_color": "#FF00E7", "fill_color_low": "#FFFF00"}, "sp_bar": {…, "fill_color": "#1863DE"}, "cast_bar": {…, "height": 7.0, "fill_color": "#00CC00"}}` | No |
 | `custom` | Behaviour the original game has no counterpart for. See [custom](#custom). | `{"boss_aura": false, "fog_scale": 1.0, "sound": {"act_percent": 100, "stereo": true, "play_when_unfocused": false}, "window": {"exclude_close_via_esc": []}}` | No |
+
+## Client data
+
+Resources are looked up in this order, the first source holding the file wins:
+`data_dir`, the `data_url` endpoint, then each archive of `grf_paths`.
+
+The endpoint is the `/data` route of the rust-ro server
+(`server/src/server/client_data`), serving the `config/client-data` tree its
+`client-data-setup` tool extracts from a kRO client. Paths are the GRF names
+lowercased with the leading `data/` removed, so the client resolves a request
+for `data/sprite/foo.spr` to `<data_url>/sprite/foo.spr`, percent-encoded.
+
+- On start the client downloads `<data_url>/check`, the server's list of served
+  files with the size and md5 of each, once per run. (Servers that predate it
+  are read through `manifest.json`, which carries the same fields.) That list
+  answers every "does this file exist" question without a request, and a file
+  absent from it fails at once.
+- Every other file is downloaded when first read, on the thread that asked for
+  it, and kept in the [cache](#cache) when that is on.
+- The server stores compressible files only as `<name>.zst`. The client sends
+  `Accept-Encoding: zstd` and decompresses the `Content-Encoding: zstd` reply
+  itself. Formats that are already compressed (mp3, png, jpeg) arrive as stored.
+- If the list cannot be fetched and there is no cached copy of it, the client
+  logs an error and runs on `grf_paths` alone. Start-up fails to load content
+  when neither source works.
+
+### Cache
+
+Downloaded files are kept in `%APPDATA%
+ostalro\data` (`$XDG_CACHE_HOME` or
+`~/.cache` where there is no `%APPDATA%`), in one subfolder per `data_url`. Set
+`data_cache_dir` to use another folder.
+
+- Each file is stored under its md5 from the check list (`objects/ab/ab12…`),
+  written through a temporary file and a rename. Reading one checks its size and
+  downloads it again if it does not match.
+- The check list fetched at start is what says which files are current. A file
+  the server changed has a new md5, so it is downloaded again on first use, and
+  objects that no list entry points to any more are deleted in the same pass.
+  Nothing is hashed or re-downloaded in bulk: unchanged files cost no request.
+- The last list received is saved as `list.jsonl`. If the server is down at the
+  next start, the client uses it and serves what the cache holds; any other file
+  is reported missing without waiting for a connection.
+- `data_cache` chooses when the cache is used. Left unset (`null`) it is on for
+  a remote server and off when `data_url` points at this machine (`localhost`,
+  `127.x.x.x`, `::1`), because a copy of a file the server reads from the same
+  disk saves nothing. `true` forces it on, `false` off. Use `true` to try the
+  cache against a local server.
 
 ## Login server
 

@@ -40,7 +40,10 @@ I also wanted a clear view on what is implemented and what is not.
 
 # Game resources you need to supply
 
-None of the resource files are committed (they are git-ignored). Place them under `data/` at the repository root before building or running.
+None of the resource files are committed (they are git-ignored). By default the client downloads them from the server's `/data` endpoint, so there is nothing to place on disk: start a [rust-ro](https://github.com/nmeylan/rust-ro) server whose `config/client-data` was filled by its `client-data-setup` tool. The endpoint listens on `http://127.0.0.1:6903/data` unless the server's `client_data` section says otherwise; point `data_url` at it. At startup the client fetches the endpoint's `/data/check` file list (sizes and md5s), then each file when the game first asks for it. Against a remote server the files are kept in `%APPDATA%
+ostalro\data` and only changed ones are downloaded again; against a server on this machine nothing is cached (see `data_cache`). Files the server stores as `<name>.zst` are requested with `Accept-Encoding: zstd` and decompressed on arrival.
+
+To read a GRF archive from disk instead, or as a fallback for what the server does not serve, place it under `data/` at the repository root and list it in `grf_paths`:
 
 ```
 classic-client/
@@ -53,21 +56,22 @@ classic-client/
       texture/
 ```
 
-The GRF archive holds everything the renderer reads: maps (GAT/RSW/GND), sprites (SPR/ACT), effects (STR), 3D models (RSM/GR2), and textures. The client and every tool read resources by their Korean names, exactly as they are stored in the archive; we do not rename or repack them.
+The client data, whether it comes from the endpoint or a GRF archive, holds everything the renderer reads: maps (GAT/RSW/GND), sprites (SPR/ACT), effects (STR), 3D models (RSM/GR2), and textures. The client and every tool read resources by their Korean names, exactly as they are stored in the archive; we do not rename or repack them.
 
 The UI does not need the archive. Its windows, buttons and frames are drawn procedurally, so the login and game screens still render when no data is present. Only game content is read from the archive: item, skill and card icons, emotes, map images and character portraits. Missing content is skipped and logged once per file name.
 
 UI text is in English. It is kept in `lib/ui-component/locales/en.yml` and read through `rust-i18n`, so a translation only needs a new locale file. See [docs/internal/ui-system.md](docs/internal/ui-system.md#text-and-translations).
 
-Resources are resolved by priority. `data_dir` (loose extracted files) is checked first, then each archive in `grf_paths` in order, so the first archive wins over the later ones. This lets a second GRF, or a folder of extracted files, override individual resources without touching the base archive. The layout inside `data_dir` mirrors the archive's `data/` folder: to override `data/sprite/foo.spr`, place the file at `<data_dir>/sprite/foo.spr`.
+Resources are resolved by priority. `data_dir` (loose extracted files) is checked first, then the `data_url` endpoint, then each archive in `grf_paths` in order, so the first archive wins over the later ones. This lets a second GRF, or a folder of extracted files, override individual resources without touching the base archive. If the endpoint cannot be reached at startup the client logs an error and carries on with the archives alone; with neither, no game content loads. The layout inside `data_dir` mirrors the archive's `data/` folder: to override `data/sprite/foo.spr`, place the file at `<data_dir>/sprite/foo.spr`.
 
 The runtime picture looks like this.
 
 ```mermaid
 flowchart LR
     datadir[data_dir: extracted files] -->|highest priority| client[ragnarok-client]
-    grf[grf_paths: data.grf, …] -->|maps, sprites, effects, textures| client
-    bgm[data/BGM] -->|music| client
+    server[data_url: server /data endpoint] -->|maps, sprites, effects, textures, music| client
+    grf[grf_paths: data.grf, …] -->|fallback| client
+    bgm[data/BGM] -->|music, checked before the endpoint| client
     emblem[data/emblem] -->|guild emblems| client
     config[config.json] -->|settings| client
 ```
@@ -99,9 +103,13 @@ The fields a newcomer sets by hand:
 | --- | --- | --- | --- |
 | `packetver` | number | `20120307` | Default packet protocol version to speak. Any value up to 20120307 works without recompiling. Must match the server. Overridden per server by `login_servers[].packetver`. |
 | `login_servers` | object[] | `[{ "name": "Local", "host": "127.0.0.1", "port": 6900 }]` | Connection (login) servers to choose from. Each has a `name`, `host`, `port`, and an optional `packetver` overriding the top-level one while selected. When more than one is listed the client shows a selection screen before login; a single server is used directly. |
-| `grf_paths` | string[] | `["data/data.grf"]` | GRF archives to load, in priority order. The first archive wins on conflict; each later archive only supplies files the earlier ones lack. |
-| `data_dir` | string | *(unset)* | Optional directory of files extracted from a GRF. Its files override every archive in `grf_paths`, so it is the way to swap individual resources without repacking. Contents mirror the inside of the archive's `data/` folder (e.g. `sprite/…`, `texture/…`); matching is case-insensitive. |
-| `bgm_path` | string | `BGM` | Folder holding background music. `config.json` ships with `data/BGM`. |
+| `data_url` | string | `http://127.0.0.1:6903/data` | Base URL of the server's client data endpoint. Empty or `null` reads GRF archives only. |
+| `data_cache` | bool or null | `null` | Keep files downloaded from `data_url` in a cache folder (`%APPDATA%
+ostalro\data`, or `data_cache_dir`). `null` caches for a remote server only, `true` forces it on (to test against a local server), `false` off. |
+| `data_cache_dir` | string | `null` | Folder of the download cache. |
+| `grf_paths` | string[] | `[]` | GRF archives to load, in priority order. The first archive wins on conflict; each later archive only supplies files the earlier ones lack. They rank below `data_url`, so they only supply what the endpoint does not serve. |
+| `data_dir` | string | *(unset)* | Optional directory of files extracted from a GRF. Its files override the endpoint and every archive in `grf_paths`, so it is the way to swap individual resources without repacking. Contents mirror the inside of the archive's `data/` folder (e.g. `sprite/…`, `texture/…`); matching is case-insensitive. |
+| `bgm_path` | string | `BGM` | Folder holding background music, checked before the endpoint and the archives. `config.json` ships with `data/BGM`. |
 | `emblem_path` | string | `emblem` | Folder holding guild emblem `.bmp` files. `config.json` ships with `data/emblem`. |
 | `screen_width` / `screen_height` | number | `1024` / `768` | Initial window size. |
 | `fullscreen` | bool | `false` | Start in fullscreen. |
@@ -147,7 +155,7 @@ of aliasing once a sprite is drawn smaller than its source.
 
 # Run
 
-With `data/data.grf` in place and a server running:
+With a server running (and serving client data on `data_url`):
 
 ```bash
 cargo run --bin ragnarok-client --release

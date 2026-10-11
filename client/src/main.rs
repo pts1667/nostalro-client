@@ -19,6 +19,7 @@ use models::enums::skill_enums::SkillEnum;
 use ragnarok_audio::SoundManager;
 use ragnarok_formats::act::SpriteAnimationState;
 use ragnarok_formats::grf::GrfArchive;
+use ragnarok_formats::remote::{default_cache_dir, is_loopback_url};
 use ragnarok_game::app_state::AppState;
 use ragnarok_game::cursor::RenderEntry;
 use ragnarok_game::data_table::accessory_table::AccessoryTable;
@@ -57,7 +58,7 @@ use ragnarok_ui_component::account::login_window::{
 use ragnarok_ui_component::account::server_list_window::ServerListWindow;
 use ragnarok_ui_component::game::confirm_dialog::ConfirmDialog;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
@@ -152,6 +153,26 @@ struct App {
 }
 
 impl App {
+    /// Folder for the files downloaded from `data_url`, or `None` when the
+    /// cache is off. Unless `data_cache` says otherwise it is off for a server
+    /// on this machine.
+    fn data_cache_dir(&self, data_url: &str) -> Option<PathBuf> {
+        let enabled = self
+            .config
+            .data_cache
+            .unwrap_or_else(|| !is_loopback_url(data_url));
+        if !enabled {
+            return None;
+        }
+        self.config
+            .data_cache_dir
+            .as_deref()
+            .map(str::trim)
+            .filter(|dir| !dir.is_empty())
+            .map(PathBuf::from)
+            .or_else(default_cache_dir)
+    }
+
     fn new(config: Config) -> Self {
         let saved_window_positions = config
             .window_state
@@ -736,15 +757,38 @@ impl ApplicationHandler for App {
         ui_ctx.lock_account_windows = true;
         self.ui_context = Some(ui_ctx);
 
-        if !self.config.grf_paths.is_empty() {
+        let data_url = self
+            .config
+            .data_url
+            .as_deref()
+            .map(str::trim)
+            .filter(|url| !url.is_empty());
+        if !self.config.grf_paths.is_empty() || data_url.is_some() {
             let data_dir = self.config.data_dir.as_deref().map(Path::new);
-            match GrfArchive::open_layered(&self.config.grf_paths, data_dir) {
+            let data_cache = data_url.and_then(|url| self.data_cache_dir(url));
+            match GrfArchive::open_sources(
+                &self.config.grf_paths,
+                data_dir,
+                data_url,
+                data_cache.as_deref(),
+            ) {
                 Ok(grf) => {
                     println!(
-                        "GRF loaded: {} ({} files, {} overlay archive(s), data_dir: {})",
-                        self.config.grf_paths[0],
+                        "Client data loaded: {} GRF file(s), {} GRF archive(s), data server: {}, data_dir: {}",
                         grf.file_count(),
-                        self.config.grf_paths.len() - 1,
+                        self.config.grf_paths.len(),
+                        grf.remote().map_or_else(
+                            || "none".to_string(),
+                            |remote| format!(
+                                "{} ({} files, cache: {}{})",
+                                remote.base_url(),
+                                remote.file_count(),
+                                remote
+                                    .cache_dir()
+                                    .map_or_else(|| "off".to_string(), |dir| dir.display().to_string()),
+                                if remote.is_offline() { ", server unreachable" } else { "" },
+                            ),
+                        ),
                         self.config.data_dir.as_deref().unwrap_or("none"),
                     );
 
@@ -814,7 +858,7 @@ impl ApplicationHandler for App {
                     self.grf = Some(grf);
                 }
                 Err(e) => {
-                    tracing::error!("Failed to open GRF {}: {e}", self.config.grf_paths[0]);
+                    tracing::error!("Failed to load client data: {e}");
                 }
             }
         }

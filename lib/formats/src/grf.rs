@@ -10,6 +10,7 @@ use flate2::write::ZlibEncoder;
 
 use crate::FormatError;
 use crate::mixcrypt;
+use crate::remote::RemoteData;
 use crate::res_name_table::ResNameTable;
 
 const HEADER_SIZE: usize = 46;
@@ -33,11 +34,13 @@ pub struct GrfFileInfo {
 
 pub struct GrfArchive {
     entries: HashMap<String, GrfEntry>,
-    file: Mutex<File>,
+    /// `None` for an archive that only fronts `remote`.
+    file: Option<Mutex<File>>,
     path: PathBuf,
     file_data_end_offset: u64,
     writable: bool,
     data_dir: Option<DataDirIndex>,
+    remote: Option<RemoteData>,
     overlays: Vec<GrfArchive>,
     overrides: HashMap<String, Vec<u8>>,
     res_name_table: OnceLock<ResNameTable>,
@@ -127,11 +130,12 @@ impl GrfArchive {
 
         Ok(GrfArchive {
             entries,
-            file: Mutex::new(file),
+            file: Some(Mutex::new(file)),
             path: path.to_path_buf(),
             file_data_end_offset,
             writable: false,
             data_dir: None,
+            remote: None,
             overlays: Vec::new(),
             overrides: HashMap::new(),
             res_name_table: OnceLock::new(),
@@ -146,21 +150,69 @@ impl GrfArchive {
         grf_paths: &[String],
         data_dir: Option<&Path>,
     ) -> Result<Self, FormatError> {
-        let (first, rest) = grf_paths
-            .split_first()
-            .ok_or(FormatError::Io(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "grf_paths is empty",
-            )))?;
+        Self::open_sources(grf_paths, data_dir, None, None)
+    }
 
-        let mut archive = GrfArchive::open(Path::new(first))?;
+    /// Like `open_layered`, with the server's `/data` endpoint at `data_url` as a
+    /// further source. Lookups go `data_dir`, then the endpoint, then the
+    /// archives, so the endpoint is the one source of truth when it is up and
+    /// the archives only cover what it does not serve. `grf_paths` may be empty,
+    /// and an archive or an endpoint that cannot be opened is skipped with an
+    /// error log, as long as one source remains. `data_cache` is the directory
+    /// the endpoint's files are kept in between sessions, `None` to download on
+    /// every read.
+    pub fn open_sources(
+        grf_paths: &[String],
+        data_dir: Option<&Path>,
+        data_url: Option<&str>,
+        data_cache: Option<&Path>,
+    ) -> Result<Self, FormatError> {
+        let remote = data_url.and_then(|url| match RemoteData::connect(url, data_cache) {
+            Ok(remote) => Some(remote),
+            Err(e) => {
+                tracing::error!("Failed to reach client data at {url}: {e}");
+                None
+            }
+        });
 
-        for path in rest {
+        let mut archives = grf_paths.iter();
+        let mut archive = None;
+        let mut first_error = None;
+        for path in archives.by_ref() {
+            match GrfArchive::open(Path::new(path)) {
+                Ok(opened) => {
+                    archive = Some(opened);
+                    break;
+                }
+                Err(e) if remote.is_some() || grf_paths.len() > 1 => {
+                    tracing::error!("Failed to open GRF {path}: {e}");
+                }
+                Err(e) => {
+                    first_error = Some(e);
+                    break;
+                }
+            }
+        }
+        let mut archive = match (archive, first_error) {
+            (Some(archive), _) => archive,
+            (None, Some(e)) => return Err(e),
+            (None, None) if remote.is_some() => GrfArchive::remote_only(),
+            (None, None) => {
+                return Err(FormatError::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "no GRF archive could be opened and no client data endpoint is reachable",
+                )));
+            }
+        };
+
+        for path in archives {
             match GrfArchive::open(Path::new(path)) {
                 Ok(overlay) => archive.overlays.push(overlay),
                 Err(e) => tracing::error!("Failed to open overlay GRF {path}: {e}"),
             }
         }
+
+        archive.remote = remote;
 
         if let Some(dir) = data_dir {
             if dir.is_dir() {
@@ -173,6 +225,27 @@ impl GrfArchive {
         Ok(archive)
     }
 
+    /// An archive with no GRF behind it, whose files come from `remote`.
+    fn remote_only() -> Self {
+        GrfArchive {
+            entries: HashMap::new(),
+            file: None,
+            path: PathBuf::new(),
+            file_data_end_offset: HEADER_SIZE as u64,
+            writable: false,
+            data_dir: None,
+            remote: None,
+            overlays: Vec::new(),
+            overrides: HashMap::new(),
+            res_name_table: OnceLock::new(),
+        }
+    }
+
+    /// The `/data` endpoint this archive reads from, when one is attached.
+    pub fn remote(&self) -> Option<&RemoteData> {
+        self.remote.as_ref()
+    }
+
     pub fn open_rw(path: &Path) -> Result<Self, FormatError> {
         let mut file = OpenOptions::new()
             .read(true)
@@ -183,11 +256,12 @@ impl GrfArchive {
 
         Ok(GrfArchive {
             entries,
-            file: Mutex::new(file),
+            file: Some(Mutex::new(file)),
             path: path.to_path_buf(),
             file_data_end_offset,
             writable: true,
             data_dir: None,
+            remote: None,
             overlays: Vec::new(),
             overrides: HashMap::new(),
             res_name_table: OnceLock::new(),
@@ -219,11 +293,12 @@ impl GrfArchive {
 
         Ok(GrfArchive {
             entries: HashMap::new(),
-            file: Mutex::new(file),
+            file: Some(Mutex::new(file)),
             path: path.to_path_buf(),
             file_data_end_offset: HEADER_SIZE as u64,
             writable: true,
             data_dir: None,
+            remote: None,
             overlays: Vec::new(),
             overrides: HashMap::new(),
             res_name_table: OnceLock::new(),
@@ -261,6 +336,11 @@ impl GrfArchive {
             {
                 table.extend_from(ResNameTable::parse(&data));
             }
+            if let Some(remote) = self.remote.as_ref()
+                && let Ok(data) = remote.read(&data_dir_key(path))
+            {
+                table.extend_from(ResNameTable::parse(&data));
+            }
             for layer in std::iter::once(self).chain(self.overlays.iter()) {
                 if let Ok(data) = layer.read_archive_entry(path) {
                     table.extend_from(ResNameTable::parse(&data));
@@ -290,6 +370,13 @@ impl GrfArchive {
             return std::fs::read(path).map_err(FormatError::Io);
         }
 
+        if let Some(remote) = self.remote.as_ref() {
+            let key = data_dir_key(name);
+            if remote.contains(&key) {
+                return remote.read(&key);
+            }
+        }
+
         let name_lower = name.to_lowercase().replace('\\', "/");
         if !self.entries.contains_key(&name_lower) {
             for overlay in &self.overlays {
@@ -314,8 +401,8 @@ impl GrfArchive {
         let position = entry.offset as u64 + HEADER_SIZE as u64;
         let mut compressed = vec![0u8; entry.compressed_size_aligned as usize];
 
-        {
-            let mut file = self.file.lock().unwrap();
+        if let Some(file) = &self.file {
+            let mut file = file.lock().unwrap();
             file.seek(SeekFrom::Start(position))?;
             file.read_exact(&mut compressed)?;
         }
@@ -340,7 +427,7 @@ impl GrfArchive {
         let compressed = zlib_compress(data)?;
         let compressed_len = compressed.len() as u32;
 
-        let file = self.file.get_mut().unwrap();
+        let file = self.file.as_mut().ok_or(FormatError::ReadOnly)?.get_mut().unwrap();
         file.seek(SeekFrom::Start(self.file_data_end_offset))?;
         file.write_all(&compressed)?;
 
@@ -373,7 +460,7 @@ impl GrfArchive {
         let table_raw = build_file_table(&self.entries);
         let table_compressed = zlib_compress(&table_raw)?;
 
-        let file = self.file.get_mut().unwrap();
+        let file = self.file.as_mut().ok_or(FormatError::ReadOnly)?.get_mut().unwrap();
         file.seek(SeekFrom::Start(self.file_data_end_offset))?;
         file.write_all(&(table_compressed.len() as u32).to_le_bytes())?;
         file.write_all(&(table_raw.len() as u32).to_le_bytes())?;
@@ -401,7 +488,7 @@ impl GrfArchive {
 
         let mut blobs: Vec<(String, GrfEntry, Vec<u8>)> = Vec::with_capacity(self.entries.len());
         {
-            let file = self.file.get_mut().unwrap();
+            let file = self.file.as_mut().ok_or(FormatError::ReadOnly)?.get_mut().unwrap();
             for (name, entry) in &self.entries {
                 let position = entry.offset as u64 + HEADER_SIZE as u64;
                 let mut blob = vec![0u8; entry.compressed_size_aligned as usize];
@@ -421,7 +508,7 @@ impl GrfArchive {
             }
         }
 
-        let file = self.file.get_mut().unwrap();
+        let file = self.file.as_mut().ok_or(FormatError::ReadOnly)?.get_mut().unwrap();
         let mut write_pos = HEADER_SIZE as u64;
         self.entries.clear();
 
@@ -451,6 +538,13 @@ impl GrfArchive {
             .as_ref()
             .and_then(|d| d.lookup(name))
             .is_some()
+        {
+            return true;
+        }
+        if self
+            .remote
+            .as_ref()
+            .is_some_and(|r| r.contains(&data_dir_key(name)))
         {
             return true;
         }

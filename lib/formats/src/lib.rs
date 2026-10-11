@@ -14,6 +14,7 @@ pub mod map_coordinates;
 mod mixcrypt;
 pub mod pal;
 pub mod pettalk;
+pub mod remote;
 pub mod res_name_table;
 pub mod rsm;
 pub mod rsw;
