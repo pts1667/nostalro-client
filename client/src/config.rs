@@ -367,6 +367,13 @@ pub struct Config {
     /// Base URL of the server's read-only reference API (`/db`), which the
     /// database window reads. `None` or empty leaves the window without data.
     pub reference_url: Option<String>,
+    /// Base URL of the server's forum (`/forum`, on the bot API port), which the
+    /// forum window reads and posts to. `None` or empty leaves the window
+    /// without data.
+    pub forum_url: Option<String>,
+    /// Per character name, the `seq` of the last forum reply handled, so the
+    /// forum's WebSocket only sends the replies that came after it.
+    pub forum_reply_seq: HashMap<String, u64>,
     /// Keep the files downloaded from `data_url` on disk, so each is fetched
     /// once and only changed ones again. `None` decides by the server: on for a
     /// remote one, off when `data_url` points at this machine (localhost,
@@ -439,6 +446,9 @@ const DEFAULT_DATA_URL: &str = "http://127.0.0.1:6903/data";
 /// Where a local rust-ro server publishes the reference API.
 const DEFAULT_REFERENCE_URL: &str = "http://127.0.0.1:6904";
 
+/// Where a local rust-ro server serves the forum (the bot API port).
+const DEFAULT_FORUM_URL: &str = "http://127.0.0.1:6902";
+
 fn default_account_backgrounds() -> Vec<String> {
     vec![
         ragnarok_resources::ui::RAG_TITLE.to_string(),
@@ -474,6 +484,8 @@ impl Default for Config {
             grf_paths: Vec::new(),
             data_url: Some(DEFAULT_DATA_URL.to_string()),
             reference_url: Some(DEFAULT_REFERENCE_URL.to_string()),
+            forum_url: Some(DEFAULT_FORUM_URL.to_string()),
+            forum_reply_seq: HashMap::new(),
             data_cache: None,
             data_cache_dir: None,
             data_dir: None,

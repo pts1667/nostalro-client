@@ -28,6 +28,7 @@ const GRAPHICS_ID: WidgetId = WidgetId(506);
 const SHORTCUT_ID: WidgetId = WidgetId(507);
 const HOTKEY_ID: WidgetId = WidgetId(508);
 const DATABASE_ID: WidgetId = WidgetId(509);
+const FORUM_ID: WidgetId = WidgetId(512);
 
 const MENU_W: f32 = 140.0;
 const FALLBACK_BTN_W: f32 = 120.0;
@@ -147,6 +148,7 @@ enum MenuButton {
     Shortcut,
     Hotkeys,
     Database,
+    Forum,
     CharSelect,
     Quit,
     Restart,
@@ -162,6 +164,7 @@ impl MenuButton {
             MenuButton::Shortcut => SHORTCUT_ID,
             MenuButton::Hotkeys => HOTKEY_ID,
             MenuButton::Database => DATABASE_ID,
+            MenuButton::Forum => FORUM_ID,
             MenuButton::CharSelect => CHARSELECT_ID,
             MenuButton::Quit => QUIT_ID,
             MenuButton::Restart => RESTART_ID,
@@ -177,6 +180,7 @@ impl MenuButton {
             MenuButton::Shortcut => "Shortcut",
             MenuButton::Hotkeys => "Hotkeys",
             MenuButton::Database => "Database",
+            MenuButton::Forum => "Forum",
             MenuButton::CharSelect => "Character Select",
             MenuButton::Quit => "Quit Game",
             MenuButton::Restart => "Restart",
@@ -213,6 +217,7 @@ impl SystemMenu {
                 MenuButton::Shortcut,
                 MenuButton::Hotkeys,
                 MenuButton::Database,
+                MenuButton::Forum,
                 MenuButton::CharSelect,
                 MenuButton::Quit,
             ]
@@ -240,6 +245,10 @@ impl SystemMenu {
             }
             MenuButton::Database => {
                 events.push(GameEvent::ToggleReferenceWindow);
+                self.open = false;
+            }
+            MenuButton::Forum => {
+                events.push(GameEvent::ToggleForumWindow);
                 self.open = false;
             }
             MenuButton::CharSelect => self.pending_confirm = PendingConfirm::CharacterSelect,
@@ -318,7 +327,7 @@ mod tests {
         let data = DataTable::new();
 
         let mut ctx = UiContext::new(800.0, 600.0);
-        let (mx, my) = button_center(600.0, 8, 0);
+        let (mx, my) = button_center(600.0, 9, 0);
         ctx.mouse_x = mx;
         ctx.mouse_y = my;
         ctx.mouse_clicked = true;
@@ -336,7 +345,7 @@ mod tests {
         let data = DataTable::new();
 
         let mut ctx = UiContext::new(800.0, 600.0);
-        let (mx, my) = button_center(600.0, 8, 1);
+        let (mx, my) = button_center(600.0, 9, 1);
         ctx.mouse_x = mx;
         ctx.mouse_y = my;
         ctx.mouse_clicked = true;
@@ -359,7 +368,7 @@ mod tests {
         let data = DataTable::new();
 
         let mut ctx = UiContext::new(800.0, 600.0);
-        let (mx, my) = button_center(600.0, 8, 5);
+        let (mx, my) = button_center(600.0, 9, 5);
         ctx.mouse_x = mx;
         ctx.mouse_y = my;
         ctx.mouse_clicked = true;
@@ -374,6 +383,29 @@ mod tests {
     }
 
     #[test]
+    fn forum_button_emits_toggle_and_closes() {
+        let mut menu = SystemMenu::new();
+        menu.open = true;
+        let mut state = StateCache::new();
+        let mut character = Character::new();
+        let data = DataTable::new();
+
+        let mut ctx = UiContext::new(800.0, 600.0);
+        let (mx, my) = button_center(600.0, 9, 6);
+        ctx.mouse_x = mx;
+        ctx.mouse_y = my;
+        ctx.mouse_clicked = true;
+        let mut ui = test_frame(&mut ctx, &mut state);
+        let events = menu.build(&mut ui, &mut crate::BuildCtx::test(&mut character, &data));
+        assert!(
+            events
+                .iter()
+                .any(|e| matches!(e, GameEvent::ToggleForumWindow))
+        );
+        assert!(!menu.open);
+    }
+
+    #[test]
     fn charselect_opens_confirm_then_emits_event() {
         let mut menu = SystemMenu::new();
         menu.open = true;
@@ -382,7 +414,7 @@ mod tests {
         let data = DataTable::new();
 
         let mut ctx = UiContext::new(800.0, 600.0);
-        let (mx, my) = button_center(600.0, 8, 6);
+        let (mx, my) = button_center(600.0, 9, 7);
         ctx.mouse_x = mx;
         ctx.mouse_y = my;
         ctx.mouse_clicked = true;
@@ -422,7 +454,7 @@ mod tests {
         let data = DataTable::new();
 
         let mut ctx = UiContext::new(800.0, 600.0);
-        let (mx, my) = button_center(600.0, 8, 7);
+        let (mx, my) = button_center(600.0, 9, 8);
         ctx.mouse_x = mx;
         ctx.mouse_y = my;
         ctx.mouse_clicked = true;
@@ -493,7 +525,7 @@ mod tests {
         let mut state = StateCache::new();
         let mut character = Character::new();
         let data = DataTable::new();
-        let (mx, my) = button_center(600.0, 8, 0);
+        let (mx, my) = button_center(600.0, 9, 0);
 
         let mut frame = |clicked: bool| {
             let mut ctx = UiContext::new(800.0, 600.0);

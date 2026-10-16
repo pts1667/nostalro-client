@@ -24,6 +24,25 @@ pub enum Describe {
     HotkeySkill { skill: SkillEnum, slot: usize },
 }
 
+/// A call of the forum window to the server's `/forum` API. The client signs in
+/// as the playing character and hands the answer back through
+/// `ForumWindow::deliver`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ForumRequest {
+    /// Up to `limit` threads, top first. `before` is the `bumped` of the last
+    /// thread already shown, `None` for the first page.
+    Threads { before: Option<u64>, limit: usize },
+    /// A thread with every comment.
+    Thread { id: u64 },
+    CreateThread { title: String, body: String },
+    /// A comment on the thread, or a reply to the comment `parent`.
+    Comment {
+        thread_id: u64,
+        body: String,
+        parent: Option<u64>,
+    },
+}
+
 #[derive(Debug)]
 pub enum GameEvent {
     LoginAccepted {
@@ -78,6 +97,24 @@ pub enum GameEvent {
     RequestLogin {
         username: String,
         password: String,
+    },
+    /// Register an account on the login server without logging in. `sex` is `M` or `F`.
+    RequestCreateAccount {
+        username: String,
+        password: String,
+        sex: char,
+    },
+    /// How the login server takes this client: without `accounts_required` any
+    /// name logs in with no password.
+    LoginServerInfo {
+        accounts_required: bool,
+        account_creation: bool,
+        packetver: u32,
+    },
+    /// Answer to an account creation: `code` 0 and the new id, or why not.
+    AccountCreateResult {
+        code: u8,
+        account_id: u32,
     },
     SelectLoginServer {
         index: usize,
@@ -1103,6 +1140,10 @@ pub enum GameEvent {
     RequestReferenceTexture {
         path: String,
     },
+    /// Opens or closes the forum window.
+    ToggleForumWindow,
+    /// The forum window calls the server's forum API.
+    RequestForum(ForumRequest),
     GraphicsSettingsChanged {
         ui_scale: f32,
         fullscreen: bool,

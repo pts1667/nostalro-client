@@ -133,7 +133,9 @@ pub fn build_in_game_ui(
         }
     }
 
-    windows.hotkey_bar.chat_is_active = windows.chat_window.is_active();
+    // Typing in the forum must not fire skill-bar keys either.
+    windows.hotkey_bar.chat_is_active =
+        windows.chat_window.is_active() || windows.forum_window.is_typing();
     windows.hotkey_bar.companion_skills.clear();
     if let Some(m) = ctx.mercenary {
         windows

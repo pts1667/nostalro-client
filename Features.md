@@ -2,6 +2,7 @@ Below what has been implemented and validated with rathena packetver 20120307
 
 # Account
 - Login
+- Login modes of rust-ro servers: the login screen asks the selected server how it takes logins (`CA_SERVER_INFO`) and shows a name and password, a name and a sex choice for an address that logs in without an account, or a Register screen (name, password twice, sex) when the server creates accounts (`CA_CREATE_ACCOUNT`); a created account logs in at once
 - Server list selection
 - Character select (renders each slot's sprite)
 - Character creation
@@ -179,6 +180,7 @@ Below what has been implemented and validated with rathena packetver 20120307
 - Emotion selector window
 - Trade window (player exchange)
 - Warp list window
+- Forum window (System menu, Forum): the server's `/forum` threads, a thread with its comments and nested replies, starting a thread and commenting or replying. It signs in by itself as the playing character with the game login. While in game it watches the forum's WebSocket: a reply to your threads or comments shows in chat (one line for a backlog), lands in the window's Replies view with an unread count, and refreshes the thread if it is on show
 
 ## NPC & shops
 - NPC dialog

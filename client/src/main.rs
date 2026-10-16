@@ -1,11 +1,13 @@
 mod command;
 mod config;
 mod events;
+mod forum;
 mod game_state;
 mod game_updates;
 mod hover;
 mod input;
 mod input_action;
+mod login_server;
 mod overlay;
 mod reference;
 mod scene;
@@ -54,7 +56,7 @@ use ragnarok_ui_component::account::login_server_list_window::{
     LoginServerEntry, LoginServerListWindow,
 };
 use ragnarok_ui_component::account::login_window::{
-    LoginFocus, LoginWindow, PASSWORD_ID, USERNAME_ID,
+    LoginFocus, LoginWindow,
 };
 use ragnarok_ui_component::account::server_list_window::ServerListWindow;
 use ragnarok_ui_component::game::confirm_dialog::ConfirmDialog;
@@ -121,6 +123,13 @@ struct App {
     reference: Option<reference::ReferenceClient>,
     /// Pictures the database window asked for, loaded a few per frame.
     reference_textures: std::collections::VecDeque<String>,
+    /// Worker behind the forum window, started on its first request.
+    forum: Option<forum::ForumClient>,
+    /// Account and password of the last game login, kept in memory only so the
+    /// forum can sign in as the playing character.
+    login_credentials: Option<(String, String)>,
+    /// Asks the login server how it takes logins, and registers accounts on it.
+    login_server: login_server::LoginServerLink,
     /// Worker that looks up item drop tables for the floor-item glow.
     rarity_client: Option<reference::ReferenceClient>,
     input: InputState,
@@ -221,6 +230,9 @@ impl App {
             gr2_loader: None,
             reference: None,
             reference_textures: std::collections::VecDeque::new(),
+            forum: None,
+            login_credentials: None,
+            login_server: login_server::LoginServerLink::new(),
             rarity_client: None,
             input: InputState::new(),
             ui_context: None,
@@ -553,10 +565,7 @@ impl App {
             }
             AppState::Login => {
                 if let (Some(ui_ctx), Some(renderer)) = (&mut self.ui_context, &self.renderer) {
-                    let initial_focus = match self.login_window.focus {
-                        LoginFocus::Username => Some(USERNAME_ID),
-                        LoginFocus::Password => Some(PASSWORD_ID),
-                    };
+                    let initial_focus = Some(self.login_window.focus_id());
                     let mut ui = UiFrame::new(
                         ui_ctx,
                         &renderer.font_atlas,

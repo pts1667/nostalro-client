@@ -29,6 +29,8 @@ are lost on the next save.
 | `dpi_scale` | UI scale in percent. `125.0` means 1.25x. Values at or below `0` fall back to 1.0x. | `125.0` | No |
 | `data_url` | Base URL of the server's `/data` endpoint, which serves the client data. See [Client data](#client-data). Empty or `null` reads GRF archives only. | `"http://127.0.0.1:6903/data"` | Yes, unless `grf_paths` is set |
 | `reference_url` | Base URL of the server's read-only reference API (`/db`), read by the Database window (System menu, Database). Empty or `null` leaves the window without data. | `"http://127.0.0.1:6904"` | No |
+| `forum_url` | Base URL of the server's forum (`/forum`, on the bot API port), read and posted to by the Forum window (System menu, Forum). The window signs in as the playing character with the account and password of the game login. While a character is in game the client also keeps the forum's WebSocket open and tells you in chat when someone replies to your threads or comments. Empty or `null` leaves the window without data and turns the reply notices off. | `"http://127.0.0.1:6902"` | No |
+| `forum_reply_seq` | Per character name, the last forum reply handled, so the next session only reports newer ones. Written by the client. | `{}` | No |
 | `data_cache` | Keep files downloaded from `data_url` on disk. `null` turns it on for a remote server and off for one on this machine; `true`/`false` force it. See [Cache](#cache). | `null` | No |
 | `data_cache_dir` | Folder of the download cache. `null` uses `%APPDATA%
 ostalro\data`. | `null` | No |

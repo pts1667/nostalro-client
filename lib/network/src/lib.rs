@@ -1,10 +1,11 @@
+pub mod account;
 pub mod connection;
 pub mod handler;
 pub mod helpers;
 pub mod sender;
 pub mod session;
 
-use connection::{Connection, ConnectionError};
+use connection::{Connection, ConnectionError, Frame};
 use handler::dispatch_packet;
 pub use helpers::{encode_pos, ip_u32_to_string};
 use ragnarok_game::event::GameEvent;
@@ -151,11 +152,17 @@ pub async fn network_loop(
                 result = conn.recv_packets(session.packetver) => {
                     match result {
                         Ok(packets) => {
-                            for packet in &packets {
-                                let events = dispatch_packet(packet.as_ref(), session.packetver);
-                                if events.is_empty() {
-                                    info!("unhandled packet: {} (id={})", packet.name(), packet.id(session.packetver));
-                                }
+                            for frame in &packets {
+                                let events = match frame {
+                                    Frame::Game(packet) => {
+                                        let events = dispatch_packet(packet.as_ref(), session.packetver);
+                                        if events.is_empty() {
+                                            info!("unhandled packet: {} (id={})", packet.name(), packet.id(session.packetver));
+                                        }
+                                        events
+                                    }
+                                    Frame::Custom(raw) => account::dispatch(raw).into_iter().collect(),
+                                };
                                 for event in events {
                                     let event = match event {
                                         GameEvent::ServerTick { server_tick, .. } => {

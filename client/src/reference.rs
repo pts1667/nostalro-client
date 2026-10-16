@@ -70,12 +70,12 @@ fn fetch(agent: &ureq::Agent, base_url: &str, path: &str) -> Result<Value, Strin
     parse_answer(status, &body)
 }
 
-fn join_url(base_url: &str, path: &str) -> String {
+pub(crate) fn join_url(base_url: &str, path: &str) -> String {
     format!("{}/{}", base_url.trim_end_matches('/'), path.trim_start_matches('/'))
 }
 
 /// The server answers errors as `{ "error": "..." }` with a 4xx status.
-fn parse_answer(status: u16, body: &str) -> Result<Value, String> {
+pub(crate) fn parse_answer(status: u16, body: &str) -> Result<Value, String> {
     let parsed = serde_json::from_str::<Value>(body);
     if let Ok(value) = &parsed
         && let Some(message) = value.get("error").and_then(Value::as_str)

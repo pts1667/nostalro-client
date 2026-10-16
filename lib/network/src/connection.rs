@@ -10,6 +10,14 @@ use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 
 const ZC_AID_PACKET_ID: u16 = 0x0283;
 
+/// One framed packet off the wire.
+pub enum Frame {
+    Game(Box<dyn Packet>),
+    /// A packet of the rust-ro login server that the generated parser does not
+    /// know, see [`crate::account`]; the raw bytes, header included.
+    Custom(Vec<u8>),
+}
+
 #[derive(Debug)]
 pub enum ConnectionError {
     Io(io::Error),
@@ -90,7 +98,7 @@ impl Connection {
     pub async fn recv_packets(
         &mut self,
         packetver: u32,
-    ) -> Result<Vec<Box<dyn Packet>>, ConnectionError> {
+    ) -> Result<Vec<Frame>, ConnectionError> {
         let mut buf = [0u8; 4096];
         let n = self.reader.read(&mut buf).await?;
         if n == 0 {
@@ -141,6 +149,9 @@ impl Connection {
             return FrameLen::Incomplete;
         }
         let id = [data[0], data[1]];
+        if let Some(len) = crate::account::frame_len(u16::from_le_bytes(id)) {
+            return FrameLen::Known(len);
+        }
         if packets_parser::is_variable_length(id, packetver) {
             if data.len() < 4 {
                 return FrameLen::Incomplete;
@@ -161,7 +172,7 @@ impl Connection {
         buffer: &mut Vec<u8>,
         packetver: u32,
         trace: PacketTrace,
-    ) -> Vec<Box<dyn Packet>> {
+    ) -> Vec<Frame> {
         let mut packets = Vec::new();
         let mut offset = 0;
 
@@ -203,6 +214,11 @@ impl Connection {
             }
 
             let parse_buf = &remaining[..expected];
+            if crate::account::frame_len(u16::from_le_bytes([parse_buf[0], parse_buf[1]])).is_some() {
+                packets.push(Frame::Custom(parse_buf.to_vec()));
+                offset += expected;
+                continue;
+            }
             match panic::catch_unwind(|| packets_parser::parse(parse_buf, packetver)) {
                 Ok(packet) => {
                     if packet.name() == "Unknown" {
@@ -219,7 +235,7 @@ impl Connection {
                                 remaining.len()
                             );
                         }
-                        packets.push(packet);
+                        packets.push(Frame::Game(packet));
                     }
                 }
                 Err(_) => {
@@ -255,6 +271,16 @@ mod tests {
     };
     use std::net::Ipv4Addr;
 
+    fn games(frames: Vec<Frame>) -> Vec<Box<dyn Packet>> {
+        frames
+            .into_iter()
+            .map(|frame| match frame {
+                Frame::Game(packet) => packet,
+                Frame::Custom(raw) => panic!("unexpected custom frame {raw:02x?}"),
+            })
+            .collect()
+    }
+
     fn greeting_stream(packetver: u32, aid_bytes: &[u8]) -> Vec<u8> {
         let mut enter = PacketZcAcceptEnter2::new(packetver);
         enter.set_x_size(5);
@@ -274,7 +300,7 @@ mod tests {
 
         let mut buffer = greeting_stream(packetver, &aid.raw);
         assert!(Connection::take_bare_aid_preamble(&mut buffer).is_none());
-        let framed = Connection::drain_packets(&mut buffer, packetver, PacketTrace::None);
+        let framed = games(Connection::drain_packets(&mut buffer, packetver, PacketTrace::None));
         assert_eq!(framed.len(), 2);
         assert_eq!(
             framed[0]
@@ -292,7 +318,7 @@ mod tests {
             Connection::take_bare_aid_preamble(&mut buffer),
             Some(2000000)
         );
-        let framed = Connection::drain_packets(&mut buffer, packetver, PacketTrace::None);
+        let framed = games(Connection::drain_packets(&mut buffer, packetver, PacketTrace::None));
         assert_eq!(framed.len(), 1);
         assert!(framed[0].as_any().is::<PacketZcAcceptEnter2>());
         assert!(buffer.is_empty());
@@ -316,7 +342,7 @@ mod tests {
         for stream in [fixed.raw.clone(), variable.raw.clone()] {
             for split in 1..stream.len() {
                 let mut buffer = stream[..split].to_vec();
-                let framed = Connection::drain_packets(&mut buffer, packetver, PacketTrace::None);
+                let framed = games(Connection::drain_packets(&mut buffer, packetver, PacketTrace::None));
                 assert!(
                     framed.is_empty(),
                     "parsed a packet from {split} of {} bytes",
@@ -325,7 +351,7 @@ mod tests {
                 assert_eq!(buffer.len(), split, "dropped bytes of an incomplete packet");
 
                 buffer.extend_from_slice(&stream[split..]);
-                let framed = Connection::drain_packets(&mut buffer, packetver, PacketTrace::None);
+                let framed = games(Connection::drain_packets(&mut buffer, packetver, PacketTrace::None));
                 assert_eq!(framed.len(), 1, "split at {split} did not reassemble");
                 assert_eq!(framed[0].raw(), &stream);
                 assert!(buffer.is_empty());
@@ -372,7 +398,7 @@ mod tests {
         assert!(Connection::drain_packets(&mut short, packetver, PacketTrace::None).is_empty());
 
         let mut buffer = stream.clone();
-        let framed = Connection::drain_packets(&mut buffer, packetver, PacketTrace::None);
+        let framed = games(Connection::drain_packets(&mut buffer, packetver, PacketTrace::None));
         assert_eq!(framed.len(), 1);
         let zonesvr = framed[0]
             .as_any()
@@ -394,8 +420,37 @@ mod tests {
         let mut buffer = time.raw.clone();
         buffer.extend_from_slice(&time.raw[..3]);
 
-        let framed = Connection::drain_packets(&mut buffer, packetver, PacketTrace::None);
+        let framed = games(Connection::drain_packets(&mut buffer, packetver, PacketTrace::None));
         assert_eq!(framed.len(), 1);
         assert_eq!(buffer, time.raw[..3]);
+    }
+
+    /// The login server's own answers are framed at their fixed length and
+    /// handed on raw, between the packets the parser knows.
+    #[test]
+    fn custom_login_answers_are_framed_raw() {
+        let packetver = 20120307;
+        let mut time = PacketZcNotifyTime::new(packetver);
+        time.set_time(7);
+        time.fill_raw_with_packetver(Some(packetver));
+        let info = [0xE3, 0xC3, 1, 0, 0x33, 0x0A, 0x33, 0x01];
+        let created = [0xE1, 0xC3, 0, 0x81, 0x84, 0x1E, 0x00];
+
+        let mut buffer = info[..5].to_vec();
+        assert!(Connection::drain_packets(&mut buffer, packetver, PacketTrace::None).is_empty());
+        buffer.extend_from_slice(&info[5..]);
+        buffer.extend_from_slice(&time.raw);
+        buffer.extend_from_slice(&created);
+
+        let framed = Connection::drain_packets(&mut buffer, packetver, PacketTrace::None);
+        assert!(buffer.is_empty());
+        match &framed[..] {
+            [Frame::Custom(a), Frame::Game(b), Frame::Custom(c)] => {
+                assert_eq!(a, &info);
+                assert!(b.as_any().is::<PacketZcNotifyTime>());
+                assert_eq!(c, &created);
+            }
+            _ => panic!("expected custom, game, custom frames"),
+        }
     }
 }

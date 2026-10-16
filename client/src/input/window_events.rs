@@ -562,9 +562,10 @@ impl App {
             return;
         }
 
-        // A focused chat box only swallows unmodified keys; Alt/Ctrl chords stay
-        // live while typing.
-        let typing = self.windows.chat_window.is_active()
+        // A focused chat box or forum text box only swallows unmodified keys;
+        // Alt/Ctrl chords stay live while typing.
+        let typing = (self.windows.chat_window.is_active()
+            || self.windows.forum_window.is_typing())
             && !self.input.alt_pressed
             && !self.input.ctrl_pressed;
         if typing || self.windows.system_menu.open {

@@ -73,6 +73,15 @@ ragnarok-ui-component-hot = { path = "tools/ui-component-hot" }
 ragnarok-audio = { path = "lib/audio" }
 libloading = "0.8"
 
+# Debug builds were ~35 GB with full debug info everywhere. Our own crates keep line tables (enough for panic
+# backtraces and stepping by line); dependencies get no debug info at all. Set `debug = true` here, or
+# `[profile.dev.package."*"] debug = true`, when a debugger needs locals inside a dependency.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
 
 #[patch."https://github.com/nmeylan/rust-ro.git"]
 #packets = { path = "../rust-ragnarok-server/lib/packets" }

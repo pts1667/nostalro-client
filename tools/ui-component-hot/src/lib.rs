@@ -21,7 +21,7 @@ use ragnarok_game::data_table::map_position_table::MapPositionTable;
 use ragnarok_game::data_table::skill_name_table::SkillNameTable;
 use ragnarok_game::data_table::skill_tree_table::{SkillTreeEntry, SkillTreeTable};
 use ragnarok_game::event::SkillInfo;
-use ragnarok_game::event::{CharacterInfo, GameEvent, ServerInfo, VendorItem};
+use ragnarok_game::event::{CharacterInfo, ForumRequest, GameEvent, ServerInfo, VendorItem};
 use ragnarok_game::friends::FriendList;
 use ragnarok_game::guild::{
     Guild, GuildBanEntry, GuildMember, GuildPosition, GuildRelation, GuildSkill,
@@ -38,7 +38,7 @@ use ragnarok_ui::text_input::TextInput;
 use ragnarok_ui_component::BuildCtx;
 use ragnarok_ui_component::account::char_create_window::{CHAR_CREATE_WINDOW_ID, CharCreateWindow};
 use ragnarok_ui_component::account::char_select_window::{CHAR_SELECT_WINDOW_ID, CharSelectWindow};
-use ragnarok_ui_component::account::login_window::{LOGIN_WINDOW_ID, LoginWindow};
+use ragnarok_ui_component::account::login_window::{LOGIN_WINDOW_ID, LoginMode, LoginWindow};
 use ragnarok_ui_component::account::server_list_window::{SERVER_LIST_WINDOW_ID, ServerListWindow};
 use ragnarok_ui_component::game::basic_info_window::{BASIC_INFO_WINDOW_ID, BasicInfoWindow};
 use ragnarok_ui_component::game::book_window::{BOOK_WINDOW_ID, BookWindow};
@@ -97,6 +97,7 @@ use ragnarok_ui_component::game::quest_window::{
 };
 use ragnarok_ui_component::game::read_mail_window::{READ_MAIL_WINDOW_ID, ReadMailWindow};
 use ragnarok_ui_component::game::reference_window::{REFERENCE_WINDOW_ID, ReferenceWindow};
+use ragnarok_ui_component::game::forum_window::{FORUM_WINDOW_ID, ForumWindow, PAGE_SIZE};
 use ragnarok_ui_component::game::shortcut_list_window::{
     SHORTCUT_LIST_WINDOW_ID, ShortcutListWindow,
 };
@@ -146,6 +147,7 @@ const GAME_COMPONENTS: &[&str] = &[
     "hotkey_config",
     "monster_info",
     "reference",
+    "forum",
 ];
 const MAP_COMPONENTS: &[&str] = &["world_map", "minimap"];
 const SOCIAL_COMPONENTS: &[&str] = &[
@@ -281,6 +283,11 @@ enum State {
     },
     Reference {
         win: ReferenceWindow,
+        character: Character,
+        data: DataTable,
+    },
+    Forum {
+        win: ForumWindow,
         character: Character,
         data: DataTable,
     },
@@ -565,6 +572,20 @@ fn wrap_texture_size_fn(f: TextureSizeFn) -> impl Fn(&str) -> Option<(u32, u32)>
     }
 }
 
+fn forum_fixture_threads() -> serde_json::Value {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() as i64);
+    serde_json::json!([
+        { "id": 3, "author": "Alice", "title": "Looking for a party in Glast Heim", "body": "",
+          "created_at": now - 300, "bumped": 9, "comments": 4 },
+        { "id": 2, "author": "Scout", "title": "Selling Elunium, 20k each", "body": "",
+          "created_at": now - 7200, "bumped": 7, "comments": 1 },
+        { "id": 1, "author": "Bob", "title": "Welcome to the forum!", "body": "",
+          "created_at": now - 3 * 86400, "bumped": 2, "comments": 0 }
+    ])
+}
+
 fn reference_fixture_categories() -> serde_json::Value {
     serde_json::json!({
         "categories": [
@@ -796,6 +817,19 @@ fn create_single(name: &str) -> State {
         "login" => State::Login {
             login: LoginWindow::new(),
         },
+        "login_register" => {
+            let mut login = LoginWindow::new();
+            login.set_mode(LoginMode::Accounts { registration: true });
+            login.registering = true;
+            login.username.text = "maker".to_string();
+            State::Login { login }
+        }
+        "login_no_account" => {
+            let mut login = LoginWindow::new();
+            login.set_mode(LoginMode::NoAccount);
+            login.username.text = "bot".to_string();
+            State::Login { login }
+        }
         "chat" => {
             let mut chat = ChatWindow::new();
             chat.active = true;
@@ -1200,6 +1234,28 @@ fn create_single(name: &str) -> State {
                 win,
                 character: Character::new(),
                 data,
+            }
+        }
+        "forum" => {
+            let mut win = ForumWindow::new();
+            win.toggle();
+            win.signed_in("Hero");
+            win.deliver(
+                &ForumRequest::Threads { before: None, limit: PAGE_SIZE },
+                Ok(forum_fixture_threads()),
+            );
+            win.add_notices(&[
+                serde_json::json!({ "event": "reply", "for": "Hero", "seq": 1, "kind": "thread_reply",
+                    "thread_id": 3, "comment_id": 7, "parent": null, "from": "Bob",
+                    "body": "I can tank, Lv 85 Crusader.", "created_at": 0 }),
+                serde_json::json!({ "event": "reply", "for": "Hero", "seq": 2, "kind": "comment_reply",
+                    "thread_id": 2, "comment_id": 9, "parent": 8, "from": "Scout",
+                    "body": "Still have 3 left.", "created_at": 0 }),
+            ]);
+            State::Forum {
+                win,
+                character: Character::new(),
+                data: DataTable::new(),
             }
         }
         "chat_room_create" => {
@@ -2170,6 +2226,8 @@ pub const SCENE_NAMES: &[&str] = &[
     "cart_select",
     "npc_shop",
     "login",
+    "login_register",
+    "login_no_account",
     "chat",
     "npc_dialog",
     "confirm_dialog",
@@ -2184,6 +2242,7 @@ pub const SCENE_NAMES: &[&str] = &[
     "book",
     "monster_info",
     "reference",
+    "forum",
     "chat_room_create",
     "emotion",
     "shortcut_list",
@@ -2416,6 +2475,7 @@ fn grf_init_single(
         State::Book { .. } => {}
         State::MonsterInfo { .. } => {}
         State::Reference { .. } => {}
+        State::Forum { .. } => {}
         State::ChatRoomCreate { .. } => {}
         State::Emotion { .. } => {}
         State::ShortcutList { .. } => {}
@@ -2510,6 +2570,7 @@ fn z_order_id(state: &State) -> Option<WidgetId> {
         State::Book { .. } => Some(BOOK_WINDOW_ID),
         State::MonsterInfo { .. } => Some(MONSTER_INFO_WINDOW_ID),
         State::Reference { .. } => Some(REFERENCE_WINDOW_ID),
+        State::Forum { .. } => Some(FORUM_WINDOW_ID),
         State::ChatRoomCreate { .. } => Some(CHAT_ROOM_CREATE_WINDOW_ID),
         State::Emotion { .. } => Some(EMOTION_WINDOW_ID),
         State::ShortcutList { .. } => Some(SHORTCUT_LIST_WINDOW_ID),
@@ -2554,6 +2615,7 @@ fn gallery_windows(state: &State) -> Vec<(WidgetId, (f32, f32))> {
         State::Book { win, .. } => Some((BOOK_WINDOW_ID, win)),
         State::MonsterInfo { win, .. } => Some((MONSTER_INFO_WINDOW_ID, win)),
         State::Reference { win, .. } => Some((REFERENCE_WINDOW_ID, win)),
+        State::Forum { win, .. } => Some((FORUM_WINDOW_ID, win)),
         State::ChatRoomCreate { win, .. } => Some((CHAT_ROOM_CREATE_WINDOW_ID, win)),
         State::Emotion { win, .. } => Some((EMOTION_WINDOW_ID, win)),
         State::ShortcutList { win, .. } => Some((SHORTCUT_LIST_WINDOW_ID, win)),
@@ -3343,6 +3405,13 @@ fn build_single(state: &mut State, ui: &mut UiFrame) {
             win.build(ui, &mut d.ctx(character, data));
         }
         State::Reference {
+            win,
+            character,
+            data,
+        } => {
+            win.build(ui, &mut d.ctx(character, data));
+        }
+        State::Forum {
             win,
             character,
             data,

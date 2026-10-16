@@ -83,6 +83,8 @@ impl App {
         self.check_pending_skill_unit_cast();
         self.poll_gr2_loads();
         self.poll_reference();
+        self.poll_forum();
+        self.poll_login_server();
         self.load_missing_entity_sprites();
         self.update_sprite_animation(delta);
         self.update_gr2_models(elapsed);

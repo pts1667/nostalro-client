@@ -23,6 +23,7 @@ serde_json = { workspace = true }
 winit = { workspace = true }
 tokio = { workspace = true }
 ureq = { version = "3", default-features = false, features = ["rustls"] }
+tungstenite = { version = "0.30.0", default-features = false, features = ["handshake", "rustls-tls-webpki-roots"] }
 
 [dev-dependencies]
 ragnarok-ui = { workspace = true, features = ["test-support"] }

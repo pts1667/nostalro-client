@@ -35,6 +35,7 @@ use ragnarok_ui_component::game::pet_window::PET_WINDOW_ID;
 use ragnarok_ui_component::game::quest_window::{QUEST_DETAIL_WINDOW_ID, QUEST_WINDOW_ID};
 use ragnarok_ui_component::game::read_mail_window::READ_MAIL_WINDOW_ID;
 use ragnarok_ui_component::game::reference_window::REFERENCE_WINDOW_ID;
+use ragnarok_ui_component::game::forum_window::FORUM_WINDOW_ID;
 use ragnarok_ui_component::game::shortcut_list_window::SHORTCUT_LIST_WINDOW_ID;
 use ragnarok_ui_component::game::skill_tree_window::SKILL_WINDOW_ID;
 use ragnarok_ui_component::game::sound_options::SOUND_OPTIONS_WINDOW_ID;
@@ -84,6 +85,7 @@ pub const ESC_WINDOW_NAMES: &[(&str, WidgetId)] = &[
     ("Book", BOOK_WINDOW_ID),
     ("Monster Info", MONSTER_INFO_WINDOW_ID),
     ("Database", REFERENCE_WINDOW_ID),
+    ("Forum", FORUM_WINDOW_ID),
     ("Sound", SOUND_OPTIONS_WINDOW_ID),
     ("Graphics", GRAPHIC_OPTIONS_WINDOW_ID),
     ("Hotkeys", HOTKEY_CONFIG_WINDOW_ID),

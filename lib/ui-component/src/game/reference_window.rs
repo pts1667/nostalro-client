@@ -651,7 +651,7 @@ impl InGameWindow for ReferenceWindow {
     }
 }
 
-fn quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
+pub(crate) fn quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
     if w <= 0.0 || h <= 0.0 {
         return;
     }
@@ -660,7 +660,7 @@ fn quad(ui: &mut UiFrame, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
 }
 
 /// Text cut off at `right` instead of spilling out of the list.
-fn clipped_text(ui: &mut UiFrame, x: f32, y: f32, text: &str, color: [f32; 4], right: f32) {
+pub(crate) fn clipped_text(ui: &mut UiFrame, x: f32, y: f32, text: &str, color: [f32; 4], right: f32) {
     let (vertices, indices) =
         draw::text_vertices_clipped(text, x, y, color, ui.atlas, f32::NEG_INFINITY, right);
     if !vertices.is_empty() {

@@ -1221,7 +1221,19 @@ impl App {
                     self.game.character.hotkeys.set_from_server(&slots);
                 }
                 GameEvent::Disconnected(reason) => {
-                    self.handle_disconnected(reason, event_loop);
+                    if !self.login_server_disconnected(&reason) {
+                        self.handle_disconnected(reason, event_loop);
+                    }
+                }
+                GameEvent::LoginServerInfo {
+                    accounts_required,
+                    account_creation,
+                    packetver,
+                } => {
+                    self.handle_login_server_info(accounts_required, account_creation, packetver);
+                }
+                GameEvent::AccountCreateResult { code, account_id } => {
+                    self.handle_account_create_result(code, account_id);
                 }
                 GameEvent::ActionFailure { error_code } => {
                     if error_code != chat::ARROWFAIL_SUCCESS {
@@ -1776,6 +1788,37 @@ impl App {
 }
 
 impl App {
+    /// Connects to the selected login server and sends `CA_LOGIN`.
+    pub(crate) fn start_login(&mut self, username: String, password: String) {
+        self.sound_queue.ui(ragnarok_game::sound::tables::ui::LOGIN);
+        self.config.keep_login_id = self.login_window.keep_id;
+        // The name as typed: a password-less login adds a sex suffix to the id.
+        self.config.saved_username = if self.login_window.keep_id {
+            self.login_window.username.text.clone()
+        } else {
+            String::new()
+        };
+        self.config.save("config.json");
+        self.login_credentials = Some((username.clone(), password.clone()));
+        // The login connection is the login's from here.
+        self.login_server.release();
+        self.account_dialog.show_message("Please wait...");
+        let Some(addr) = self.login_server_addr() else {
+            return;
+        };
+        self.channel.send_cmd(NetworkCommand::Connect {
+            addr,
+            expect_aid: false,
+        });
+        self.sound_queue
+            .ui(ragnarok_game::sound::tables::ui::BUTTON);
+        self.channel.send_packet(build_login_packet(
+            &username,
+            &password,
+            self.active_packetver,
+        ));
+    }
+
     pub(crate) fn handle_ui_events(
         &mut self,
         events: Vec<GameEvent>,
@@ -1785,31 +1828,12 @@ impl App {
         for event in events {
             match event {
                 GameEvent::RequestLogin { username, password } => {
-                    self.sound_queue.ui(ragnarok_game::sound::tables::ui::LOGIN);
-                    self.config.keep_login_id = self.login_window.keep_id;
-                    self.config.saved_username = if self.login_window.keep_id {
-                        username.clone()
-                    } else {
-                        String::new()
-                    };
-                    self.config.save("config.json");
-                    self.account_dialog.show_message("Please wait...");
-                    let Some(server) = self.config.login_servers.get(self.selected_login_server)
-                    else {
-                        continue;
-                    };
-                    let addr = format!("{}:{}", server.host, server.port);
-                    self.channel.send_cmd(NetworkCommand::Connect {
-                        addr,
-                        expect_aid: false,
-                    });
+                    self.start_login(username, password);
+                }
+                GameEvent::RequestCreateAccount { username, password, sex } => {
                     self.sound_queue
                         .ui(ragnarok_game::sound::tables::ui::BUTTON);
-                    self.channel.send_packet(build_login_packet(
-                        &username,
-                        &password,
-                        self.active_packetver,
-                    ));
+                    self.request_create_account(username, password, sex);
                 }
                 GameEvent::SelectLoginServer { index } => {
                     self.sound_queue
@@ -1936,6 +1960,7 @@ impl App {
                     self.char_create_window = None;
                     self.account_anims.clear();
                     self.game.session.login_session = None;
+                    self.login_credentials = None;
                     self.windows.system_menu.open = false;
                     self.channel.send_cmd(NetworkCommand::Disconnect);
                 }
@@ -2812,6 +2837,12 @@ impl App {
                 }
                 GameEvent::RequestReferenceTexture { path } => {
                     self.reference_textures.push_back(path);
+                }
+                GameEvent::ToggleForumWindow => {
+                    self.windows.forum_window.toggle();
+                }
+                GameEvent::RequestForum(request) => {
+                    self.request_forum(request);
                 }
                 GameEvent::TogglePartyWindow => {
                     self.windows.party_friends_window.open_party_tab();
