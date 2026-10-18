@@ -77,6 +77,7 @@ pub const ID_BLOCKS: &[IdBlock] = &[
     block("game/autofarm_window.rs", 6200, 6299),
     block("game/loot_filter_window.rs", 6300, 6399),
     block("game/forum_window.rs", 6400, 6499),
+    block("game/party_board_window.rs", 6500, 6599),
 ];
 
 #[cfg(test)]

@@ -176,6 +176,7 @@ Below what has been implemented and validated with rathena packetver 20120307
 - Chat room: creation, board, member window
 - Party & Friends window (combined tabbed)
 - Party helper window
+- Party board (Party window, Board): the server's party booking ads in a table (leader, level, place, wanted jobs, age), searched by place or by job (the server takes one or the other) and optionally near your level, ten to a page. Ads going up, changing and coming down show live. Double-click an ad or use Whisper to message its leader. "My ad" posts, changes or removes your own ad: a place and up to six wanted jobs; moving it to another place reposts it. Place names are the client's own list, sent as their index
 - Guild window (context menu, invite, members with head sprites, emblem, alliance, antagonist, announcement, expel dialog with reason)
 - Emblem picker window
 - Emotion selector window

@@ -51,6 +51,7 @@ pub mod movement;
 pub mod npc_dialog;
 pub mod npc_shop;
 pub mod party;
+pub mod party_booking;
 pub mod path;
 pub mod pet;
 pub mod pet_tables;

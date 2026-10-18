@@ -22,6 +22,7 @@ use ragnarok_game::data_table::skill_name_table::SkillNameTable;
 use ragnarok_game::data_table::skill_tree_table::{SkillTreeEntry, SkillTreeTable};
 use ragnarok_game::event::SkillInfo;
 use ragnarok_game::event::{CharacterInfo, ForumRequest, GameEvent, ServerInfo, VendorItem};
+use ragnarok_game::party_booking::{BookingAd, BookingNotice, job_slots};
 use ragnarok_game::friends::FriendList;
 use ragnarok_game::guild::{
     Guild, GuildBanEntry, GuildMember, GuildPosition, GuildRelation, GuildSkill,
@@ -98,6 +99,7 @@ use ragnarok_ui_component::game::quest_window::{
 use ragnarok_ui_component::game::read_mail_window::{READ_MAIL_WINDOW_ID, ReadMailWindow};
 use ragnarok_ui_component::game::reference_window::{REFERENCE_WINDOW_ID, ReferenceWindow};
 use ragnarok_ui_component::game::forum_window::{FORUM_WINDOW_ID, ForumWindow, PAGE_SIZE};
+use ragnarok_ui_component::game::party_board_window::{PARTY_BOARD_WINDOW_ID, PartyBoardWindow};
 use ragnarok_ui_component::game::shortcut_list_window::{
     SHORTCUT_LIST_WINDOW_ID, ShortcutListWindow,
 };
@@ -160,6 +162,7 @@ const SOCIAL_COMPONENTS: &[&str] = &[
     "mailbox",
     "read_mail",
     "trade",
+    "party_board",
 ];
 const CHAT_COMPONENTS: &[&str] = &[
     "chat",
@@ -288,6 +291,11 @@ enum State {
     },
     Forum {
         win: ForumWindow,
+        character: Character,
+        data: DataTable,
+    },
+    PartyBoard {
+        win: PartyBoardWindow,
         character: Character,
         data: DataTable,
     },
@@ -570,6 +578,27 @@ fn wrap_texture_size_fn(f: TextureSizeFn) -> impl Fn(&str) -> Option<(u32, u32)>
             None
         }
     }
+}
+
+fn party_board_fixture() -> Vec<BookingAd> {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() as u32);
+    let ad = |index: u32, leader: &str, level: i16, place: i16, jobs: &[i16], minutes: u32| BookingAd {
+        index,
+        leader: leader.to_string(),
+        posted: now - minutes * 60,
+        level,
+        place,
+        jobs: job_slots(jobs),
+    };
+    vec![
+        ad(1, "Valkyrie", 72, 13, &[8, 9, 11], 3),
+        ad(2, "Hero", 62, 22, &[8], 12),
+        ad(3, "Tanker", 55, 4, &[], 25),
+        ad(4, "Moonlight", 81, 34, &[8, 15, 16, 19, 20, 10], 48),
+        ad(5, "Scout", 40, 8, &[2, 3], 95),
+    ]
 }
 
 fn forum_fixture_threads() -> serde_json::Value {
@@ -1266,6 +1295,19 @@ fn create_single(name: &str) -> State {
             State::Forum {
                 win,
                 character: Character::new(),
+                data: DataTable::new(),
+            }
+        }
+        "party_board" => {
+            let mut win = PartyBoardWindow::new();
+            win.toggle();
+            win.deliver(BookingNotice::Results { ads: party_board_fixture(), more: true });
+            let mut character = Character::new();
+            character.name = "Hero".into();
+            character.base_level = 62;
+            State::PartyBoard {
+                win,
+                character,
                 data: DataTable::new(),
             }
         }
@@ -2254,6 +2296,7 @@ pub const SCENE_NAMES: &[&str] = &[
     "monster_info",
     "reference",
     "forum",
+    "party_board",
     "chat_room_create",
     "emotion",
     "shortcut_list",
@@ -2487,6 +2530,7 @@ fn grf_init_single(
         State::MonsterInfo { .. } => {}
         State::Reference { .. } => {}
         State::Forum { .. } => {}
+        State::PartyBoard { .. } => {}
         State::ChatRoomCreate { .. } => {}
         State::Emotion { .. } => {}
         State::ShortcutList { .. } => {}
@@ -2582,6 +2626,7 @@ fn z_order_id(state: &State) -> Option<WidgetId> {
         State::MonsterInfo { .. } => Some(MONSTER_INFO_WINDOW_ID),
         State::Reference { .. } => Some(REFERENCE_WINDOW_ID),
         State::Forum { .. } => Some(FORUM_WINDOW_ID),
+        State::PartyBoard { .. } => Some(PARTY_BOARD_WINDOW_ID),
         State::ChatRoomCreate { .. } => Some(CHAT_ROOM_CREATE_WINDOW_ID),
         State::Emotion { .. } => Some(EMOTION_WINDOW_ID),
         State::ShortcutList { .. } => Some(SHORTCUT_LIST_WINDOW_ID),
@@ -2627,6 +2672,7 @@ fn gallery_windows(state: &State) -> Vec<(WidgetId, (f32, f32))> {
         State::MonsterInfo { win, .. } => Some((MONSTER_INFO_WINDOW_ID, win)),
         State::Reference { win, .. } => Some((REFERENCE_WINDOW_ID, win)),
         State::Forum { win, .. } => Some((FORUM_WINDOW_ID, win)),
+        State::PartyBoard { win, .. } => Some((PARTY_BOARD_WINDOW_ID, win)),
         State::ChatRoomCreate { win, .. } => Some((CHAT_ROOM_CREATE_WINDOW_ID, win)),
         State::Emotion { win, .. } => Some((EMOTION_WINDOW_ID, win)),
         State::ShortcutList { win, .. } => Some((SHORTCUT_LIST_WINDOW_ID, win)),
@@ -3423,6 +3469,13 @@ fn build_single(state: &mut State, ui: &mut UiFrame) {
             win.build(ui, &mut d.ctx(character, data));
         }
         State::Forum {
+            win,
+            character,
+            data,
+        } => {
+            win.build(ui, &mut d.ctx(character, data));
+        }
+        State::PartyBoard {
             win,
             character,
             data,

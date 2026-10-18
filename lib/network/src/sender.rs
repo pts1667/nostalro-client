@@ -1685,3 +1685,44 @@ pub fn build_req_delete_related_guild(
     pkt.fill_raw();
     pkt.raw
 }
+
+/// A call of the party board, hand-encoded with the ids the server reads
+/// (0x0802, 0x0804, 0x0806, 0x0808) whatever the packet version.
+///
+/// - 0x0802 <level>.W <place>.W <jobs>.6W
+/// - 0x0804 <level>.W <place>.W <job>.W <from>.L <results>.W
+/// - 0x0806
+/// - 0x0808 <jobs>.6W
+pub fn build_party_booking_packet(request: &ragnarok_game::party_booking::BookingRequest) -> Vec<u8> {
+    use ragnarok_game::party_booking::{BookingRequest, RESULTS_PER_PAGE};
+    fn push(buf: &mut Vec<u8>, value: i16) {
+        buf.extend_from_slice(&value.to_le_bytes());
+    }
+    let mut buf = Vec::with_capacity(18);
+    match request {
+        BookingRequest::Register { level, place, jobs } => {
+            push(&mut buf, 0x0802);
+            push(&mut buf, *level);
+            push(&mut buf, *place);
+            for job in jobs {
+                push(&mut buf, *job);
+            }
+        }
+        BookingRequest::Search { filter, from } => {
+            push(&mut buf, 0x0804);
+            push(&mut buf, filter.level);
+            push(&mut buf, filter.place);
+            push(&mut buf, filter.job);
+            buf.extend_from_slice(&from.to_le_bytes());
+            push(&mut buf, RESULTS_PER_PAGE as i16);
+        }
+        BookingRequest::Delete => push(&mut buf, 0x0806),
+        BookingRequest::Update { jobs } => {
+            push(&mut buf, 0x0808);
+            for job in jobs {
+                push(&mut buf, *job);
+            }
+        }
+    }
+    buf
+}

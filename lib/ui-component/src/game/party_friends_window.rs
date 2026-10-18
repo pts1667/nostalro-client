@@ -22,6 +22,7 @@ const NAV_INVITE_ID: WidgetId = WidgetId(2014);
 const NAV_LEAVE_ID: WidgetId = WidgetId(2015);
 const NAV_LEADER_ID: WidgetId = WidgetId(2016);
 const NAV_ADD_ID: WidgetId = WidgetId(2017);
+const NAV_BOARD_ID: WidgetId = WidgetId(2018);
 const ROW_BASE_ID: u32 = 2030;
 
 const ONLINE_MARK: [f32; 4] = [0.30, 0.72, 0.36, 1.0];
@@ -39,6 +40,7 @@ const ROW_H: f32 = 24.0;
 const HP_BAR_W: f32 = 60.0;
 const HP_BAR_H: f32 = 5.0;
 const NAV_BTN_W: f32 = 26.0;
+const BOARD_BTN_W: f32 = 40.0;
 
 const MEMBER_COLOR: [f32; 4] = [0.0, 0.482, 0.482, 1.0];
 const LEADER_COLOR: [f32; 4] = [0.031, 0.192, 0.482, 1.0];
@@ -374,6 +376,15 @@ impl PartyFriendsWindow {
                 }
             }
             return events;
+        }
+
+        let board = Rect::new(x + WIN_W - 3.0 - BOARD_BTN_W, nav_y, BOARD_BTN_W, NAV_H);
+        let board_resp = ui.button(NAV_BOARD_ID, board, &rust_i18n::t!("party_friends.nav_board"));
+        if board_resp.hovered() {
+            ui.tooltip(ui.ctx.mouse_x, ui.ctx.mouse_y, &rust_i18n::t!("party_friends.nav_board_tip"));
+        }
+        if board_resp.clicked() {
+            events.push(GameEvent::TogglePartyBoard);
         }
 
         let has_party = party.map(|p| !p.members.is_empty()).unwrap_or(false);

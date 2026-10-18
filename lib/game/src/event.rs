@@ -1144,6 +1144,12 @@ pub enum GameEvent {
     ToggleForumWindow,
     /// The forum window calls the server's forum API.
     RequestForum(ForumRequest),
+    /// Opens or closes the party board.
+    TogglePartyBoard,
+    /// The party board asks the server something.
+    RequestPartyBooking(crate::party_booking::BookingRequest),
+    /// The server tells the party board something.
+    PartyBooking(crate::party_booking::BookingNotice),
     GraphicsSettingsChanged {
         ui_scale: f32,
         fullscreen: bool,

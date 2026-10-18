@@ -18,6 +18,7 @@ use ragnarok_ui_component::game::emotion_window::EMOTION_WINDOW_ID;
 use ragnarok_ui_component::game::equipment_window::EQ_WINDOW_ID;
 use ragnarok_ui_component::game::graphic_options::GRAPHIC_OPTIONS_WINDOW_ID;
 use ragnarok_ui_component::game::guild_window::GUILD_WINDOW_ID;
+use ragnarok_ui_component::game::party_board_window::PARTY_BOARD_WINDOW_ID;
 use ragnarok_ui_component::game::homun_skill_window::HOMUN_SKILL_WINDOW_ID;
 use ragnarok_ui_component::game::homun_window::HOMUN_WINDOW_ID;
 use ragnarok_ui_component::game::hotkey_config_window::HOTKEY_CONFIG_WINDOW_ID;
@@ -67,6 +68,7 @@ pub const ESC_WINDOW_NAMES: &[(&str, WidgetId)] = &[
     ("Read Mail", READ_MAIL_WINDOW_ID),
     ("Party", PARTY_FRIENDS_WINDOW_ID),
     ("Party Setup", PARTY_HELPER_WINDOW_ID),
+    ("Party Board", PARTY_BOARD_WINDOW_ID),
     ("Guild", GUILD_WINDOW_ID),
     ("Guild Emblem", EMBLEM_PICKER_WINDOW_ID),
     ("Quest", QUEST_WINDOW_ID),

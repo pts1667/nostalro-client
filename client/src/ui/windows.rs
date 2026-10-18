@@ -60,6 +60,7 @@ use ragnarok_ui_component::game::my_shop_window::MY_SHOP_WINDOW_ID;
 use ragnarok_ui_component::game::my_shop_window::MyShopWindow;
 use ragnarok_ui_component::game::npc_dialog::NpcDialog;
 use ragnarok_ui_component::game::npc_shop::NpcShop;
+use ragnarok_ui_component::game::party_board_window::{PARTY_BOARD_WINDOW_ID, PartyBoardWindow};
 use ragnarok_ui_component::game::party_friends_window::PARTY_FRIENDS_WINDOW_ID;
 use ragnarok_ui_component::game::party_friends_window::PartyFriendsWindow;
 use ragnarok_ui_component::game::party_helper_window::PARTY_HELPER_WINDOW_ID;
@@ -155,6 +156,7 @@ pub struct Windows {
     pub emblem_picker_window: EmblemPickerWindow,
     pub party_friends_window: PartyFriendsWindow,
     pub party_helper_window: PartyHelperWindow,
+    pub party_board_window: PartyBoardWindow,
     pub companion_ai_config_window: CompanionAiConfigWindow,
     pub homunculus_window: HomunWindow,
     pub mercenary_window: MercenaryWindow,
@@ -228,6 +230,7 @@ impl Windows {
             emblem_picker_window: EmblemPickerWindow::new(),
             party_friends_window: PartyFriendsWindow::new(),
             party_helper_window: PartyHelperWindow::new(),
+            party_board_window: PartyBoardWindow::new(),
             companion_ai_config_window: CompanionAiConfigWindow::new(),
             homunculus_window: HomunWindow::new(),
             mercenary_window: MercenaryWindow::new(),
@@ -338,6 +341,10 @@ pub(crate) const REGISTRY: &[(WidgetId, Dispatch)] = &[
     (
         PARTY_HELPER_WINDOW_ID,
         Dispatch::Trait(|w| &mut w.party_helper_window as &mut dyn InGameWindow),
+    ),
+    (
+        PARTY_BOARD_WINDOW_ID,
+        Dispatch::Trait(|w| &mut w.party_board_window as &mut dyn InGameWindow),
     ),
     (
         HOMUN_WINDOW_ID,

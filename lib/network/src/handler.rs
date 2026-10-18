@@ -21,12 +21,24 @@ use ragnarok_game::inventory::{EquipmentItemData, NormalItemData};
 use ragnarok_game::mail::{MailEntry, MailItem, OpenedMail};
 use ragnarok_game::minimap_mark::MarkAction;
 use ragnarok_game::monster_info::MonsterInfo;
+use ragnarok_game::party_booking::{BookingAd, BookingNotice};
 use ragnarok_game::quest::{QuestHuntEntry, QuestListEntry, QuestMissionData, QuestObjective};
 use ragnarok_game::show_digit::ShowDigitMode;
 use ragnarok_game::targeting::{MapKind, MapProperties};
 use tracing::debug;
 
 use crate::helpers::{decode_pos, decode_pos2};
+
+fn booking_ad(info: &PartyBookingAdInfo) -> BookingAd {
+    BookingAd {
+        index: info.index,
+        leader: info.char_name.iter().take_while(|c| **c != '\0').collect(),
+        posted: info.expire_time as u32,
+        level: info.detail.level,
+        place: info.detail.map_id,
+        jobs: info.detail.job,
+    }
+}
 
 fn server_info_from_addr(addr: &ServerAddr) -> ServerInfo {
     ServerInfo {
@@ -2643,6 +2655,31 @@ pub fn dispatch_packet(packet: &dyn Packet, packetver: u32) -> Vec<GameEvent> {
     }
     if any.downcast_ref::<PacketZcExchangeitemUndo>().is_some() {
         return vec![GameEvent::ExchangeUndo];
+    }
+
+    if let Some(p) = any.downcast_ref::<PacketZcPartyBookingAckRegister>() {
+        return vec![GameEvent::PartyBooking(BookingNotice::Registered { ok: p.result == 0 })];
+    }
+    if let Some(p) = any.downcast_ref::<PacketZcPartyBookingAckSearch>() {
+        return vec![GameEvent::PartyBooking(BookingNotice::Results {
+            ads: p.info.iter().map(booking_ad).collect(),
+            more: p.is_exist_more_result,
+        })];
+    }
+    if let Some(p) = any.downcast_ref::<PacketZcPartyBookingAckDelete>() {
+        return vec![GameEvent::PartyBooking(BookingNotice::Deleted { ok: p.result == 0 })];
+    }
+    if let Some(p) = any.downcast_ref::<PacketZcPartyBookingNotifyInsert>() {
+        return vec![GameEvent::PartyBooking(BookingNotice::Inserted(booking_ad(&p.info)))];
+    }
+    if let Some(p) = any.downcast_ref::<PacketZcPartyBookingNotifyUpdate>() {
+        return vec![GameEvent::PartyBooking(BookingNotice::Updated {
+            index: p.index,
+            jobs: [p.job1, p.job2, p.job3, p.job4, p.job5, p.job6],
+        })];
+    }
+    if let Some(p) = any.downcast_ref::<PacketZcPartyBookingNotifyDelete>() {
+        return vec![GameEvent::PartyBooking(BookingNotice::Removed { index: p.index })];
     }
 
     if let Some(p) = any.downcast_ref::<PacketZcMailWindows>() {
@@ -6547,5 +6584,119 @@ mod tests {
         }
         assert!(!friends.friends[0].online);
         assert!(friends.friends[1].online);
+    }
+
+    /// The bytes of an ad as the server writes them.
+    fn booking_ad_bytes(index: u32, name: &str, posted: u32, level: i16, place: i16, jobs: [i16; 6]) -> Vec<u8> {
+        let mut out = index.to_le_bytes().to_vec();
+        let mut raw_name = [0u8; 24];
+        raw_name[..name.len()].copy_from_slice(name.as_bytes());
+        out.extend_from_slice(&raw_name);
+        out.extend_from_slice(&posted.to_le_bytes());
+        out.extend_from_slice(&level.to_le_bytes());
+        out.extend_from_slice(&place.to_le_bytes());
+        for job in jobs {
+            out.extend_from_slice(&job.to_le_bytes());
+        }
+        out
+    }
+
+    fn dispatch_raw(raw: &[u8], packetver: u32) -> Vec<GameEvent> {
+        let id = [raw[0], raw[1]];
+        let framed = if packets::packets_parser::is_variable_length(id, packetver) {
+            u16::from_le_bytes([raw[2], raw[3]]) as usize
+        } else {
+            packets::packets_parser::packet_len(id, packetver).expect("known length")
+        };
+        assert_eq!(framed, raw.len(), "frame length of 0x{:02x}{:02x}", raw[1], raw[0]);
+        let parsed = packets::packets_parser::parse(raw, packetver);
+        dispatch_packet(parsed.as_ref(), packetver)
+    }
+
+    #[test]
+    fn party_board_replies_read_as_the_server_writes_them() {
+        use ragnarok_game::party_booking::{BookingAd, BookingNotice};
+        let packetver = 20111102;
+        let jobs = [8, 9, -1, -1, -1, -1];
+        let ad = BookingAd {
+            index: 7,
+            leader: "Leader".into(),
+            posted: 1_700_000_000,
+            level: 52,
+            place: 4,
+            jobs,
+        };
+        let ad_bytes = booking_ad_bytes(7, "Leader", 1_700_000_000, 52, 4, jobs);
+
+        let events = dispatch_raw(&[0x03, 0x08, 0, 0], packetver);
+        assert!(matches!(events.as_slice(), [GameEvent::PartyBooking(BookingNotice::Registered { ok: true })]));
+        let events = dispatch_raw(&[0x03, 0x08, 2, 0], packetver);
+        assert!(matches!(events.as_slice(), [GameEvent::PartyBooking(BookingNotice::Registered { ok: false })]));
+
+        let mut search = vec![0x05, 0x08];
+        search.extend_from_slice(&((5 + 2 * 48) as u16).to_le_bytes());
+        search.push(1);
+        search.extend_from_slice(&ad_bytes);
+        search.extend_from_slice(&booking_ad_bytes(9, "Other", 5, 10, 0, [-1; 6]));
+        let events = dispatch_raw(&search, packetver);
+        let [GameEvent::PartyBooking(BookingNotice::Results { ads, more })] = events.as_slice() else {
+            panic!("expected results, got {events:?}");
+        };
+        assert!(*more);
+        assert_eq!(ads.len(), 2);
+        assert_eq!(ads[0], ad);
+        assert_eq!(ads[1].leader, "Other");
+
+        let events = dispatch_raw(&[0x07, 0x08, 3, 0], packetver);
+        assert!(matches!(events.as_slice(), [GameEvent::PartyBooking(BookingNotice::Deleted { ok: false })]));
+
+        let mut insert = vec![0x09, 0x08];
+        insert.extend_from_slice(&ad_bytes);
+        let events = dispatch_raw(&insert, packetver);
+        assert!(matches!(events.as_slice(), [GameEvent::PartyBooking(BookingNotice::Inserted(got))] if *got == ad));
+
+        let mut update = vec![0x0a, 0x08];
+        update.extend_from_slice(&7u32.to_le_bytes());
+        for job in [7i16, -1, -1, -1, -1, -1] {
+            update.extend_from_slice(&job.to_le_bytes());
+        }
+        let events = dispatch_raw(&update, packetver);
+        assert!(matches!(
+            events.as_slice(),
+            [GameEvent::PartyBooking(BookingNotice::Updated { index: 7, jobs: [7, -1, -1, -1, -1, -1] })]
+        ));
+
+        let mut delete = vec![0x0b, 0x08];
+        delete.extend_from_slice(&7u32.to_le_bytes());
+        let events = dispatch_raw(&delete, packetver);
+        assert!(matches!(events.as_slice(), [GameEvent::PartyBooking(BookingNotice::Removed { index: 7 })]));
+    }
+
+    #[test]
+    fn party_board_requests_have_the_layout_the_server_reads() {
+        use crate::sender::build_party_booking_packet;
+        use ragnarok_game::party_booking::{BookingFilter, BookingRequest};
+        let register = build_party_booking_packet(&BookingRequest::Register {
+            level: 52,
+            place: 4,
+            jobs: [8, 9, -1, -1, -1, -1],
+        });
+        assert_eq!(register.len(), 18);
+        assert_eq!(&register[..6], &[0x02, 0x08, 52, 0, 4, 0]);
+        // The server reads the low byte of each job; an empty one reads 0xFF.
+        assert_eq!((register[6], register[8], register[10]), (8, 9, 0xFF));
+
+        let search = build_party_booking_packet(&BookingRequest::Search {
+            filter: BookingFilter { level: 60, place: 0, job: 8 },
+            from: 11,
+        });
+        assert_eq!(search, vec![0x04, 0x08, 60, 0, 0, 0, 8, 0, 11, 0, 0, 0, 10, 0]);
+
+        assert_eq!(build_party_booking_packet(&BookingRequest::Delete), vec![0x06, 0x08]);
+
+        let update = build_party_booking_packet(&BookingRequest::Update { jobs: [7, -1, -1, -1, -1, -1] });
+        assert_eq!(update.len(), 14);
+        assert_eq!(&update[..4], &[0x08, 0x08, 7, 0]);
+        assert_eq!(&update[4..6], &[0xFF, 0xFF]);
     }
 }

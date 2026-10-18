@@ -808,6 +808,9 @@ impl App {
                 GameEvent::MailDeleteAck { mail_id, ok } => {
                     self.handle_mail_delete_ack(mail_id, ok);
                 }
+                GameEvent::PartyBooking(notice) => {
+                    self.windows.party_board_window.deliver(notice);
+                }
                 GameEvent::MailGetItemAck { result } => {
                     self.handle_mail_get_item_ack(result);
                 }
@@ -2840,6 +2843,12 @@ impl App {
                 }
                 GameEvent::RequestForum(request) => {
                     self.request_forum(request);
+                }
+                GameEvent::TogglePartyBoard => {
+                    self.windows.party_board_window.toggle();
+                }
+                GameEvent::RequestPartyBooking(request) => {
+                    self.channel.send_packet(build_party_booking_packet(&request));
                 }
                 GameEvent::TogglePartyWindow => {
                     self.windows.party_friends_window.open_party_tab();
