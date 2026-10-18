@@ -41,7 +41,6 @@ pub const ID_BLOCKS: &[IdBlock] = &[
     block("game/book_window.rs", 2500, 2599),
     block("game/my_shop_window.rs", 2600, 2699),
     block("game/map_missing_window.rs", 2700, 2709),
-    block("game/levelup_notification_window.rs", 2710, 2799),
     block("game/sound_options.rs", 2800, 2899),
     block("game/homun_window.rs", 2900, 2909),
     block("game/homun_skill_window.rs", 2910, 2999),

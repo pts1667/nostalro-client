@@ -2783,9 +2783,6 @@ impl App {
                 GameEvent::QolSettingsChanged { options } => {
                     self.config.qol = options;
                     self.config.save("config.json");
-                    if !options.autofarm_enabled {
-                        self.stop_autofarm("Autofarm stopped: it was disabled in the settings.");
-                    }
                 }
                 GameEvent::ToggleAutofarm => {
                     self.toggle_autofarm();

@@ -1753,8 +1753,8 @@ impl App {
 
         if self.game.world.entities.player_id() == Some(gid) {
             match code {
-                0 | 7 | 9 => self.windows.levelup_notification.notify_base_level_up(),
-                1 | 8 => self.windows.levelup_notification.notify_job_level_up(),
+                0 | 7 | 9 => self.windows.basic_info_window.notify_base_level_up(),
+                1 | 8 => self.windows.basic_info_window.notify_job_level_up(),
                 _ => {}
             }
         }
@@ -2067,7 +2067,6 @@ impl App {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ragnarok_ui_component::game::levelup_notification_window::LevelUpClick::Job;
 
     #[test]
     fn weather_ids_dedup_but_fireworks_throw_stays_one_shot() {

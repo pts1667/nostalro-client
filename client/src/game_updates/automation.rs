@@ -21,17 +21,24 @@ use serde_json::Value;
 const VIEW_INSET: f32 = -0.05;
 
 impl App {
+    /// The autofarm hotkey: stops autofarm, but only starts it once the hotkey
+    /// is enabled in the Graphic Settings.
+    pub(crate) fn autofarm_hotkey(&mut self) {
+        if !self.game.automation.farm.active && !self.config.qol.autofarm_enabled {
+            self.windows.chat_window.add_system(
+                "The autofarm hotkey is off: tick \"Enable the autofarm hotkey\" in the \
+                 Graphic Settings, or use the toolbar button."
+                    .to_string(),
+            );
+            return;
+        }
+        self.toggle_autofarm();
+    }
+
     /// Starts autofarm, or stops it when it is running.
     pub(crate) fn toggle_autofarm(&mut self) {
         if self.game.automation.farm.active {
             self.stop_autofarm("Autofarm stopped.");
-            return;
-        }
-        if !self.config.qol.autofarm_enabled {
-            self.windows.chat_window.add_system(
-                "Autofarm is turned off: tick \"Enable autofarm\" in the Graphic Settings."
-                    .to_string(),
-            );
             return;
         }
         if self.game.session.app_state != AppState::InGame
@@ -102,6 +109,7 @@ impl App {
             .config
             .keybindings
             .get(HotkeyAction::ToggleAutofarm)
+            .filter(|_| self.config.qol.autofarm_enabled)
             .map(|chord| chord.display())
             .unwrap_or_default();
         if self.windows.qol_toolbar.hotkey != hotkey {

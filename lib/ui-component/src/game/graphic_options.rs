@@ -472,7 +472,7 @@ impl InGameWindow for GraphicOptionsWindow {
             15,
             AUTOFARM_CB_ID,
             x0,
-            "Enable autofarm (toolbar button and hotkey)",
+            "Enable the autofarm hotkey",
             &mut self.qol.autofarm_enabled,
         );
         let qol_changed = self.qol != before;

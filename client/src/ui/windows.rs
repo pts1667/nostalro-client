@@ -44,7 +44,6 @@ use ragnarok_ui_component::game::inventory_window::InventoryWindow;
 use ragnarok_ui_component::game::item_info_window::ItemInfoWindow;
 use ragnarok_ui_component::game::item_list_selection_window::ItemListSelectionWindow;
 use ragnarok_ui_component::game::item_pickup_notification::ItemPickupNotification;
-use ragnarok_ui_component::game::levelup_notification_window::LevelUpNotificationWindow;
 use ragnarok_ui_component::game::mailbox_window::MAILBOX_WINDOW_ID;
 use ragnarok_ui_component::game::mailbox_window::MailboxWindow;
 use ragnarok_ui_component::game::make_item_window::MAKE_ITEM_WINDOW_ID;
@@ -152,7 +151,6 @@ pub struct Windows {
     pub qol_toolbar: QolToolbar,
     pub autofarm_window: AutofarmWindow,
     pub loot_filter_window: LootFilterWindow,
-    pub levelup_notification: LevelUpNotificationWindow,
     pub guild_window: GuildWindow,
     pub emblem_picker_window: EmblemPickerWindow,
     pub party_friends_window: PartyFriendsWindow,
@@ -226,7 +224,6 @@ impl Windows {
             qol_toolbar: QolToolbar::new(),
             autofarm_window: AutofarmWindow::new(),
             loot_filter_window: LootFilterWindow::new(),
-            levelup_notification: LevelUpNotificationWindow::new(),
             guild_window: GuildWindow::new(),
             emblem_picker_window: EmblemPickerWindow::new(),
             party_friends_window: PartyFriendsWindow::new(),

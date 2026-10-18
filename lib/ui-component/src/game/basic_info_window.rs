@@ -2,6 +2,7 @@ use crate::helper::window_chrome::{draw_sys_button, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::character::{Character, job_class_name};
 use ragnarok_game::event::GameEvent;
+use ragnarok_ui::draw::{self, DrawCall, TextureRef};
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui::rect::Rect;
 
@@ -53,7 +54,11 @@ const MENU_BTN_SPACING_Y: f32 = 4.0;
 
 const SHADOW_DRAIN_SPEED: f32 = 3.0;
 
-
+/// Golden halo around a menu button with points waiting behind it.
+const GLOW_COLOR: [f32; 3] = [1.0, 0.8, 0.25];
+const GLOW_SPREAD: f32 = 3.0;
+/// Pulses per second.
+const GLOW_RATE: f32 = 1.2;
 
 pub struct BasicInfoWindow {
     hidden: bool,
@@ -62,6 +67,10 @@ pub struct BasicInfoWindow {
     sp_shadow: f32,
     menu_btn_size: (f32, f32),
     sys_btn_size: (f32, f32),
+    /// A base level was gained and the status window has not been opened since.
+    status_unseen: bool,
+    /// A job level was gained and the skill window has not been opened since.
+    skills_unseen: bool,
 }
 
 impl Default for BasicInfoWindow {
@@ -79,11 +88,40 @@ impl BasicInfoWindow {
             sp_shadow: 1.0,
             menu_btn_size: (MENU_BTN_W, MENU_BTN_H),
             sys_btn_size: (11.0, 11.0),
+            status_unseen: false,
+            skills_unseen: false,
         }
     }
 
     pub fn toggle(&mut self) {
         self.hidden = !self.hidden;
+    }
+
+    /// The Status button glows until the status window is opened, while
+    /// status points are left to spend.
+    pub fn notify_base_level_up(&mut self) {
+        self.status_unseen = true;
+    }
+
+    /// The Skills button glows until the skill window is opened, while skill
+    /// points are left to spend.
+    pub fn notify_job_level_up(&mut self) {
+        self.skills_unseen = true;
+    }
+
+    /// Called every frame with which of the two windows are open: an open
+    /// window puts out its button's glow.
+    pub fn note_open_windows(&mut self, status: bool, skills: bool) {
+        self.status_unseen &= !status;
+        self.skills_unseen &= !skills;
+    }
+
+    fn status_glows(&self, character: &Character) -> bool {
+        self.status_unseen && character.status_point > 0
+    }
+
+    fn skills_glow(&self, character: &Character) -> bool {
+        self.skills_unseen && character.skill_point > 0
     }
 
     fn update_shadow(shadow: &mut f32, current: f32, delta: f32) {
@@ -291,8 +329,13 @@ impl BasicInfoWindow {
             (BTN_CHAT_ID, col2_x, row_y(3), rust_i18n::t!("basic_info.menu_chat"), rust_i18n::t!("basic_info.tip_chat")),
         ];
 
+        let status_glows = self.status_glows(character);
+        let skills_glow = self.skills_glow(character);
         for (id, bx, by, label, tooltip_text) in menu_buttons {
             let rect = Rect::new(bx, by, btn_w, btn_h);
+            if (id == BTN_STATUS_ID && status_glows) || (id == BTN_SKILL_ID && skills_glow) {
+                draw_glow(ui, rect);
+            }
             let resp = ui.button(id, rect, &label);
             if resp.clicked() {
                 match id {
@@ -341,6 +384,10 @@ impl BasicInfoWindow {
             self.sys_btn_size.0,
             self.sys_btn_size.1,
         );
+        // The menu buttons are folded away: the restore button glows for them.
+        if self.status_glows(character) || self.skills_glow(character) {
+            draw_glow(ui, mini_rect);
+        }
         let mini_resp = ui.interact(MINI_BTN_ID, mini_rect);
         if mini_resp.hovered() {
             ui.any_interactive_hovered = true;
@@ -410,6 +457,31 @@ impl InGameWindow for BasicInfoWindow {
     }
 }
 
+/// A pulsing halo just outside `rect`; drawn before the button so the button
+/// covers its middle.
+fn draw_glow(ui: &mut UiFrame, rect: Rect) {
+    let secs = ui.ctx.now_ms as f32 / 1000.0;
+    let pulse = 0.55 + 0.45 * (secs * GLOW_RATE * std::f32::consts::TAU).sin();
+    let [r, g, b] = GLOW_COLOR;
+    for layer in 1..=3 {
+        let spread = GLOW_SPREAD * layer as f32 / 3.0;
+        let alpha = pulse * 0.5 / layer as f32;
+        let (v, i) = draw::rounded_rect(
+            rect.x - spread,
+            rect.y - spread,
+            rect.w + spread * 2.0,
+            rect.h + spread * 2.0,
+            3.0 + spread,
+            [r, g, b, alpha],
+        );
+        ui.draw_calls.push(DrawCall {
+            vertices: v,
+            indices: i,
+            texture: TextureRef::White,
+        });
+    }
+}
+
 fn format_zeny(value: i32) -> String {
     if value < 0 {
         return format!("-{}", format_zeny(-value));
@@ -423,4 +495,74 @@ fn format_zeny(value: i32) -> String {
         result.push(ch);
     }
     result.chars().rev().collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ragnarok_game::data_table::DataTable;
+    use ragnarok_ui::context::UiContext;
+    use ragnarok_ui::state::StateCache;
+    use ragnarok_ui::test_support::test_frame;
+
+    fn draw_calls(win: &mut BasicInfoWindow, character: &mut Character) -> usize {
+        let mut ctx = UiContext::new(800.0, 600.0);
+        let mut state = StateCache::new();
+        let mut ui = test_frame(&mut ctx, &mut state);
+        let data = DataTable::new();
+        win.build(&mut ui, &mut BuildCtx::test(character, &data));
+        ui.draw_calls.len()
+    }
+
+    #[test]
+    fn a_level_up_lights_its_button_while_points_are_left() {
+        let mut win = BasicInfoWindow::new();
+        let mut character = Character::new();
+        character.status_point = 3;
+        character.skill_point = 1;
+        assert!(!win.status_glows(&character) && !win.skills_glow(&character));
+
+        win.notify_base_level_up();
+        assert!(win.status_glows(&character));
+        assert!(!win.skills_glow(&character), "a base level is not a job level");
+        win.notify_job_level_up();
+        assert!(win.skills_glow(&character));
+
+        character.status_point = 0;
+        assert!(!win.status_glows(&character), "nothing left to spend");
+    }
+
+    #[test]
+    fn opening_the_window_puts_the_glow_out_for_good() {
+        let mut win = BasicInfoWindow::new();
+        let mut character = Character::new();
+        character.status_point = 3;
+        character.skill_point = 1;
+        win.notify_base_level_up();
+        win.notify_job_level_up();
+
+        win.note_open_windows(true, false);
+        assert!(!win.status_glows(&character));
+        assert!(win.skills_glow(&character), "the skill window is still unopened");
+        win.note_open_windows(false, false);
+        assert!(!win.status_glows(&character), "closing it again does not relight it");
+        win.note_open_windows(false, true);
+        assert!(!win.skills_glow(&character));
+    }
+
+    #[test]
+    fn the_glow_is_drawn_open_and_folded() {
+        let mut character = Character::new();
+        character.status_point = 3;
+        let mut win = BasicInfoWindow::new();
+        let plain = draw_calls(&mut win, &mut character);
+        win.notify_base_level_up();
+        assert!(draw_calls(&mut win, &mut character) > plain);
+
+        let mut folded = BasicInfoWindow::new();
+        folded.minimized = true;
+        let plain = draw_calls(&mut folded, &mut character);
+        folded.notify_base_level_up();
+        assert!(draw_calls(&mut folded, &mut character) > plain);
+    }
 }

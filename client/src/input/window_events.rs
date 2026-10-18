@@ -681,7 +681,7 @@ impl App {
             }
             HotkeyAction::CycleMinimap => self.windows.minimap_window.cycle_visibility(),
             HotkeyAction::ToggleWorldMap => self.windows.world_map_window.toggle(),
-            HotkeyAction::ToggleAutofarm => self.toggle_autofarm(),
+            HotkeyAction::ToggleAutofarm => self.autofarm_hotkey(),
             HotkeyAction::MercenaryFollow => {
                 if self.has_mercenary() {
                     self.push_owner_command_to(

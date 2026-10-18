@@ -1,6 +1,7 @@
 //! A small toolbar in the bottom-right corner that gathers the quality-of-life
-//! features: the autofarm switch, its settings and the loot filter. The strip
-//! above the buttons is the drag handle; the last button folds it away.
+//! features: the autofarm switch, its settings, the auto-loot switch and the
+//! loot filter. The strip above the buttons is the drag handle; the last
+//! button folds it away.
 
 use crate::helper::window_chrome::text_color;
 use crate::{BuildCtx, InGameWindow, Window};
@@ -15,6 +16,7 @@ const FARM_BTN_ID: WidgetId = WidgetId(6101);
 const SETUP_BTN_ID: WidgetId = WidgetId(6102);
 const FILTER_BTN_ID: WidgetId = WidgetId(6103);
 const FOLD_BTN_ID: WidgetId = WidgetId(6104);
+const LOOT_BTN_ID: WidgetId = WidgetId(6105);
 
 const GRIP_H: f32 = 6.0;
 const BTN_H: f32 = 20.0;
@@ -76,18 +78,39 @@ impl QolToolbar {
         text
     }
 
+    fn loot_label(&self) -> &'static str {
+        if self.qol.auto_loot {
+            "Auto-loot: ON"
+        } else {
+            "Auto-loot: OFF"
+        }
+    }
+
     /// The buttons that show, left to right, as (id, label).
     fn buttons(&self) -> Vec<(WidgetId, &'static str)> {
         if self.qol.toolbar_minimized {
             return Vec::new();
         }
-        let mut buttons = Vec::new();
-        if self.qol.autofarm_enabled {
-            buttons.push((FARM_BTN_ID, self.farm_label()));
-            buttons.push((SETUP_BTN_ID, "Setup"));
+        vec![
+            (FARM_BTN_ID, self.farm_label()),
+            (SETUP_BTN_ID, "Setup"),
+            (LOOT_BTN_ID, self.loot_label()),
+            (FILTER_BTN_ID, "Loot filter"),
+        ]
+    }
+
+    fn is_on(&self, id: WidgetId) -> bool {
+        match id {
+            FARM_BTN_ID => self.farm_active,
+            LOOT_BTN_ID => self.qol.auto_loot,
+            _ => false,
         }
-        buttons.push((FILTER_BTN_ID, "Loot filter"));
-        buttons
+    }
+
+    fn loot_events(&self) -> Vec<GameEvent> {
+        let mut options = self.qol;
+        options.auto_loot = !options.auto_loot;
+        vec![GameEvent::QolSettingsChanged { options }]
     }
 
     fn width(&self, ui: &UiFrame) -> f32 {
@@ -185,7 +208,7 @@ impl InGameWindow for QolToolbar {
             let rect = Rect::new(x, y, w, BTN_H);
             x += w + GAP;
             let resp = ui.button(id, rect, "");
-            if id == FARM_BTN_ID && self.farm_active {
+            if self.is_on(id) {
                 tint(ui, rect, ON_TINT);
             }
             let text_w = ui.atlas.measure_text(label);
@@ -199,22 +222,27 @@ impl InGameWindow for QolToolbar {
                 let tip = match id {
                     FARM_BTN_ID => self.farm_tooltip(),
                     SETUP_BTN_ID => "When autofarm stops, flees, heals and returns".to_string(),
+                    LOOT_BTN_ID if self.qol.auto_loot => {
+                        "Click to stop picking up nearby items on your own".to_string()
+                    }
+                    LOOT_BTN_ID => "Click to pick up items within 6 cells while idle".to_string(),
                     _ => "What auto-loot and autofarm pick up, by rarity and type".to_string(),
                 };
                 draw_tooltip(ui, rect, &tip);
             }
             if resp.clicked() {
-                events.push(match id {
-                    FARM_BTN_ID => GameEvent::ToggleAutofarm,
-                    SETUP_BTN_ID => GameEvent::ToggleAutofarmWindow,
-                    _ => GameEvent::ToggleLootFilterWindow,
-                });
+                match id {
+                    FARM_BTN_ID => events.push(GameEvent::ToggleAutofarm),
+                    SETUP_BTN_ID => events.push(GameEvent::ToggleAutofarmWindow),
+                    LOOT_BTN_ID => events.extend(self.loot_events()),
+                    _ => events.push(GameEvent::ToggleLootFilterWindow),
+                }
             }
         }
 
         let fold = Rect::new(win.x + width - PAD - FOLD_W, y, FOLD_W, BTN_H);
         let resp = ui.button(FOLD_BTN_ID, fold, "");
-        if self.qol.toolbar_minimized && self.farm_active {
+        if self.qol.toolbar_minimized && (self.farm_active || self.qol.auto_loot) {
             tint(ui, fold, ON_TINT);
         }
         let glyph = if self.qol.toolbar_minimized { "+" } else { "-" };
@@ -305,30 +333,47 @@ mod tests {
     }
 
     #[test]
-    fn autofarm_buttons_only_show_once_it_is_enabled() {
-        let off = QolToolbar::new();
-        assert_eq!(off.buttons().iter().map(|b| b.0).collect::<Vec<_>>(), [FILTER_BTN_ID]);
-        let on = enabled();
+    fn every_switch_shows_without_the_autofarm_hotkey_setting() {
+        let toolbar = QolToolbar::new();
+        assert!(!toolbar.qol.autofarm_enabled);
         assert_eq!(
-            on.buttons().iter().map(|b| b.0).collect::<Vec<_>>(),
-            [FARM_BTN_ID, SETUP_BTN_ID, FILTER_BTN_ID]
+            toolbar.buttons().iter().map(|b| b.0).collect::<Vec<_>>(),
+            [FARM_BTN_ID, SETUP_BTN_ID, LOOT_BTN_ID, FILTER_BTN_ID]
         );
     }
 
     #[test]
     fn each_button_asks_for_its_own_thing() {
-        let mut toolbar = enabled();
-        for (n, expected) in [(0, "farm"), (1, "setup"), (2, "filter")] {
+        let mut toolbar = QolToolbar::new();
+        for (n, expected) in [(0, "farm"), (1, "setup"), (2, "loot"), (3, "filter")] {
             let (x, y) = button_centre(&mut toolbar, n);
             let mut state = StateCache::new();
             let events = build_at(&mut toolbar, &mut state, Some((x, y)));
             let got = match events.as_slice() {
                 [GameEvent::ToggleAutofarm] => "farm",
                 [GameEvent::ToggleAutofarmWindow] => "setup",
+                [GameEvent::QolSettingsChanged { options }] if options.auto_loot => "loot",
                 [GameEvent::ToggleLootFilterWindow] => "filter",
                 other => panic!("button {n}: {other:?}"),
             };
             assert_eq!(got, expected);
+        }
+    }
+
+    #[test]
+    fn the_loot_switch_flips_auto_loot_and_keeps_the_rest() {
+        let mut toolbar = enabled();
+        toolbar.qol.auto_loot = true;
+        assert_eq!(toolbar.loot_label(), "Auto-loot: ON");
+        assert!(toolbar.is_on(LOOT_BTN_ID));
+        let (x, y) = button_centre(&mut toolbar, 2);
+        let mut state = StateCache::new();
+        match build_at(&mut toolbar, &mut state, Some((x, y))).as_slice() {
+            [GameEvent::QolSettingsChanged { options }] => {
+                assert!(!options.auto_loot);
+                assert!(options.autofarm_enabled);
+            }
+            other => panic!("{other:?}"),
         }
     }
 

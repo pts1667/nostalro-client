@@ -607,17 +607,27 @@ fn reference_fixture_item() -> serde_json::Value {
         "sell": 25,
         "slots": 0,
         "stackable": true,
-        "description": "A potion made from red herbs. It restores a small amount of HP when used and can be bought from any Tool Dealer in the major towns.",
+        "description": {
+            "identified": [
+                "A potion made from grinded Red Herbs.",
+                "Restores a small amount of HP when used.",
+                "Class: Restorative",
+                "Heal: 45 - 65 HP",
+                "Weight: 7"
+            ],
+            "unidentified": ["Potion"]
+        },
         "dropped_by": [
-            { "mob": { "id": 1002, "name": "Poring", "href": "/db/mobs/1002" }, "rate": 7 },
-            { "mob": { "id": 1113, "name": "Drops", "href": "/db/mobs/1113" }, "rate": 4 },
-            { "mob": { "id": 1031, "name": "Poporing", "href": "/db/mobs/1031" }, "rate": 2 },
-            { "mob": { "id": 1063, "name": "Lunatic", "href": "/db/mobs/1063" }, "rate": 9 }
+            { "mob": { "id": 1002, "name": "Poring", "href": "/db/mobs/1002" }, "rate": 700, "mvp": false, "card": false },
+            { "mob": { "id": 1113, "name": "Drops", "href": "/db/mobs/1113" }, "rate": 400, "mvp": false, "card": false },
+            { "mob": { "id": 1031, "name": "Poporing", "href": "/db/mobs/1031" }, "rate": 200, "mvp": false, "card": false },
+            { "mob": { "id": 1063, "name": "Lunatic", "href": "/db/mobs/1063" }, "rate": 900, "mvp": false, "card": false }
         ],
-        "sold_by": [
-            { "id": 0, "name": "Tool Dealer", "href": "/db/npcs/prontera/Tool%20Dealer" }
+        "sold_at": [
+            { "npc": { "id": null, "name": "Tool Dealer", "href": "/db/npcs/prontera/Tool%20Dealer" }, "map": { "id": null, "name": "prontera", "href": "/db/maps/prontera" }, "x": 134, "y": 221, "price": 50 },
+            { "npc": { "id": null, "name": "Tool Dealer", "href": "/db/npcs/payon/Tool%20Dealer" }, "map": { "id": null, "name": "payon", "href": "/db/maps/payon" }, "x": 159, "y": 96, "price": 50 }
         ],
-        "metadata": { "route": "heal", "heal_hp": "45~65" }
+        "script_metadata": { "dynamic": false, "calls": ["percentheal"], "reads": [], "interactive": false }
     })
 }
 
@@ -1222,6 +1232,7 @@ fn create_single(name: &str) -> State {
             win.open_at("/db/items/501");
             win.deliver("/db", Ok(reference_fixture_categories()));
             win.deliver("/db/items/501", Ok(reference_fixture_item()));
+            win.open_section("/db/items/501", "dropped_by");
             // The icon the client would have loaded for the item.
             let icon = "빨간포션";
             let mut data = DataTable::new();

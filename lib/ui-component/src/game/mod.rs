@@ -28,7 +28,6 @@ pub mod inventory_window;
 pub mod item_info_window;
 pub mod item_list_selection_window;
 pub mod item_pickup_notification;
-pub mod levelup_notification_window;
 pub mod loot_filter_window;
 pub mod mailbox_window;
 pub mod make_item_window;

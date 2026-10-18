@@ -53,7 +53,8 @@ pub struct QolOptions {
     pub auto_loot_pause_when_heavy: bool,
     /// Coloured glow around rare items on the floor.
     pub rare_item_glow: bool,
-    /// Whether autofarm is available at all: its toolbar button and hotkey.
+    /// Whether the autofarm hotkey starts autofarm. The toolbar button always
+    /// does; the hotkey is opt-in so a stray key press cannot start it.
     pub autofarm_enabled: bool,
     /// The QoL toolbar shows only its restore button.
     pub toolbar_minimized: bool,

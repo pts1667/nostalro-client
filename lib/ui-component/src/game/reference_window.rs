@@ -5,10 +5,14 @@
 //! [`GameEvent::RequestReference`] and the client hands the answer back through
 //! [`ReferenceWindow::deliver`], so the same code runs in the gallery and the
 //! game. Entries differ per category, so a page is rendered generically from its
-//! JSON: scalars become `label: value` rows and every `{ id, name, href }` link
-//! the server emits becomes a clickable row that opens the linked entry.
+//! JSON: scalars become `label: value` rows, every `{ id, name, href }` link the
+//! server emits becomes a clickable row that opens the linked entry, lists of
+//! flat records become tables, and every nested object, list and table sits in
+//! a section that opens and closes. Sections start closed; what was opened is
+//! remembered per page.
 
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use crate::game::context_menu::info_menu;
 use crate::helper::scrollbar::{SCROLLBAR_W, ScrollbarIds, scrollbar};
@@ -40,7 +44,11 @@ const RETRY_BTN_ID: WidgetId = WidgetId(6009);
 const SCROLL_UP_ID: WidgetId = WidgetId(6010);
 const SCROLL_DOWN_ID: WidgetId = WidgetId(6011);
 const SCROLL_THUMB_ID: WidgetId = WidgetId(6012);
+const EXPAND_ALL_BTN_ID: WidgetId = WidgetId(6013);
+/// Clickable rows, section headers and table cells on show take ids from here
+/// on, up to the end of the window's block.
 const LINK_ROW_BASE_ID: u32 = 6020;
+const LINK_SLOTS: u32 = 80;
 
 const WIN_W: f32 = 480.0;
 const TITLE_H: f32 = 17.0;
@@ -69,6 +77,19 @@ const BANNER_BOX: f32 = 40.0;
 /// Largest enlargement of a small picture in the banner.
 const BANNER_MAX_SCALE: f32 = 1.6;
 
+/// A section header: the open/close box, the title and the count.
+const HEADER_H: f32 = 19.0;
+const TOGGLE_BOX: f32 = 9.0;
+const TABLE_HEAD_H: f32 = 18.0;
+const TABLE_ROW_H: f32 = 17.0;
+/// A table row with a picture in it.
+const TABLE_ICON_ROW_H: f32 = 22.0;
+const TABLE_ICON: f32 = 20.0;
+/// Space between a cell's border and its text.
+const CELL_PAD: f32 = 5.0;
+/// Space left under the last row of a table.
+const TABLE_GAP: f32 = 4.0;
+
 /// Results asked of a category per page; the server allows up to 200.
 const PAGE_SIZE: usize = 100;
 /// Back/forward history kept, oldest dropped first.
@@ -81,6 +102,10 @@ const LINK_COLOR: [f32; 4] = [0.10, 0.25, 0.75, 1.0];
 const HOVER_ROW: [f32; 4] = [0.78, 0.86, 1.0, 0.7];
 const MUTED_COLOR: [f32; 4] = [0.45, 0.47, 0.55, 1.0];
 const ERROR_COLOR: [f32; 4] = [0.75, 0.12, 0.12, 1.0];
+const HEADER_FILL: [f32; 4] = [0.89, 0.92, 0.98, 1.0];
+const TABLE_HEAD_FILL: [f32; 4] = [0.82, 0.88, 0.97, 1.0];
+const TABLE_STRIPE: [f32; 4] = [0.95, 0.96, 0.99, 1.0];
+const TABLE_RULE: [f32; 4] = [0.85, 0.87, 0.92, 1.0];
 
 /// What a picture stands for. It is turned into a texture path when drawn,
 /// because that needs the client's data tables.
@@ -93,14 +118,14 @@ enum IconRef {
     Mob(u16),
 }
 
-/// One row of a page.
+/// One plain row of a page: a value, a link or the banner.
 #[derive(Clone, Debug, PartialEq)]
 struct Line {
+    /// Set when the page is laid out, from how deep in sections the line sits.
     indent: u8,
     label: Option<String>,
     text: String,
     link: Option<String>,
-    heading: bool,
     icon: Option<IconRef>,
     /// The large picture and name that open an entry.
     banner: bool,
@@ -109,20 +134,16 @@ struct Line {
 }
 
 impl Line {
-    fn value(indent: u8, label: Option<String>, text: String) -> Self {
-        Self { indent, label, text, link: None, heading: false, icon: None, banner: false, no_pack: false }
+    fn value(label: Option<String>, text: String) -> Self {
+        Self { indent: 0, label, text, link: None, icon: None, banner: false, no_pack: false }
     }
 
-    fn link(indent: u8, label: Option<String>, text: String, href: String) -> Self {
-        Self { link: Some(href), ..Self::value(indent, label, text) }
-    }
-
-    fn heading(indent: u8, text: String) -> Self {
-        Self { heading: true, ..Self::value(indent, None, text) }
+    fn link(label: Option<String>, text: String, href: String) -> Self {
+        Self { link: Some(href), ..Self::value(label, text) }
     }
 
     fn banner(icon: IconRef, text: String) -> Self {
-        Self { icon: Some(icon), banner: true, ..Self::value(0, None, text) }
+        Self { icon: Some(icon), banner: true, ..Self::value(None, text) }
     }
 
     fn with_icon(mut self, icon: Option<IconRef>) -> Self {
@@ -146,6 +167,47 @@ impl Line {
     }
 }
 
+/// One cell of a table.
+#[derive(Clone, Debug, PartialEq)]
+struct Cell {
+    text: String,
+    link: Option<String>,
+    icon: Option<IconRef>,
+}
+
+impl Cell {
+    fn text(text: impl Into<String>) -> Self {
+        Self { text: text.into(), link: None, icon: None }
+    }
+}
+
+/// A part of a page that opens and closes, found again by `key`.
+#[derive(Clone, Debug, PartialEq)]
+struct Section {
+    key: String,
+    title: String,
+    count: Option<usize>,
+    open_by_default: bool,
+    children: Vec<Node>,
+}
+
+/// Records sharing their fields, one per row.
+#[derive(Clone, Debug, PartialEq)]
+struct Table {
+    key: String,
+    title: String,
+    columns: Vec<String>,
+    rows: Vec<Vec<Cell>>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+enum Node {
+    Line(Line),
+    Section(Section),
+    /// Opens and closes like a section, under its title.
+    Table(Table),
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Paging {
     total: usize,
@@ -154,29 +216,100 @@ struct Paging {
 }
 
 struct Page {
-    lines: Vec<Line>,
+    nodes: Vec<Node>,
     paging: Option<Paging>,
-    /// `lines` wrapped and set side by side; built on first draw, when the
-    /// font is at hand to measure with.
+    /// The open parts of `nodes` laid out; built on draw, when the font is at
+    /// hand to measure with, and again after a section opens or closes.
     rows: Option<Vec<Row>>,
 }
 
 impl Page {
-    fn new(lines: Vec<Line>, paging: Option<Paging>) -> Self {
-        Self { lines, paging, rows: None }
+    fn new(nodes: Vec<Node>, paging: Option<Paging>) -> Self {
+        Self { nodes, paging, rows: None }
+    }
+
+    /// Every section and table, with whether it starts open.
+    fn sections(&self) -> Vec<(String, bool)> {
+        fn walk(nodes: &[Node], out: &mut Vec<(String, bool)>) {
+            for node in nodes {
+                match node {
+                    Node::Line(_) => {}
+                    Node::Section(s) => {
+                        out.push((s.key.clone(), s.open_by_default));
+                        walk(&s.children, out);
+                    }
+                    Node::Table(t) => out.push((t.key.clone(), false)),
+                }
+            }
+        }
+        let mut out = Vec::new();
+        walk(&self.nodes, &mut out);
+        out
     }
 }
 
-/// One or two lines shown side by side.
+/// A section's header as laid out.
 #[derive(Clone, Debug, PartialEq)]
-struct Row {
-    cells: Vec<Line>,
+struct Header {
+    key: String,
+    title: String,
+    count: Option<usize>,
+    indent: u8,
+    open: bool,
+}
+
+/// Where a laid-out table's columns stand.
+#[derive(Clone, Debug, PartialEq)]
+struct Grid {
+    indent: u8,
+    columns: Vec<Column>,
+    row_h: f32,
+    rows: usize,
+}
+
+impl Grid {
+    fn width(&self) -> f32 {
+        self.columns.iter().map(|c| c.w).sum()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct Column {
+    title: String,
+    /// From the table's left edge.
+    x: f32,
+    w: f32,
+    /// Numbers only: set against the right edge.
+    numeric: bool,
+}
+
+/// One row of the list as drawn.
+#[derive(Clone, Debug, PartialEq)]
+enum Row {
+    /// One or two lines side by side.
+    Cells(Vec<Line>),
+    Header(Header),
+    TableHead(Rc<Grid>),
+    TableRow { grid: Rc<Grid>, cells: Vec<Cell>, index: usize },
 }
 
 impl Row {
     fn height(&self) -> f32 {
-        self.cells.iter().map(Line::height).fold(ROW_H, f32::max)
+        match self {
+            Row::Cells(cells) => cells.iter().map(Line::height).fold(ROW_H, f32::max),
+            Row::Header(_) => HEADER_H,
+            Row::TableHead(_) => TABLE_HEAD_H,
+            Row::TableRow { grid, index, .. } if index + 1 == grid.rows => grid.row_h + TABLE_GAP,
+            Row::TableRow { grid, .. } => grid.row_h,
+        }
     }
+}
+
+/// What a page shows with its sections opened or closed, before it is laid out.
+enum Block {
+    Line(Line),
+    Header(Header),
+    Table(Table, u8),
 }
 
 /// Where a picture the window asked the client for stands.
@@ -205,11 +338,20 @@ enum Shape {
     Entry,
 }
 
+/// What a click in the list asks for, carried out once the list is drawn.
+#[derive(Default)]
+struct Clicks {
+    navigate: Option<String>,
+    toggle: Option<String>,
+}
+
 pub struct ReferenceWindow {
     open: bool,
     history: Vec<HistoryEntry>,
     cursor: usize,
     pages: HashMap<String, Load>,
+    /// Per page, the sections opened or closed against how they start.
+    sections: HashMap<String, HashMap<String, bool>>,
     scroll: usize,
     search: TextInput,
     search_focused: bool,
@@ -229,6 +371,7 @@ impl ReferenceWindow {
             history: vec![HistoryEntry { path: ROOT_PATH.to_string(), scroll: 0 }],
             cursor: 0,
             pages: HashMap::new(),
+            sections: HashMap::new(),
             scroll: 0,
             search: TextInput::new(40, false),
             search_focused: false,
@@ -330,6 +473,63 @@ impl ReferenceWindow {
         self.navigate(path);
     }
 
+    /// Whether the section `key` of the page at `path` is open.
+    fn section_open(&self, path: &str, key: &str, by_default: bool) -> bool {
+        self.sections
+            .get(path)
+            .and_then(|page| page.get(key))
+            .copied()
+            .unwrap_or(by_default)
+    }
+
+    /// Opens the section `key` of the page at `path`, as a click on its header would.
+    pub fn open_section(&mut self, path: &str, key: &str) {
+        self.sections.entry(path.to_string()).or_default().insert(key.to_string(), true);
+        self.relayout(path);
+    }
+
+    /// Opens or closes one section of the page at `path`.
+    fn toggle_section(&mut self, path: &str, key: &str) {
+        let by_default = match self.pages.get(path) {
+            Some(Load::Ready(page)) => page.sections().into_iter().find(|(k, _)| k == key).map(|(_, open)| open),
+            _ => None,
+        };
+        let now = !self.section_open(path, key, by_default.unwrap_or(false));
+        self.sections.entry(path.to_string()).or_default().insert(key.to_string(), now);
+        self.relayout(path);
+    }
+
+    /// Opens every section of the page at `path`, or closes them all.
+    fn set_all_sections(&mut self, path: &str, open: bool) {
+        let keys = match self.pages.get(path) {
+            Some(Load::Ready(page)) => page.sections(),
+            _ => return,
+        };
+        let state = self.sections.entry(path.to_string()).or_default();
+        for (key, _) in keys {
+            state.insert(key, open);
+        }
+        self.relayout(path);
+    }
+
+    fn relayout(&mut self, path: &str) {
+        if let Some(Load::Ready(page)) = self.pages.get_mut(path) {
+            page.rows = None;
+        }
+    }
+
+    /// Whether the page at `path` has sections, and whether all are open.
+    fn sections_state(&self, path: &str) -> Option<bool> {
+        let Some(Load::Ready(page)) = self.pages.get(path) else {
+            return None;
+        };
+        let keys = page.sections();
+        if keys.is_empty() {
+            return None;
+        }
+        Some(keys.iter().all(|(key, by_default)| self.section_open(path, key, *by_default)))
+    }
+
     fn draw_toolbar(&mut self, ui: &mut UiFrame, x: f32, y: f32, target: &mut Option<String>) {
         let by = y + (TOOL_H - BTN_H) / 2.0;
         let mut bx = x + PAD;
@@ -349,6 +549,20 @@ impl ReferenceWindow {
             *target = Some(ROOT_PATH.to_string());
         }
         bx += TEXT_BTN_W + PAD;
+
+        let path = self.current_path().to_string();
+        if let Some(all_open) = self.sections_state(&path) {
+            let rect = Rect::new(bx, by, NAV_BTN_W, BTN_H);
+            let resp = ui.button(EXPAND_ALL_BTN_ID, rect, if all_open { "-" } else { "+" });
+            if resp.hovered() {
+                let tip = if all_open { rust_i18n::t!("reference.collapse_all") } else { rust_i18n::t!("reference.expand_all") };
+                ui.tooltip(ui.ctx.mouse_x, ui.ctx.mouse_y, &tip);
+            }
+            if resp.clicked() {
+                self.set_all_sections(&path, !all_open);
+            }
+            bx += NAV_BTN_W + PAD;
+        }
 
         let right = x + WIN_W - PAD;
         if category_of(self.current_path()).is_some() {
@@ -374,7 +588,7 @@ impl ReferenceWindow {
         well: Rect,
         data: &DataTable,
         events: &mut Vec<GameEvent>,
-        target: &mut Option<String>,
+        clicks: &mut Clicks,
     ) {
         let heights: Vec<f32> = rows.iter().map(Row::height).collect();
         let max_scroll = max_scroll(&heights);
@@ -399,10 +613,20 @@ impl ReferenceWindow {
             if top + height > well.y + well.h + 0.5 {
                 break;
             }
-            let cell_w = if row.cells.len() > 1 { (full_w / 2.0).floor() } else { full_w };
-            for (col, cell) in row.cells.iter().enumerate() {
-                let rect = Rect::new(content.x + 1.0 + col as f32 * cell_w, top, cell_w, height);
-                self.draw_cell(ui, cell, rect, &mut slot, data, events, target);
+            let rect = Rect::new(content.x + 1.0, top, full_w, height);
+            match row {
+                Row::Cells(cells) => {
+                    let cell_w = if cells.len() > 1 { (full_w / 2.0).floor() } else { full_w };
+                    for (col, cell) in cells.iter().enumerate() {
+                        let rect = Rect::new(rect.x + col as f32 * cell_w, top, cell_w, height);
+                        self.draw_cell(ui, cell, rect, &mut slot, data, events, clicks);
+                    }
+                }
+                Row::Header(header) => draw_header(ui, header, rect, &mut slot, clicks),
+                Row::TableHead(grid) => draw_table_head(ui, grid, rect),
+                Row::TableRow { grid, cells, index } => {
+                    self.draw_table_row(ui, grid, cells, *index, rect, &mut slot, data, events, clicks);
+                }
             }
             top += height;
         }
@@ -417,23 +641,15 @@ impl ReferenceWindow {
         slot: &mut u32,
         data: &DataTable,
         events: &mut Vec<GameEvent>,
-        target: &mut Option<String>,
+        clicks: &mut Clicks,
     ) {
         let hovered = match &line.link {
             Some(href) => {
-                let resp = ui.interact(WidgetId(LINK_ROW_BASE_ID + *slot), row);
-                *slot += 1;
-                if resp.hovered() {
-                    ui.any_interactive_hovered = true;
+                let hovered = link_interaction(ui, row, href, slot, events, clicks);
+                if hovered {
                     quad(ui, row.x, row.y, row.w - 1.0, row.h, HOVER_ROW);
                 }
-                if resp.clicked() {
-                    *target = Some(href.clone());
-                }
-                if resp.right_clicked() {
-                    events.push(info_menu(ui, Some(href.clone()), None));
-                }
-                resp.hovered()
+                hovered
             }
             None => false,
         };
@@ -453,14 +669,8 @@ impl ReferenceWindow {
             clipped_text(ui, x, baseline, &shown, label_color(), right);
             x += ui.atlas.measure_text(&shown) + 5.0;
         }
-        if line.heading || line.banner {
-            for dx in [0.0, 1.0] {
-                let (vertices, indices) =
-                    draw::text_vertices(&line.text, x + dx, baseline, label_color(), ui.atlas);
-                if !vertices.is_empty() {
-                    ui.draw_calls.push(DrawCall { vertices, indices, texture: TextureRef::FontAtlas });
-                }
-            }
+        if line.banner {
+            bold_text(ui, x, baseline, &line.text, label_color(), right);
         } else if line.link.is_some() {
             clipped_text(ui, x, baseline, &line.text, LINK_COLOR, right);
             if hovered {
@@ -469,6 +679,62 @@ impl ReferenceWindow {
             }
         } else {
             clipped_text(ui, x, baseline, &line.text, text_color(), right);
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn draw_table_row(
+        &mut self,
+        ui: &mut UiFrame,
+        grid: &Grid,
+        cells: &[Cell],
+        index: usize,
+        row: Rect,
+        slot: &mut u32,
+        data: &DataTable,
+        events: &mut Vec<GameEvent>,
+        clicks: &mut Clicks,
+    ) {
+        let left = table_left(row, grid);
+        let width = grid.width();
+        let h = grid.row_h;
+        if index % 2 == 1 {
+            quad(ui, left, row.y, width, h, TABLE_STRIPE);
+        }
+        let baseline = row.y + (h / 2.0 + 4.5).floor();
+        for (column, cell) in grid.columns.iter().zip(cells) {
+            let rect = Rect::new(left + column.x, row.y, column.w, h);
+            let hovered = match &cell.link {
+                Some(href) => link_interaction(ui, rect, href, slot, events, clicks),
+                None => false,
+            };
+            if hovered {
+                quad(ui, rect.x, rect.y, rect.w, rect.h, HOVER_ROW);
+            }
+            let mut x = rect.x + CELL_PAD;
+            if let Some(icon) = &cell.icon {
+                let boxed = Rect::new(x, (row.y + (h - TABLE_ICON) / 2.0).floor(), TABLE_ICON, TABLE_ICON);
+                self.draw_icon(ui, icon, boxed, 1.0, data, events);
+                x += TABLE_ICON + 4.0;
+            }
+            let right = rect.x + rect.w - CELL_PAD;
+            let text_w = ui.atlas.measure_text(&cell.text);
+            if column.numeric {
+                x = x.max(right - text_w);
+            }
+            let color = if cell.link.is_some() { LINK_COLOR } else { text_color() };
+            clipped_text(ui, x, baseline, &cell.text, color, right);
+            if hovered {
+                quad(ui, x, baseline + 2.0, text_w.min(right - x), 1.0, LINK_COLOR);
+            }
+            let cut = text_w > right - x + 0.5;
+            if cut && rect.contains(ui.ctx.mouse_x, ui.ctx.mouse_y) {
+                ui.tooltip(ui.ctx.mouse_x, ui.ctx.mouse_y, &cell.text);
+            }
+        }
+        rules(ui, grid, left, row.y, h);
+        if index + 1 == grid.rows {
+            quad(ui, left, row.y + h - 1.0, width, 1.0, P::WIN_BORDER);
         }
     }
 
@@ -599,8 +865,10 @@ impl InGameWindow for ReferenceWindow {
             events.push(GameEvent::RequestReference { path: path.clone() });
         }
 
-        let mut target: Option<String> = None;
-        self.draw_toolbar(ui, x, body_y, &mut target);
+        let mut clicks = Clicks::default();
+        self.draw_toolbar(ui, x, body_y, &mut clicks.navigate);
+        // The toolbar can have moved to another page.
+        let path = self.current_path().to_string();
 
         let well = Rect::new(x + PAD, body_y + TOOL_H, WIN_W - PAD * 2.0, LIST_H);
         quad(ui, well.x - 1.0, well.y - 1.0, well.w + 2.0, well.h + 2.0, P::WIN_BORDER);
@@ -613,14 +881,20 @@ impl InGameWindow for ReferenceWindow {
         match &mut load {
             Some(Load::Ready(page)) => {
                 paging = page.paging;
-                if page.lines.is_empty() {
+                if page.nodes.is_empty() {
                     ui.text(well.x + 6.0, well.y + BASELINE + 2.0, &rust_i18n::t!("reference.no_results"), MUTED_COLOR);
                 } else {
                     let full_w = well.w - SCROLLBAR_W - 2.0;
+                    let state = self.sections.get(&path);
+                    let is_open = |key: &str, by_default: bool| {
+                        state.and_then(|page| page.get(key)).copied().unwrap_or(by_default)
+                    };
                     let rows = page.rows.get_or_insert_with(|| {
-                        layout(&|t: &str| ui.atlas.measure_text(t), &page.lines, full_w)
+                        let mut blocks = Vec::new();
+                        visible_blocks(&page.nodes, 0, &is_open, &mut blocks);
+                        layout(&|t: &str| ui.atlas.measure_text(t), blocks, full_w)
                     });
-                    self.draw_rows(ui, rows, well, ctx.data, &mut events, &mut target);
+                    self.draw_rows(ui, rows, well, ctx.data, &mut events, &mut clicks);
                 }
             }
             Some(Load::Failed(message)) => {
@@ -637,17 +911,131 @@ impl InGameWindow for ReferenceWindow {
         if let Some(load) = load
             && !retry
         {
-            self.pages.insert(path, load);
+            self.pages.insert(path.clone(), load);
+        }
+        if let Some(key) = clicks.toggle {
+            self.toggle_section(&path, &key);
         }
 
         let footer_y = y + TITLE_H + TOOL_H + LIST_H + WELL_GAP;
         draw_footer(ui, x, footer_y, WIN_W, FOOTER_H);
-        self.draw_footer_row(ui, x, footer_y, paging, &mut target);
+        self.draw_footer_row(ui, x, footer_y, paging, &mut clicks.navigate);
 
-        if let Some(next) = target {
+        if let Some(next) = clicks.navigate {
             self.navigate(next);
         }
         events
+    }
+}
+
+/// Makes `rect` a link to `href`: hover, click to open, right-click for the
+/// entry's menu. True while hovered.
+fn link_interaction(
+    ui: &mut UiFrame,
+    rect: Rect,
+    href: &str,
+    slot: &mut u32,
+    events: &mut Vec<GameEvent>,
+    clicks: &mut Clicks,
+) -> bool {
+    let Some(id) = next_slot(slot) else {
+        return false;
+    };
+    let resp = ui.interact(id, rect);
+    if resp.hovered() {
+        ui.any_interactive_hovered = true;
+    }
+    if resp.clicked() {
+        clicks.navigate = Some(href.to_string());
+    }
+    if resp.right_clicked() {
+        events.push(info_menu(ui, Some(href.to_string()), None));
+    }
+    resp.hovered()
+}
+
+/// The id for the next clickable thing on show; `None` once the window's
+/// block is used up, which a list this short never reaches.
+fn next_slot(slot: &mut u32) -> Option<WidgetId> {
+    if *slot >= LINK_SLOTS {
+        return None;
+    }
+    let id = WidgetId(LINK_ROW_BASE_ID + *slot);
+    *slot += 1;
+    Some(id)
+}
+
+/// A section header: a band with the open/close box, the title in bold and the
+/// count. A click anywhere on it opens or closes the section.
+fn draw_header(ui: &mut UiFrame, header: &Header, row: Rect, slot: &mut u32, clicks: &mut Clicks) {
+    let x = row.x + 3.0 + f32::from(header.indent) * INDENT_W;
+    let band = Rect::new(x - 2.0, row.y + 1.0, row.x + row.w - x, row.h - 2.0);
+    let hovered = match next_slot(slot) {
+        Some(id) => {
+            let resp = ui.interact(id, band);
+            if resp.hovered() {
+                ui.any_interactive_hovered = true;
+            }
+            if resp.clicked() {
+                clicks.toggle = Some(header.key.clone());
+            }
+            resp.hovered()
+        }
+        None => false,
+    };
+    quad(ui, band.x, band.y, band.w, band.h, if hovered { HOVER_ROW } else { HEADER_FILL });
+    quad(ui, band.x, band.y + band.h - 1.0, band.w, 1.0, TABLE_RULE);
+
+    let bx = x;
+    let by = (row.y + (row.h - TOGGLE_BOX) / 2.0).floor();
+    quad(ui, bx, by, TOGGLE_BOX, TOGGLE_BOX, P::FIELD_RIM);
+    quad(ui, bx + 1.0, by + 1.0, TOGGLE_BOX - 2.0, TOGGLE_BOX - 2.0, P::SLOT_FILL);
+    let mid = (TOGGLE_BOX / 2.0).floor();
+    quad(ui, bx + 2.0, by + mid, TOGGLE_BOX - 4.0, 1.0, P::SYS_GLYPH);
+    if !header.open {
+        quad(ui, bx + mid, by + 2.0, 1.0, TOGGLE_BOX - 4.0, P::SYS_GLYPH);
+    }
+
+    let baseline = row.y + (row.h / 2.0 + 4.5).floor();
+    let right = row.x + row.w - 3.0;
+    let tx = bx + TOGGLE_BOX + 5.0;
+    bold_text(ui, tx, baseline, &header.title, label_color(), right);
+    if let Some(count) = header.count {
+        let cx = tx + ui.atlas.measure_text(&header.title) + 6.0;
+        clipped_text(ui, cx, baseline, &format!("({count})"), MUTED_COLOR, right);
+    }
+}
+
+/// The left edge of a table laid out in `row`.
+fn table_left(row: Rect, grid: &Grid) -> f32 {
+    row.x + 3.0 + f32::from(grid.indent) * INDENT_W
+}
+
+fn draw_table_head(ui: &mut UiFrame, grid: &Grid, row: Rect) {
+    let left = table_left(row, grid);
+    let h = TABLE_HEAD_H;
+    quad(ui, left, row.y, grid.width(), h, TABLE_HEAD_FILL);
+    quad(ui, left, row.y, grid.width(), 1.0, P::WIN_BORDER);
+    quad(ui, left, row.y + h - 1.0, grid.width(), 1.0, P::WIN_BORDER);
+    let baseline = row.y + (h / 2.0 + 4.5).floor();
+    for column in &grid.columns {
+        let right = left + column.x + column.w - CELL_PAD;
+        let mut x = left + column.x + CELL_PAD;
+        if column.numeric {
+            x = x.max(right - ui.atlas.measure_text(&column.title) - 1.0);
+        }
+        bold_text(ui, x, baseline, &column.title, label_color(), right);
+    }
+    rules(ui, grid, left, row.y, h);
+}
+
+/// The outer sides of a table and the lines between its columns, over one row.
+fn rules(ui: &mut UiFrame, grid: &Grid, left: f32, y: f32, h: f32) {
+    let width = grid.width();
+    quad(ui, left, y, 1.0, h, P::WIN_BORDER);
+    quad(ui, left + width - 1.0, y, 1.0, h, P::WIN_BORDER);
+    for column in grid.columns.iter().skip(1) {
+        quad(ui, left + column.x, y + 1.0, 1.0, h - 2.0, TABLE_RULE);
     }
 }
 
@@ -665,6 +1053,13 @@ pub(crate) fn clipped_text(ui: &mut UiFrame, x: f32, y: f32, text: &str, color: 
         draw::text_vertices_clipped(text, x, y, color, ui.atlas, f32::NEG_INFINITY, right);
     if !vertices.is_empty() {
         ui.draw_calls.push(DrawCall { vertices, indices, texture: TextureRef::FontAtlas });
+    }
+}
+
+/// Clipped text drawn twice a pixel apart, the font having no bold face.
+fn bold_text(ui: &mut UiFrame, x: f32, y: f32, text: &str, color: [f32; 4], right: f32) {
+    for dx in [0.0, 1.0] {
+        clipped_text(ui, x + dx, y, text, color, right);
     }
 }
 
@@ -722,12 +1117,150 @@ fn wrap_text(measure: &dyn Fn(&str) -> f32, text: &str, max_w: f32) -> Vec<Strin
 }
 
 fn packable(line: &Line) -> bool {
-    !line.heading && !line.banner && !line.no_pack
+    !line.banner && !line.no_pack
+}
+
+/// What `nodes` show with their sections opened as `is_open` says, each line
+/// indented by how deep it sits.
+fn visible_blocks(nodes: &[Node], depth: u8, is_open: &dyn Fn(&str, bool) -> bool, out: &mut Vec<Block>) {
+    for node in nodes {
+        match node {
+            Node::Line(line) => out.push(Block::Line(Line { indent: line.indent + depth, ..line.clone() })),
+            Node::Section(section) => {
+                let open = is_open(&section.key, section.open_by_default);
+                out.push(Block::Header(Header {
+                    key: section.key.clone(),
+                    title: section.title.clone(),
+                    count: section.count,
+                    indent: depth,
+                    open,
+                }));
+                if open {
+                    visible_blocks(&section.children, depth + 1, is_open, out);
+                }
+            }
+            Node::Table(table) => {
+                let open = is_open(&table.key, false);
+                out.push(Block::Header(Header {
+                    key: table.key.clone(),
+                    title: table.title.clone(),
+                    count: Some(table.rows.len()),
+                    indent: depth,
+                    open,
+                }));
+                if open {
+                    out.push(Block::Table(table.clone(), depth + 1));
+                }
+            }
+        }
+    }
+}
+
+/// The rows the list draws: lines wrapped and paired, headers, and tables
+/// with their columns fitted to the width.
+fn layout(measure: &dyn Fn(&str) -> f32, blocks: Vec<Block>, full_w: f32) -> Vec<Row> {
+    let mut rows = Vec::new();
+    let mut lines = Vec::new();
+    let flush = |lines: &mut Vec<Line>, rows: &mut Vec<Row>| {
+        rows.extend(pair_lines(measure, &std::mem::take(lines), full_w).into_iter().map(Row::Cells));
+    };
+    for block in blocks {
+        match block {
+            Block::Line(line) => lines.push(line),
+            Block::Header(header) => {
+                flush(&mut lines, &mut rows);
+                rows.push(Row::Header(header));
+            }
+            Block::Table(table, indent) => {
+                flush(&mut lines, &mut rows);
+                let grid = Rc::new(grid_of(measure, &table, indent, full_w));
+                rows.push(Row::TableHead(grid.clone()));
+                for (index, cells) in table.rows.into_iter().enumerate() {
+                    rows.push(Row::TableRow { grid: grid.clone(), cells, index });
+                }
+            }
+        }
+    }
+    flush(&mut lines, &mut rows);
+    rows
+}
+
+/// Columns as wide as their widest cell, squeezed when the table would not
+/// fit; what is left over goes to the first column, which names the record.
+fn grid_of(measure: &dyn Fn(&str) -> f32, table: &Table, indent: u8, full_w: f32) -> Grid {
+    let width = (full_w - 6.0 - f32::from(indent) * INDENT_W).max(60.0).floor();
+    let natural: Vec<f32> = table
+        .columns
+        .iter()
+        .enumerate()
+        .map(|(c, title)| {
+            let body = table
+                .rows
+                .iter()
+                .filter_map(|row| row.get(c))
+                .map(|cell| measure(&cell.text) + if cell.icon.is_some() { TABLE_ICON + 4.0 } else { 0.0 })
+                .fold(0.0, f32::max);
+            (measure(title) + 1.0).max(body) + CELL_PAD * 2.0
+        })
+        .collect();
+    let widths = fit_widths(&natural, width);
+    let mut x = 0.0;
+    let columns = table
+        .columns
+        .iter()
+        .zip(widths)
+        .enumerate()
+        .map(|(c, (title, w))| {
+            let column = Column { title: title.clone(), x, w, numeric: is_numeric_column(table, c) };
+            x += w;
+            column
+        })
+        .collect();
+    let has_icons = table.rows.iter().flatten().any(|cell| cell.icon.is_some());
+    Grid {
+        indent,
+        columns,
+        row_h: if has_icons { TABLE_ICON_ROW_H } else { TABLE_ROW_H },
+        rows: table.rows.len(),
+    }
+}
+
+/// Shares `total` out: narrow columns get all they ask for, the rest split
+/// what remains evenly, and any surplus goes to the first column.
+fn fit_widths(natural: &[f32], total: f32) -> Vec<f32> {
+    let mut order: Vec<usize> = (0..natural.len()).collect();
+    order.sort_by(|a, b| natural[*a].total_cmp(&natural[*b]));
+    let mut widths = vec![0.0; natural.len()];
+    let mut remaining = total;
+    for (n, &c) in order.iter().enumerate() {
+        let share = remaining / (natural.len() - n) as f32;
+        widths[c] = natural[c].min(share).floor();
+        remaining -= widths[c];
+    }
+    if let Some(first) = widths.first_mut() {
+        *first += remaining.max(0.0);
+    }
+    widths
+}
+
+/// A column of plain numbers, set against the right edge.
+fn is_numeric_column(table: &Table, column: usize) -> bool {
+    let mut any = false;
+    for cell in table.rows.iter().filter_map(|row| row.get(column)) {
+        if cell.text.is_empty() {
+            continue;
+        }
+        if cell.link.is_some() || cell.text.parse::<f64>().is_err() {
+            return false;
+        }
+        any = true;
+    }
+    any
 }
 
 /// Wraps long plain text, then sets neighbouring short lines of the same kind
 /// side by side so the width of the list is used.
-fn layout(measure: &dyn Fn(&str) -> f32, lines: &[Line], full_w: f32) -> Vec<Row> {
+fn pair_lines(measure: &dyn Fn(&str) -> f32, lines: &[Line], full_w: f32) -> Vec<Vec<Line>> {
     let mut flat: Vec<Line> = Vec::with_capacity(lines.len());
     for line in lines {
         let plain = line.link.is_none() && line.icon.is_none() && packable(line);
@@ -763,11 +1296,11 @@ fn layout(measure: &dyn Fn(&str) -> f32, lines: &[Line], full_w: f32) -> Vec<Row
         });
         match pair {
             Some(b) => {
-                rows.push(Row { cells: vec![a.clone(), b.clone()] });
+                rows.push(vec![a.clone(), b.clone()]);
                 i += 2;
             }
             None => {
-                rows.push(Row { cells: vec![a.clone()] });
+                rows.push(vec![a.clone()]);
                 i += 1;
             }
         }
@@ -913,23 +1446,23 @@ fn percent_decode(text: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
-// --- JSON to rows ----------------------------------------------------------
+// --- JSON to nodes ---------------------------------------------------------
 
 fn build_page(path: &str, value: &Value) -> Page {
     match shape(path) {
         Shape::Categories => categories_page(value),
         Shape::List => list_page(value),
         Shape::Entry => {
-            let mut lines = Vec::new();
-            lines.extend(banner_of(path, value));
-            push_entry(&mut lines, path, value);
-            Page::new(lines, None)
+            let mut nodes = Vec::new();
+            nodes.extend(banner_of(path, value).map(Node::Line));
+            push_entry(&mut nodes, path, value);
+            Page::new(nodes, None)
         }
     }
 }
 
 fn categories_page(value: &Value) -> Page {
-    let lines = value
+    let nodes = value
         .get("categories")
         .and_then(Value::as_array)
         .map(|categories| {
@@ -939,36 +1472,27 @@ fn categories_page(value: &Value) -> Page {
                     let name = c.get("name")?.as_str()?;
                     let href = c.get("href")?.as_str()?;
                     let count = c.get("count").and_then(scalar_text).unwrap_or_default();
-                    Some(Line::link(0, None, format!("{name}  ({count})"), href.to_string()))
+                    Some(Node::Line(Line::link(None, format!("{name}  ({count})"), href.to_string())))
                 })
                 .collect()
         })
         .unwrap_or_default();
-    Page::new(lines, None)
+    Page::new(nodes, None)
 }
 
 fn list_page(value: &Value) -> Page {
     let number = |key: &str| value.get(key).and_then(Value::as_u64).map(|n| n as usize);
-    let lines: Vec<Line> = value
+    let nodes: Vec<Node> = value
         .get("results")
         .and_then(Value::as_array)
-        .map(|results| {
-            results
-                .iter()
-                .filter(|r| is_link(r))
-                .map(|r| {
-                    Line::link(0, None, link_text(r), link_href(r).unwrap_or_default().to_string())
-                        .with_icon(icon_of(r))
-                })
-                .collect()
-        })
+        .map(|results| results.iter().filter(|r| is_link(r)).map(|r| Node::Line(link_line(None, r))).collect())
         .unwrap_or_default();
     let paging = number("total").map(|total| Paging {
         total,
         offset: number("offset").unwrap_or(0),
-        limit: number("limit").unwrap_or(lines.len()).max(1),
+        limit: number("limit").unwrap_or(nodes.len()).max(1),
     });
-    Page::new(lines, paging)
+    Page::new(nodes, paging)
 }
 
 fn is_link(value: &Value) -> bool {
@@ -991,6 +1515,11 @@ fn link_text(value: &Value) -> String {
     }
 }
 
+/// The row for a link value, with the picture of what it points at.
+fn link_line(label: Option<String>, link: &Value) -> Line {
+    Line::link(label, link_text(link), link_href(link).unwrap_or_default().to_string()).with_icon(icon_of(link))
+}
+
 fn scalar_text(value: &Value) -> Option<String> {
     match value {
         Value::String(s) => Some(s.clone()),
@@ -1004,175 +1533,267 @@ fn humanize(key: &str) -> String {
     key.replace('_', " ")
 }
 
-fn push_value(out: &mut Vec<Line>, indent: u8, key: Option<&str>, value: &Value) {
+/// The key of the part `name` of the part `parent`, unique on the page.
+fn child_key(parent: &str, name: &str) -> String {
+    if parent.is_empty() { name.to_string() } else { format!("{parent}/{name}") }
+}
+
+fn push_value(out: &mut Vec<Node>, parent: &str, key: Option<&str>, value: &Value) {
     let label = key.map(humanize);
-    if let Some(href) = link_href(value) {
-        out.push(Line::link(indent, label, link_text(value), href.to_string()).with_icon(icon_of(value)));
+    if is_link(value) {
+        out.push(Node::Line(link_line(label, value)));
         return;
     }
+    let id = child_key(parent, key.unwrap_or_default());
     match value {
         Value::Null => {}
         Value::Object(map) => {
-            if map.is_empty() {
-                return;
-            }
-            let child = match label {
-                Some(label) => {
-                    out.push(Line::heading(indent, label));
-                    indent + 1
-                }
-                None => indent,
-            };
+            let mut children = Vec::new();
             for (k, v) in map {
-                push_value(out, child, Some(k), v);
+                push_value(&mut children, &id, Some(k), v);
+            }
+            match label {
+                Some(title) if !children.is_empty() => {
+                    out.push(Node::Section(Section { key: id, title, count: None, open_by_default: false, children }));
+                }
+                Some(_) => {}
+                None => out.extend(children),
             }
         }
-        Value::Array(items) => push_array(out, indent, label, items),
+        Value::Array(items) => push_array(out, &id, label.unwrap_or_default(), items),
         scalar => {
             let text = scalar_text(scalar).unwrap_or_default();
             if !text.is_empty() {
-                out.push(Line::value(indent, label, text));
+                out.push(Node::Line(Line::value(label, text)));
             }
         }
     }
 }
 
-fn push_array(out: &mut Vec<Line>, indent: u8, label: Option<String>, items: &[Value]) {
+/// A list: a short list of plain values on one row, flat records as a table,
+/// anything else as a section of rows, one per element.
+fn push_array(out: &mut Vec<Node>, key: &str, title: String, items: &[Value]) {
     if items.is_empty() {
         return;
     }
     if items.iter().all(|i| scalar_text(i).is_some()) {
         let joined = items.iter().filter_map(scalar_text).collect::<Vec<_>>().join(", ");
         if joined.chars().count() <= JOIN_MAX_CHARS {
-            out.push(Line::value(indent, label, joined));
+            out.push(Node::Line(Line::value(Some(title), joined)));
             return;
         }
     }
-    let child = match label {
-        Some(label) => {
-            out.push(Line::heading(indent, format!("{label} ({})", items.len())));
-            indent + 1
-        }
-        None => indent,
-    };
+    if let Some(table) = table_of(key, &title, items) {
+        out.push(Node::Table(table));
+        return;
+    }
+    let mut children = Vec::new();
     for (n, item) in items.iter().enumerate() {
-        if let Some((text, href, icon)) = summarize(item) {
-            out.push(Line::link(child, None, text, href).with_icon(icon));
+        let name = format!("#{}", n + 1);
+        if is_link(item) {
+            children.push(Node::Line(link_line(None, item)));
         } else if let Some(text) = scalar_text(item) {
-            out.push(Line::value(child, None, text));
-        } else {
-            push_value(out, child, Some(&format!("#{}", n + 1)), item);
+            children.push(Node::Line(Line::value(None, text)));
+        } else if let Value::Object(map) = item {
+            let item_key = child_key(key, &name);
+            let mut fields = Vec::new();
+            for (k, v) in map {
+                push_value(&mut fields, &item_key, Some(k), v);
+            }
+            if !fields.is_empty() {
+                let title = match item.get("name").and_then(Value::as_str).filter(|n| !n.is_empty()) {
+                    Some(item_name) => format!("{name} {item_name}"),
+                    None => name,
+                };
+                children.push(Node::Section(Section {
+                    key: item_key,
+                    title,
+                    count: None,
+                    open_by_default: false,
+                    children: fields,
+                }));
+            }
+        } else if let Value::Array(inner) = item {
+            push_array(&mut children, &child_key(key, &name), name, inner);
         }
+    }
+    if !children.is_empty() {
+        out.push(Node::Section(Section {
+            key: key.to_string(),
+            title,
+            count: Some(items.len()),
+            open_by_default: false,
+            children,
+        }));
     }
 }
 
-/// The fields of an entry, one by one. The item description and the quest prerequisites have their own layout; the
-/// other fields go through `push_value`.
-fn push_entry(out: &mut Vec<Line>, path: &str, entry: &Value) {
+/// `items` as a table when every one is a record of plain values and links,
+/// with a column per field any of them fills in. A list of links stays a list.
+fn table_of(key: &str, title: &str, items: &[Value]) -> Option<Table> {
+    let mut columns: Vec<String> = Vec::new();
+    for item in items {
+        let map = item.as_object()?;
+        if is_link(item) {
+            return None;
+        }
+        for (k, v) in map {
+            let flat = v.is_null() || scalar_text(v).is_some() || is_link(v);
+            if !flat {
+                return None;
+            }
+            if !columns.contains(k) {
+                columns.push(k.clone());
+            }
+        }
+    }
+    let rows: Vec<Vec<Cell>> =
+        items.iter().map(|item| columns.iter().map(|c| cell_of(item.get(c))).collect()).collect();
+    let keep: Vec<bool> = (0..columns.len()).map(|c| rows.iter().any(|row| !row[c].text.is_empty())).collect();
+    if !keep.contains(&true) {
+        return None;
+    }
+    let pick = |cells: Vec<Cell>| cells.into_iter().zip(&keep).filter(|(_, k)| **k).map(|(c, _)| c).collect();
+    Some(Table {
+        key: key.to_string(),
+        title: title.to_string(),
+        columns: columns.iter().zip(&keep).filter(|(_, k)| **k).map(|(c, _)| humanize(c)).collect(),
+        rows: rows.into_iter().map(pick).collect(),
+    })
+}
+
+/// A table cell. A flag shows only when set, so a column of unset flags
+/// drops out of the table.
+fn cell_of(value: Option<&Value>) -> Cell {
+    match value {
+        Some(link) if is_link(link) => Cell {
+            text: link_text(link),
+            link: link_href(link).map(str::to_string),
+            icon: icon_of(link),
+        },
+        Some(Value::Bool(true)) => Cell::text("yes"),
+        Some(Value::Bool(false)) | Some(Value::Null) | None => Cell::text(""),
+        Some(other) => Cell::text(scalar_text(other).unwrap_or_default()),
+    }
+}
+
+/// The fields of an entry: plain values and links first, always on show, then
+/// the sections and tables. The item description, the quest prerequisites and
+/// a map's quests have their own layout.
+fn push_entry(out: &mut Vec<Node>, path: &str, entry: &Value) {
     let Some(fields) = entry.as_object() else {
-        push_value(out, 0, None, entry);
+        push_value(out, "", None, entry);
         return;
     };
     let category = category_of(path);
+    let mut nodes = Vec::new();
     for (key, field) in fields {
         match (category, key.as_str()) {
-            (Some("items"), "description") => push_item_description(out, field),
-            (Some("quests"), "prerequisites") => push_prerequisites(out, field),
-            (Some("maps"), "quests") => push_map_quests(out, field),
-            _ => push_value(out, 0, Some(key.as_str()), field),
+            (Some("items"), "description") => push_item_description(&mut nodes, field),
+            (Some("quests"), "prerequisites") => push_prerequisites(&mut nodes, field),
+            (Some("maps"), "quests") => push_map_quests(&mut nodes, field),
+            _ => push_value(&mut nodes, "", Some(key.as_str()), field),
         }
     }
+    let (lines, parts): (Vec<Node>, Vec<Node>) = nodes.into_iter().partition(|n| matches!(n, Node::Line(_)));
+    out.extend(lines);
+    out.extend(parts);
 }
 
-/// An item's description: the identified lines as they are, one row each, then the unidentified ones under their own
-/// heading. Nothing is joined, so each line keeps its own wording.
-fn push_item_description(out: &mut Vec<Line>, description: &Value) {
-    let lines_of = |key: &str| -> Vec<String> {
+/// An item's description: the identified lines as they are, one row each, then the unidentified ones in their own
+/// section. Nothing is joined, so each line keeps its own wording. It is what one looks an item up for, so it starts
+/// open.
+fn push_item_description(out: &mut Vec<Node>, description: &Value) {
+    let lines_of = |key: &str| -> Vec<Node> {
         description
             .get(key)
             .and_then(Value::as_array)
-            .map(|lines| lines.iter().filter_map(scalar_text).filter(|line| !line.trim().is_empty()).collect())
+            .map(|lines| {
+                lines
+                    .iter()
+                    .filter_map(scalar_text)
+                    .filter(|line| !line.trim().is_empty())
+                    // Prose reads down the page, so the lines are not set side by side.
+                    .map(|line| Node::Line(Line { no_pack: true, ..Line::value(None, line) }))
+                    .collect()
+            })
             .unwrap_or_default()
     };
-    let identified = lines_of("identified");
+    let mut children = lines_of("identified");
     let unidentified = lines_of("unidentified");
-    if identified.is_empty() && unidentified.is_empty() {
+    if !unidentified.is_empty() {
+        children.push(Node::Section(Section {
+            key: "description/unidentified".to_string(),
+            title: "unidentified".to_string(),
+            count: None,
+            open_by_default: false,
+            children: unidentified,
+        }));
+    }
+    if children.is_empty() {
         return;
     }
-    out.push(Line::heading(0, "description".to_string()));
-    out.extend(identified.into_iter().map(|line| Line::value(1, None, line)));
-    if !unidentified.is_empty() {
-        out.push(Line::heading(1, "unidentified".to_string()));
-        out.extend(unidentified.into_iter().map(|line| Line::value(2, None, line)));
-    }
+    out.push(Node::Section(Section {
+        key: "description".to_string(),
+        title: "description".to_string(),
+        count: None,
+        open_by_default: true,
+        children,
+    }));
 }
 
-/// The quests that must be started or finished first: a link to each quest's entry, with the script line that checks
-/// it underneath. An empty list says so; null (the quest has no text, so nothing is known) shows nothing.
-fn push_prerequisites(out: &mut Vec<Line>, prerequisites: &Value) {
+/// The quests that must be started or finished first, as a table: a link to each quest's entry, the state it must be
+/// in and the script line that checks it. An empty list says so; null (the quest has no text, so nothing is known)
+/// shows nothing.
+fn push_prerequisites(out: &mut Vec<Node>, prerequisites: &Value) {
     let Some(items) = prerequisites.as_array() else {
         return;
     };
     if items.is_empty() {
-        out.push(Line::value(0, Some("prerequisites".to_string()), "none".to_string()));
+        out.push(Node::Line(Line::value(Some("prerequisites".to_string()), "none".to_string())));
         return;
     }
-    out.push(Line::heading(0, format!("prerequisites ({})", items.len())));
-    for item in items {
-        let Some(quest) = item.get("quest").and_then(Value::as_u64) else {
-            continue;
-        };
-        let state = item.get("state").and_then(Value::as_str).unwrap_or("started");
-        out.push(Line::link(1, None, format!("Quest #{quest} (must be {state})"), format!("/db/quests/{quest}")));
-        if let Some(quote) = item.get("quote").and_then(Value::as_str).filter(|quote| !quote.is_empty()) {
-            out.push(Line::value(2, None, quote.to_string()));
-        }
+    let rows: Vec<Vec<Cell>> = items
+        .iter()
+        .filter_map(|item| {
+            let quest = item.get("quest").and_then(Value::as_u64)?;
+            let state = item.get("state").and_then(Value::as_str).unwrap_or("started");
+            let quote = item.get("quote").and_then(Value::as_str).unwrap_or_default();
+            Some(vec![
+                Cell { text: format!("Quest #{quest}"), link: Some(format!("/db/quests/{quest}")), icon: None },
+                Cell::text(state),
+                Cell::text(quote),
+            ])
+        })
+        .collect();
+    if rows.is_empty() {
+        return;
     }
+    out.push(Node::Table(Table {
+        key: "prerequisites".to_string(),
+        title: "prerequisites".to_string(),
+        columns: vec!["quest".to_string(), "must be".to_string(), "check".to_string()],
+        rows,
+    }));
 }
 
-/// The quests a map's NPCs start: a link row to each quest's entry under a heading that says where they come from. A map
+/// The quests a map's NPCs start: a link row to each quest's entry in a section that says where they come from. A map
 /// with none shows nothing.
-fn push_map_quests(out: &mut Vec<Line>, quests: &Value) {
-    let links: Vec<&Value> = quests.as_array().map(|quests| quests.iter().filter(|quest| is_link(quest)).collect()).unwrap_or_default();
+fn push_map_quests(out: &mut Vec<Node>, quests: &Value) {
+    let links: Vec<Node> = quests
+        .as_array()
+        .map(|quests| quests.iter().filter(|quest| is_link(quest)).map(|quest| Node::Line(link_line(None, quest))).collect())
+        .unwrap_or_default();
     if links.is_empty() {
         return;
     }
-    out.push(Line::heading(0, format!("quests started here ({})", links.len())));
-    for quest in links {
-        out.push(Line::link(1, None, link_text(quest), link_href(quest).unwrap_or_default().to_string()));
-    }
-}
-
-/// An object made only of plain values and links collapses to one row: its
-/// first link, followed by the other fields (`drop rate: 150`).
-fn summarize(value: &Value) -> Option<(String, String, Option<IconRef>)> {
-    if let Some(href) = link_href(value) {
-        return Some((link_text(value), href.to_string(), icon_of(value)));
-    }
-    let map = value.as_object()?;
-    let mut primary: Option<(String, String, Option<IconRef>)> = None;
-    let mut extras = Vec::new();
-    for (key, field) in map {
-        if let Some(href) = link_href(field) {
-            if primary.is_none() {
-                primary = Some((link_text(field), href.to_string(), icon_of(field)));
-            } else {
-                extras.push(format!("{}: {}", humanize(key), link_text(field)));
-            }
-        } else if let Some(text) = scalar_text(field) {
-            if !text.is_empty() {
-                extras.push(format!("{}: {text}", humanize(key)));
-            }
-        } else if !field.is_null() {
-            return None;
-        }
-    }
-    let (text, href, icon) = primary?;
-    if extras.is_empty() {
-        Some((text, href, icon))
-    } else {
-        Some((format!("{text}   {}", extras.join("   ")), href, icon))
-    }
+    out.push(Node::Section(Section {
+        key: "quests".to_string(),
+        title: "quests started here".to_string(),
+        count: Some(links.len()),
+        open_by_default: false,
+        children: links,
+    }));
 }
 
 /// The picture of what a link points at, for the categories that have one.
@@ -1230,6 +1851,56 @@ mod tests {
         win.build(&mut ui, &mut BuildCtx::test(&mut character, &data))
     }
 
+    fn click_at(win: &mut ReferenceWindow, state: &mut StateCache, x: f32, y: f32) -> Vec<GameEvent> {
+        let mut ctx = UiContext::new(800.0, 600.0);
+        ctx.mouse_x = x;
+        ctx.mouse_y = y;
+        frame(win, ctx, state);
+        let mut ctx = UiContext::new(800.0, 600.0);
+        ctx.mouse_x = x;
+        ctx.mouse_y = y;
+        ctx.mouse_clicked = true;
+        frame(win, ctx, state)
+    }
+
+    /// Every block of a page with all its sections open.
+    fn all_blocks(page: &Page) -> Vec<Block> {
+        let mut out = Vec::new();
+        visible_blocks(&page.nodes, 0, &|_, _| true, &mut out);
+        out
+    }
+
+    /// Every line of a page with all its sections open.
+    fn lines(page: &Page) -> Vec<Line> {
+        all_blocks(page)
+            .into_iter()
+            .filter_map(|b| match b {
+                Block::Line(line) => Some(line),
+                _ => None,
+            })
+            .collect()
+    }
+
+    fn section<'a>(nodes: &'a [Node], title: &str) -> &'a Section {
+        nodes
+            .iter()
+            .find_map(|n| match n {
+                Node::Section(s) if s.title == title => Some(s),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("no section {title:?} in {nodes:?}"))
+    }
+
+    fn table<'a>(nodes: &'a [Node], title: &str) -> &'a Table {
+        nodes
+            .iter()
+            .find_map(|n| match n {
+                Node::Table(t) if t.title == title => Some(t),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("no table {title:?} in {nodes:?}"))
+    }
+
     fn categories() -> Value {
         json!({
             "categories": [
@@ -1242,10 +1913,10 @@ mod tests {
 
     #[test]
     fn categories_become_link_rows_with_counts() {
-        let page = build_page("/db", &categories());
-        assert_eq!(page.lines.len(), 2);
-        assert_eq!(page.lines[0].text, "items  (12)");
-        assert_eq!(page.lines[0].link.as_deref(), Some("/db/items"));
+        let lines = lines(&build_page("/db", &categories()));
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[0].text, "items  (12)");
+        assert_eq!(lines[0].link.as_deref(), Some("/db/items"));
     }
 
     #[test]
@@ -1256,45 +1927,102 @@ mod tests {
         });
         let page = build_page("/db/items?limit=100&offset=100", &value);
         assert_eq!(page.paging, Some(Paging { total: 230, offset: 100, limit: 100 }));
-        assert_eq!(page.lines[0].text, "Red Potion (#501)");
-        assert_eq!(page.lines[0].link.as_deref(), Some("/db/items/501"));
+        let lines = lines(&page);
+        assert_eq!(lines[0].text, "Red Potion (#501)");
+        assert_eq!(lines[0].link.as_deref(), Some("/db/items/501"));
     }
 
     #[test]
-    fn entry_renders_scalars_nested_objects_and_links() {
+    fn entry_puts_plain_fields_first_and_nests_the_rest_in_sections() {
         let value = json!({
             "id": 501,
+            "metadata": { "route": "heal", "none": [] },
             "name": "Red Potion",
             "weight": 70,
             "empty": null,
             "flags": ["a", "b"],
-            "metadata": { "route": "heal", "none": [] },
-            "dropped_by": [
-                { "mob": { "id": 1002, "name": "Poring", "href": "/db/mobs/1002" }, "rate": 70 },
-                { "id": 1113, "name": "Drops", "href": "/db/mobs/1113" }
-            ]
+            "made_by": { "id": 1002, "name": "Poring", "href": "/db/mobs/1002" }
         });
-        let lines = build_page("/db/items/501", &value).lines;
+        let page = build_page("/db/items/501", &value);
+        let firsts: Vec<&Node> = page.nodes.iter().skip(1).take(5).collect();
+        assert!(firsts.iter().all(|n| matches!(n, Node::Line(_))), "{firsts:?}");
+        assert!(matches!(page.nodes.last(), Some(Node::Section(s)) if s.title == "metadata"));
+
+        let lines = lines(&page);
         let find = |text: &str| lines.iter().find(|l| l.text == text).unwrap_or_else(|| panic!("no row {text:?} in {lines:?}"));
-
-        assert_eq!(
-            lines.iter().find(|l| l.label.as_deref() == Some("name")).map(|l| l.text.as_str()),
-            Some("Red Potion")
-        );
+        assert!(lines.iter().any(|l| l.label.as_deref() == Some("name") && l.text == "Red Potion"));
         assert_eq!(find("a, b").label.as_deref(), Some("flags"));
-        assert!(lines.iter().any(|l| l.heading && l.text == "metadata"));
-        assert_eq!(find("heal").indent, 1);
+        assert_eq!(find("Poring (#1002)").link.as_deref(), Some("/db/mobs/1002"));
+        assert_eq!(find("heal").indent, 1, "inside the metadata section");
         assert!(lines.iter().all(|l| l.label.as_deref() != Some("empty")));
-        assert!(lines.iter().all(|l| l.text != "none"));
-
-        assert!(lines.iter().any(|l| l.heading && l.text == "dropped by (2)"));
-        let drop = find("Poring (#1002)   rate: 70");
-        assert_eq!(drop.link.as_deref(), Some("/db/mobs/1002"));
-        assert_eq!(find("Drops (#1113)").link.as_deref(), Some("/db/mobs/1113"));
+        assert!(lines.iter().all(|l| l.label.as_deref() != Some("none")));
     }
 
     #[test]
-    fn item_description_keeps_each_line_and_puts_unidentified_under_its_own_heading() {
+    fn flat_records_become_a_table_without_unset_flags() {
+        let value = json!({
+            "dropped_by": [
+                { "mob": { "id": 1002, "name": "Poring", "href": "/db/mobs/1002" }, "rate": 70, "mvp": false, "card": false },
+                { "mob": { "id": 1113, "name": "Drops", "href": "/db/mobs/1113" }, "rate": 5, "mvp": true, "card": false }
+            ]
+        });
+        let page = build_page("/db/items/501", &value);
+        let drops = table(&page.nodes, "dropped by");
+        assert_eq!(drops.columns, ["mob", "rate", "mvp"], "no drop is a card drop");
+        assert_eq!(drops.rows.len(), 2);
+        assert_eq!(drops.rows[0][0].text, "Poring (#1002)");
+        assert_eq!(drops.rows[0][0].link.as_deref(), Some("/db/mobs/1002"));
+        assert_eq!(drops.rows[0][0].icon, Some(IconRef::Mob(1002)));
+        assert_eq!(drops.rows[0][1].text, "70");
+        assert_eq!(drops.rows[0][2].text, "", "an unset flag is left blank");
+        assert_eq!(drops.rows[1][2].text, "yes");
+    }
+
+    #[test]
+    fn records_with_nested_parts_and_link_lists_are_not_tables() {
+        let value = json!({
+            "stages": [{ "a": { "b": 1 } }, { "name": "Second", "a": { "b": 2 } }],
+            "quests": [{ "id": 1, "name": "One", "href": "/db/quests/1" }]
+        });
+        let page = build_page("/db/mobs/1", &value);
+        let stages = section(&page.nodes, "stages");
+        assert_eq!(stages.count, Some(2));
+        assert_eq!(section(&stages.children, "#1").key, "stages/#1");
+        section(&stages.children, "#2 Second");
+        let quests = section(&page.nodes, "quests");
+        assert!(matches!(&quests.children[0], Node::Line(l) if l.link.as_deref() == Some("/db/quests/1")));
+    }
+
+    #[test]
+    fn sections_and_tables_start_closed_but_the_description() {
+        let value = json!({
+            "id": 501,
+            "description": { "identified": ["A potion."], "unidentified": ["..."] },
+            "dropped_by": [{ "mob": { "id": 1002, "name": "Poring", "href": "/db/mobs/1002" }, "rate": 70 }],
+            "script_metadata": { "dynamic": false }
+        });
+        let page = build_page("/db/items/501", &value);
+        let starts: HashMap<String, bool> = page.sections().into_iter().collect();
+        assert_eq!(starts.get("description"), Some(&true));
+        assert_eq!(starts.get("description/unidentified"), Some(&false));
+        assert_eq!(starts.get("dropped_by"), Some(&false));
+        assert_eq!(starts.get("script_metadata"), Some(&false));
+
+        let mut shown = Vec::new();
+        visible_blocks(&page.nodes, 0, &|_, by_default| by_default, &mut shown);
+        let texts: Vec<String> = shown
+            .iter()
+            .map(|b| match b {
+                Block::Line(l) => l.text.clone(),
+                Block::Header(h) => format!("[{}]", h.title),
+                Block::Table(t, _) => format!("table {}", t.title),
+            })
+            .collect();
+        assert_eq!(texts, ["501", "[description]", "A potion.", "[unidentified]", "[dropped by]", "[script metadata]"]);
+    }
+
+    #[test]
+    fn item_description_keeps_each_line_and_puts_unidentified_in_its_own_section() {
         let value = json!({
             "id": 501,
             "description": {
@@ -1302,39 +2030,47 @@ mod tests {
                 "unidentified": ["..."]
             }
         });
-        let lines = build_page("/db/items/501", &value).lines;
-        let at = lines.iter().position(|l| l.heading && l.text == "description").expect("description heading");
-        assert_eq!(lines[at + 1].text, "A potion made from grinded Red Herbs.");
-        assert_eq!(lines[at + 1].indent, 1);
-        assert_eq!(lines[at + 4].text, "Weight: 7");
-        assert!(lines[at + 5].heading && lines[at + 5].text == "unidentified");
-        assert_eq!(lines[at + 6].text, "...");
-        assert!(lines.iter().all(|l| l.label.as_deref() != Some("description")));
+        let page = build_page("/db/items/501", &value);
+        let description = section(&page.nodes, "description");
+        let texts: Vec<&str> = description
+            .children
+            .iter()
+            .filter_map(|n| match n {
+                Node::Line(l) => Some(l.text.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(texts, ["A potion made from grinded Red Herbs.", "Class: Restorative", "Heal: 45 - 65 HP", "Weight: 7"]);
+        let unidentified = section(&description.children, "unidentified");
+        assert!(matches!(&unidentified.children[0], Node::Line(l) if l.text == "..."));
+        assert!(lines(&page).iter().all(|l| l.label.as_deref() != Some("description")));
 
-        let none = build_page("/db/items/1", &json!({ "description": null })).lines;
-        assert!(none.iter().all(|l| !l.heading));
+        let none = build_page("/db/items/1", &json!({ "description": null }));
+        assert!(none.nodes.is_empty());
     }
 
     #[test]
-    fn quest_prerequisites_link_to_each_quest_with_its_check() {
+    fn quest_prerequisites_are_a_table_linking_each_quest() {
         let value = json!({
             "prerequisites": [{ "quest": 8132, "state": "started", "quote": "if (isbegin_quest(8132) == 1)" }],
             "description": "Bring the thing."
         });
-        let lines = build_page("/db/quests/8133", &value).lines;
-        let at = lines.iter().position(|l| l.heading && l.text == "prerequisites (1)").expect("prerequisites heading");
-        assert_eq!(lines[at + 1].text, "Quest #8132 (must be started)");
-        assert_eq!(lines[at + 1].link.as_deref(), Some("/db/quests/8132"));
-        assert_eq!(lines[at + 2].text, "if (isbegin_quest(8132) == 1)");
+        let page = build_page("/db/quests/8133", &value);
+        let prerequisites = table(&page.nodes, "prerequisites");
+        assert_eq!(prerequisites.columns, ["quest", "must be", "check"]);
+        assert_eq!(prerequisites.rows[0][0].text, "Quest #8132");
+        assert_eq!(prerequisites.rows[0][0].link.as_deref(), Some("/db/quests/8132"));
+        assert_eq!(prerequisites.rows[0][1].text, "started");
+        assert_eq!(prerequisites.rows[0][2].text, "if (isbegin_quest(8132) == 1)");
 
-        let none = build_page("/db/quests/1", &json!({ "prerequisites": [] })).lines;
+        let none = lines(&build_page("/db/quests/1", &json!({ "prerequisites": [] })));
         assert_eq!(none[0].label.as_deref(), Some("prerequisites"));
         assert_eq!(none[0].text, "none");
-        assert!(build_page("/db/quests/1", &json!({ "prerequisites": null })).lines.is_empty());
+        assert!(build_page("/db/quests/1", &json!({ "prerequisites": null })).nodes.is_empty());
     }
 
     #[test]
-    fn map_quests_are_links_under_their_own_heading() {
+    fn map_quests_are_links_in_their_own_section() {
         let value = json!({
             "name": "prontera",
             "quests": [
@@ -1342,32 +2078,23 @@ mod tests {
                 { "id": 1002, "name": "1002", "href": "/db/quests/1002" }
             ]
         });
-        let lines = build_page("/db/maps/prontera", &value).lines;
-        let at = lines.iter().position(|l| l.heading && l.text == "quests started here (2)").expect("quests heading");
-        assert_eq!(lines[at + 1].text, "Jobs Lesson (#1001)");
-        assert_eq!(lines[at + 1].link.as_deref(), Some("/db/quests/1001"));
-        assert_eq!(lines[at + 1].indent, 1);
-        assert_eq!(lines[at + 2].link.as_deref(), Some("/db/quests/1002"));
-        assert!(lines.iter().all(|l| l.label.as_deref() != Some("quests")));
+        let page = build_page("/db/maps/prontera", &value);
+        let quests = section(&page.nodes, "quests started here");
+        assert_eq!(quests.count, Some(2));
+        assert!(matches!(&quests.children[0], Node::Line(l) if l.text == "Jobs Lesson (#1001)" && l.link.as_deref() == Some("/db/quests/1001")));
+        assert!(lines(&page).iter().all(|l| l.label.as_deref() != Some("quests")));
 
-        let none = build_page("/db/maps/payon", &json!({ "name": "payon", "quests": [] })).lines;
-        assert!(none.iter().all(|l| !l.text.starts_with("quests")));
+        let none = build_page("/db/maps/payon", &json!({ "name": "payon", "quests": [] }));
+        assert_eq!(none.nodes.len(), 1);
     }
 
     #[test]
-    fn long_value_lists_get_a_row_each() {
+    fn long_value_lists_get_a_section_with_a_row_each() {
         let long: Vec<String> = (0..30).map(|n| format!("value-{n}")).collect();
-        let lines = build_page("/db/items/1", &json!({ "tags": long })).lines;
-        assert!(lines[0].heading);
-        assert_eq!(lines.len(), 31);
-    }
-
-    #[test]
-    fn nested_objects_without_a_link_get_numbered_headings() {
-        let value = json!({ "stages": [{ "a": { "b": 1 } }, { "a": { "b": 2 } }] });
-        let lines = build_page("/db/quests/1", &value).lines;
-        assert!(lines.iter().any(|l| l.heading && l.text == "#1"));
-        assert!(lines.iter().any(|l| l.heading && l.text == "#2"));
+        let page = build_page("/db/items/1", &json!({ "tags": long }));
+        let tags = section(&page.nodes, "tags");
+        assert_eq!(tags.count, Some(30));
+        assert_eq!(tags.children.len(), 30);
     }
 
     #[test]
@@ -1484,17 +2211,112 @@ mod tests {
         // The two categories share the first row; "mobs" is the right-hand cell.
         let row_y = 90.0 + TITLE_H + TOOL_H + ROW_H * 0.5;
         let right_cell_x = 120.0 + PAD + (WIN_W - PAD * 2.0 - SCROLLBAR_W) / 2.0 + 30.0;
-        let mut ctx = UiContext::new(800.0, 600.0);
-        ctx.mouse_x = right_cell_x;
-        ctx.mouse_y = row_y;
-        frame(&mut win, ctx, &mut state);
-        let mut ctx = UiContext::new(800.0, 600.0);
-        ctx.mouse_x = right_cell_x;
-        ctx.mouse_y = row_y;
-        ctx.mouse_clicked = true;
-        frame(&mut win, ctx, &mut state);
+        click_at(&mut win, &mut state, right_cell_x, row_y);
 
         assert_eq!(win.current_path(), "/db/mobs");
+    }
+
+    fn quests_map() -> Value {
+        json!({ "quests": [
+            { "id": 1001, "name": "Jobs Lesson", "href": "/db/quests/1001" },
+            { "id": 1002, "name": "Second", "href": "/db/quests/1002" }
+        ]})
+    }
+
+    /// The rows the window laid out for the page on show.
+    fn shown_rows(win: &ReferenceWindow) -> Vec<Row> {
+        match win.pages.get(win.current_path()) {
+            Some(Load::Ready(page)) => page.rows.clone().expect("laid out"),
+            _ => panic!("no page"),
+        }
+    }
+
+    #[test]
+    fn clicking_a_header_opens_and_closes_its_section() {
+        let mut win = ReferenceWindow::new();
+        let mut state = StateCache::new();
+        win.open_at("/db/maps/prontera");
+        win.deliver("/db/maps/prontera", Ok(quests_map()));
+        frame(&mut win, UiContext::new(800.0, 600.0), &mut state);
+        assert_eq!(shown_rows(&win).len(), 1, "only the closed header shows");
+
+        let header = (120.0 + PAD + 60.0, 90.0 + TITLE_H + TOOL_H + HEADER_H / 2.0);
+        click_at(&mut win, &mut state, header.0, header.1);
+        frame(&mut win, UiContext::new(800.0, 600.0), &mut state);
+        let rows = shown_rows(&win);
+        assert!(matches!(&rows[0], Row::Header(h) if h.open));
+        assert!(rows.len() > 1, "the links show under it: {rows:?}");
+
+        click_at(&mut win, &mut state, header.0, header.1);
+        frame(&mut win, UiContext::new(800.0, 600.0), &mut state);
+        assert_eq!(shown_rows(&win).len(), 1);
+    }
+
+    #[test]
+    fn opened_sections_are_remembered_per_page() {
+        let mut win = ReferenceWindow::new();
+        win.open_at("/db/maps/prontera");
+        win.deliver("/db/maps/prontera", Ok(quests_map()));
+        win.toggle_section("/db/maps/prontera", "quests");
+        assert!(win.section_open("/db/maps/prontera", "quests", false));
+
+        win.navigate("/db/maps/payon".to_string());
+        win.deliver("/db/maps/payon", Ok(quests_map()));
+        assert!(!win.section_open("/db/maps/payon", "quests", false), "another page starts closed");
+        win.go_back();
+        assert!(win.section_open("/db/maps/prontera", "quests", false));
+    }
+
+    #[test]
+    fn expand_all_opens_every_section_and_collapse_all_closes_them() {
+        let mut win = ReferenceWindow::new();
+        let path = "/db/items/501";
+        win.open_at(path);
+        win.deliver(
+            path,
+            Ok(json!({
+                "description": { "identified": ["A potion."], "unidentified": ["..."] },
+                "recipes": { "made_by": [{ "item": { "id": 507, "name": "Red Herb", "href": "/db/items/507" }, "amount": 2 }] }
+            })),
+        );
+        assert_eq!(win.sections_state(path), Some(false), "only the description starts open");
+        win.set_all_sections(path, true);
+        assert_eq!(win.sections_state(path), Some(true));
+        assert!(win.section_open(path, "recipes/made_by", false));
+        win.set_all_sections(path, false);
+        assert!(!win.section_open(path, "description", true));
+
+        win.deliver("/db", Ok(categories()));
+        assert_eq!(win.sections_state("/db"), None, "a page without sections has no such button");
+    }
+
+    #[test]
+    fn an_open_table_lays_out_a_head_and_a_row_per_record() {
+        let value = json!({ "sold_at": [
+            { "npc": { "id": null, "name": "Tool Dealer", "href": "/db/npcs/prontera/Tool%20Dealer" }, "x": 134, "y": 221, "price": 50 },
+            { "npc": { "id": null, "name": "Merchant", "href": "/db/npcs/payon/Merchant" }, "x": 7, "y": 9, "price": 1250 }
+        ]});
+        let page = build_page("/db/items/501", &value);
+        let mut blocks = Vec::new();
+        visible_blocks(&page.nodes, 0, &|_, _| true, &mut blocks);
+        let rows = layout(&measure, blocks, 440.0);
+        assert!(matches!(&rows[0], Row::Header(h) if h.count == Some(2)));
+        let Row::TableHead(grid) = &rows[1] else { panic!("{rows:?}") };
+        assert_eq!(grid.columns.iter().map(|c| c.title.as_str()).collect::<Vec<_>>(), ["npc", "x", "y", "price"]);
+        assert!(!grid.columns[0].numeric && grid.columns[3].numeric);
+        assert!((grid.width() - (440.0 - 6.0 - INDENT_W)).abs() < 1.0, "it spans the list: {}", grid.width());
+        assert!(grid.columns.windows(2).all(|w| (w[0].x + w[0].w - w[1].x).abs() < 0.01));
+        assert_eq!(rows.len(), 4);
+        assert!(rows[3].height() > rows[2].height(), "a gap follows the last row");
+    }
+
+    #[test]
+    fn columns_get_what_they_need_and_share_what_is_short() {
+        assert_eq!(fit_widths(&[50.0, 20.0], 100.0), vec![80.0, 20.0], "the surplus goes to the first column");
+        let squeezed = fit_widths(&[300.0, 20.0, 200.0], 300.0);
+        assert_eq!(squeezed[1], 20.0, "a narrow column keeps its width");
+        assert!((squeezed.iter().sum::<f32>() - 300.0).abs() < 1.0);
+        assert!(squeezed[0] >= 139.0 && squeezed[2] >= 139.0, "{squeezed:?}");
     }
 
     #[test]
@@ -1557,46 +2379,43 @@ mod tests {
             "total": 1, "offset": 0, "limit": 100,
             "results": [{ "id": 501, "name": "Red Potion", "href": "/db/items/501" }]
         });
-        let lines = build_page("/db/items", &items).lines;
-        assert_eq!(lines[0].icon, Some(IconRef::Item(501)));
+        assert_eq!(lines(&build_page("/db/items", &items))[0].icon, Some(IconRef::Item(501)));
 
         let skills = json!({
             "total": 1, "offset": 0, "limit": 100,
             "results": [{ "id": 1, "name": "NV_BASIC", "href": "/db/skills/1" }]
         });
-        assert_eq!(build_page("/db/skills", &skills).lines[0].icon, Some(IconRef::Skill("NV_BASIC".into())));
+        assert_eq!(lines(&build_page("/db/skills", &skills))[0].icon, Some(IconRef::Skill("NV_BASIC".into())));
 
         let maps = json!({
             "total": 1, "offset": 0, "limit": 100,
             "results": [{ "id": null, "name": "prontera", "href": "/db/maps/prontera" }]
         });
-        assert_eq!(build_page("/db/maps", &maps).lines[0].icon, None);
-
-        let entry = json!({ "dropped_by": [{ "mob": { "id": 1002, "name": "Poring", "href": "/db/mobs/1002" }, "rate": 7 }] });
-        let lines = build_page("/db/items/501", &entry).lines;
-        assert_eq!(lines.last().unwrap().icon, Some(IconRef::Mob(1002)));
+        assert_eq!(lines(&build_page("/db/maps", &maps))[0].icon, None);
     }
 
     #[test]
     fn entries_open_with_a_banner_for_items_mobs_and_skills() {
-        let lines = build_page("/db/items/501", &json!({ "id": 501, "name": "Red Potion" })).lines;
-        assert!(lines[0].banner);
-        assert_eq!(lines[0].text, "Red Potion");
-        assert_eq!(lines[0].icon, Some(IconRef::Item(501)));
+        let banner = |path: &str, value: Value| match build_page(path, &value).nodes.first() {
+            Some(Node::Line(line)) => line.clone(),
+            other => panic!("{other:?}"),
+        };
+        let line = banner("/db/items/501", json!({ "id": 501, "name": "Red Potion" }));
+        assert!(line.banner);
+        assert_eq!(line.text, "Red Potion");
+        assert_eq!(line.icon, Some(IconRef::Item(501)));
 
-        let mob = json!({ "id": 1002, "name": "ポリン", "name_english": "Poring" });
-        let lines = build_page("/db/mobs/1002", &mob).lines;
-        assert_eq!(lines[0].text, "Poring");
-        assert_eq!(lines[0].icon, Some(IconRef::Mob(1002)));
+        let line = banner("/db/mobs/1002", json!({ "id": 1002, "name": "ポリン", "name_english": "Poring" }));
+        assert_eq!(line.text, "Poring");
+        assert_eq!(line.icon, Some(IconRef::Mob(1002)));
 
-        let lines = build_page("/db/maps/prontera", &json!({ "name": "prontera" })).lines;
-        assert!(!lines[0].banner);
+        assert!(!banner("/db/maps/prontera", json!({ "name": "prontera" })).banner);
     }
 
     #[test]
     fn icon_rows_are_taller_and_scrolling_counts_lines_not_pixels() {
-        let plain = Line::value(0, None, "x".into());
-        let icon = Line::link(0, None, "x".into(), "/db/items/1".into()).with_icon(Some(IconRef::Item(1)));
+        let plain = Line::value(None, "x".into());
+        let icon = Line::link(None, "x".into(), "/db/items/1".into()).with_icon(Some(IconRef::Item(1)));
         assert_eq!(plain.height(), ROW_H);
         assert_eq!(icon.height(), ROW_H * ICON_ROW_UNITS as f32);
 
@@ -1660,6 +2479,26 @@ mod tests {
     }
 
     #[test]
+    fn table_cells_ask_for_their_icons_only_once_opened() {
+        let mut win = ReferenceWindow::new();
+        let mut state = StateCache::new();
+        let data = item_data();
+        let path = "/db/mobs/1002";
+        win.open_at(path);
+        win.deliver(path, Ok(json!({ "drops": [{ "item": { "id": 501, "name": "Red Potion", "href": "/db/items/501" }, "rate": 7000 }] })));
+        let build = |win: &mut ReferenceWindow, state: &mut StateCache| {
+            let mut ctx = UiContext::new(800.0, 600.0);
+            let mut character = Character::new();
+            let mut ui = test_frame(&mut ctx, state);
+            win.build(&mut ui, &mut BuildCtx::test(&mut character, &data))
+        };
+        let asks = |events: &[GameEvent]| events.iter().filter(|e| matches!(e, GameEvent::RequestReferenceTexture { .. })).count();
+        assert_eq!(asks(&build(&mut win, &mut state)), 0, "the table is closed");
+        win.toggle_section(path, "drops");
+        assert_eq!(asks(&build(&mut win, &mut state)), 1);
+    }
+
+    #[test]
     fn monster_pictures_use_a_sprite_thumbnail_key() {
         use ragnarok_game::data_table::name_table::NameTable;
         let mut data = DataTable::new();
@@ -1679,57 +2518,49 @@ mod tests {
     }
 
     fn value(label: &str, text: &str) -> Line {
-        Line::value(0, Some(label.to_string()), text.to_string())
+        Line::value(Some(label.to_string()), text.to_string())
     }
 
     #[test]
     fn short_fields_share_a_row_in_pairs() {
         let lines = vec![value("id", "501"), value("name", "Red Potion"), value("type", "Healing")];
-        let rows = layout(&measure, &lines, 450.0);
+        let rows = pair_lines(&measure, &lines, 450.0);
         assert_eq!(rows.len(), 2);
-        assert_eq!(rows[0].cells.len(), 2);
-        assert_eq!(rows[0].cells[1].text, "Red Potion");
-        assert_eq!(rows[1].cells.len(), 1, "an odd one out keeps its own row");
+        assert_eq!(rows[0].len(), 2);
+        assert_eq!(rows[0][1].text, "Red Potion");
+        assert_eq!(rows[1].len(), 1, "an odd one out keeps its own row");
     }
 
     #[test]
-    fn headings_indents_and_kinds_break_a_pair() {
-        let nested = Line::value(1, Some("route".into()), "heal".into());
-        let link = Line::link(0, None, "Poring".into(), "/db/mobs/1002".into());
-        let lines = vec![
-            value("a", "1"),
-            Line::heading(0, "section".into()),
-            value("b", "2"),
-            nested,
-            link.clone(),
-            value("c", "3"),
-            link,
-        ];
-        let rows = layout(&measure, &lines, 450.0);
-        assert!(rows.iter().all(|r| r.cells.len() == 1), "{rows:?}");
+    fn indents_and_kinds_break_a_pair() {
+        let nested = Line { indent: 1, ..Line::value(Some("route".into()), "heal".into()) };
+        let link = Line::link(None, "Poring".into(), "/db/mobs/1002".into());
+        let lines = vec![value("b", "2"), nested, link.clone(), value("c", "3"), link];
+        let rows = pair_lines(&measure, &lines, 450.0);
+        assert!(rows.iter().all(|r| r.len() == 1), "{rows:?}");
     }
 
     #[test]
     fn a_cell_too_wide_for_half_the_list_stays_alone() {
         let wide = value("script", &"x".repeat(40));
         let lines = vec![value("id", "1"), wide, value("id", "2")];
-        let rows = layout(&measure, &lines, 450.0);
-        assert!(rows.iter().all(|r| r.cells.len() == 1));
+        let rows = pair_lines(&measure, &lines, 450.0);
+        assert!(rows.iter().all(|r| r.len() == 1));
     }
 
     #[test]
     fn long_text_wraps_and_its_pieces_are_not_paired() {
         let text = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon";
         let lines = vec![value("desc", text), value("id", "1")];
-        let rows = layout(&measure, &lines, 300.0);
+        let rows = pair_lines(&measure, &lines, 300.0);
         assert!(rows.len() > 3, "the text takes several rows");
-        let pieces: Vec<&str> = rows.iter().take(rows.len() - 1).map(|r| r.cells[0].text.as_str()).collect();
+        let pieces: Vec<&str> = rows.iter().take(rows.len() - 1).map(|r| r[0].text.as_str()).collect();
         assert_eq!(pieces.join(" "), text, "nothing is lost or reordered");
-        assert_eq!(rows[0].cells[0].label.as_deref(), Some("desc"));
-        assert_eq!(rows[1].cells[0].label, None);
-        assert!(rows.iter().all(|r| r.cells.len() == 1));
+        assert_eq!(rows[0][0].label.as_deref(), Some("desc"));
+        assert_eq!(rows[1][0].label, None);
+        assert!(rows.iter().all(|r| r.len() == 1));
         for row in &rows[..rows.len() - 1] {
-            assert!(cell_width(&measure, &row.cells[0]) <= 300.0 - 8.0, "{row:?}");
+            assert!(cell_width(&measure, &row[0]) <= 300.0 - 8.0, "{row:?}");
         }
     }
 
@@ -1744,11 +2575,11 @@ mod tests {
 
     #[test]
     fn icon_links_pair_too_and_stay_tall() {
-        let a = Line::link(0, None, "Red Potion (#501)".into(), "/db/items/501".into()).with_icon(Some(IconRef::Item(501)));
-        let b = Line::link(0, None, "Blue Potion (#505)".into(), "/db/items/505".into()).with_icon(Some(IconRef::Item(505)));
-        let rows = layout(&measure, &[a, b], 450.0);
+        let a = Line::link(None, "Red Potion (#501)".into(), "/db/items/501".into()).with_icon(Some(IconRef::Item(501)));
+        let b = Line::link(None, "Blue Potion (#505)".into(), "/db/items/505".into()).with_icon(Some(IconRef::Item(505)));
+        let rows = pair_lines(&measure, &[a, b], 450.0);
         assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0].height(), ROW_H * ICON_ROW_UNITS as f32);
+        assert_eq!(Row::Cells(rows[0].clone()).height(), ROW_H * ICON_ROW_UNITS as f32);
     }
 
     #[test]

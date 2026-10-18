@@ -12,7 +12,6 @@ use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui_component::game::drop_quantity_dialog::DropQuantityDialog;
 use ragnarok_ui_component::game::hotkey_bar::HOTKEY_BAR_WINDOW_ID;
 use ragnarok_ui_component::game::inventory_window::INV_WINDOW_ID;
-use ragnarok_ui_component::game::levelup_notification_window::LevelUpClick;
 use ragnarok_ui_component::game::minimap_window::{MarkerType, MinimapMarker, quest_marker_color};
 use ragnarok_ui_component::{BuildCtx, InGameWindow};
 use std::collections::HashMap;
@@ -89,6 +88,10 @@ pub fn build_in_game_ui(
     if modal_owns_keyboard(windows, &ctx) {
         ui.block_keyboard();
     }
+
+    windows
+        .basic_info_window
+        .note_open_windows(windows.status_window.is_visible(), ctx.character.skills.is_open());
 
     let z_order = ui.get_z_order();
     ui.compute_hovered_window(&z_order);
@@ -213,12 +216,6 @@ pub fn build_in_game_ui(
     events.extend(windows.context_menu.build(ui));
 
     events.extend(windows.map_missing_window.build(ui));
-
-    match windows.levelup_notification.build(ui) {
-        LevelUpClick::Base => windows.status_window.open(),
-        LevelUpClick::Job => ctx.character.skills.open(),
-        LevelUpClick::None => {}
-    }
 
     if let Some(cancelled) = ui.draw_drag_icon() {
         if cancelled.source_id == HOTKEY_BAR_WINDOW_ID {
