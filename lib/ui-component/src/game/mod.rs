@@ -43,6 +43,7 @@ pub mod party_board_window;
 pub mod party_friends_window;
 pub mod party_helper_window;
 pub mod pet_window;
+pub mod plugin_window;
 pub mod qol_toolbar;
 pub mod quest_window;
 pub mod read_mail_window;

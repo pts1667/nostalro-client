@@ -2,6 +2,7 @@ pub mod account;
 pub mod connection;
 pub mod handler;
 pub mod helpers;
+pub mod plugin_ui;
 pub mod sender;
 pub mod session;
 
@@ -162,7 +163,10 @@ pub async fn network_loop(
                                         }
                                         events
                                     }
-                                    Frame::Custom(raw) => account::dispatch(raw).into_iter().collect(),
+                                    Frame::Custom(raw) => account::dispatch(raw)
+                                        .or_else(|| plugin_ui::dispatch(raw))
+                                        .into_iter()
+                                        .collect(),
                                 };
                                 for event in events {
                                     let event = match event {

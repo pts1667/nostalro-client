@@ -47,6 +47,7 @@ impl App {
                 self.game.combat.queued_move = None;
                 self.game.combat.queued_move_state = None;
                 self.game.npc_cutins = [None, None, None];
+                self.game.plugin_overheads.clear();
                 self.game.session.progress_bar = None;
             }
             SessionChange::Logout => {
@@ -107,6 +108,8 @@ impl App {
                 self.game.friends = ragnarok_game::friends::FriendList::default();
                 self.windows.party_friends_window.open = false;
                 self.windows.world_map_window.close();
+                self.windows.plugin_windows.clear();
+                self.game.plugin_overheads.clear();
                 self.game.session.current_map = None;
                 self.game.session.progress_bar = None;
                 self.game.session.map_coords = None;

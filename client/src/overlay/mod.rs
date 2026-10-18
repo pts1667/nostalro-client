@@ -1,3 +1,5 @@
+pub(crate) mod plugin_overhead;
+
 use crate::App;
 use crate::config::{AccessibilityConfig, BarStyle};
 use ragnarok_game::cursor::RenderEntry;
@@ -53,6 +55,12 @@ const OUTLINE_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 /// reads grey next to the letter's vertical stems. Repeating it accumulates towards
 /// opaque black without widening the outline.
 const OUTLINE_PASSES: usize = 3;
+/// The "!" diamond of an NPC with a quest available: `RADIUS` is the half-diagonal,
+/// `EDGE` a dark rim around it, `GAP` the space between it and the name.
+const QUEST_DIAMOND_GOLD: [f32; 4] = [1.0, 0.82, 0.2, 1.0];
+const QUEST_DIAMOND_RADIUS: f32 = 7.0;
+const QUEST_DIAMOND_EDGE: f32 = 1.5;
+const QUEST_DIAMOND_GAP: f32 = 4.0;
 
 impl App {
     fn plate_text_width(&self, text: &str, font_atlas: &ragnarok_renderer::FontAtlas) -> f32 {
@@ -94,7 +102,9 @@ impl App {
         self.build_player_bars(hovered_entity_id, render_list, &mut calls);
         self.build_persistent_bars(hovered_entity_id, render_list, &mut calls);
         self.build_cast_bars(render_list, &mut calls);
+        self.build_quest_diamonds(render_list, &mut calls);
         self.build_chat_bubbles(render_list, &mut calls);
+        self.build_plugin_overheads(render_list, &mut calls);
         self.build_talkbox_bubbles(&mut calls);
         self.build_vending_boards(render_list, &mut calls);
         self.build_chat_room_boards(render_list, &mut calls);
@@ -200,6 +210,13 @@ impl App {
                 self.build_plate_text(&line, line_x, text_y, color, &renderer.font_atlas, calls);
             }
 
+            if self.game.quest_markers.get(&entity_id).is_some_and(|m| m.is_available()) {
+                let cx = text_x - QUEST_DIAMOND_GAP - QUEST_DIAMOND_RADIUS;
+                let cy = name_y + renderer.font_atlas.line_height / 2.0;
+                self.build_quest_diamond(cx, cy, &renderer.font_atlas, calls);
+                leftmost_x = leftmost_x.min(cx - QUEST_DIAMOND_RADIUS - QUEST_DIAMOND_EDGE);
+            }
+
             if entity.guild_id != 0 && entity.guild_emblem_version != 0 {
                 let block_center_y = (name_y + text_y) / 2.0;
                 let emblem_x = leftmost_x - EMBLEM_HOVER_SIZE - 3.0;
@@ -215,6 +232,64 @@ impl App {
                 );
             }
         }
+    }
+
+    /// The "!" of each NPC with a quest available, drawn over its head so it shows
+    /// without hovering. It takes the place of the emotion sprite for that marker.
+    fn build_quest_diamonds(&self, render_list: &[RenderEntry], calls: &mut Vec<UiDrawCall>) {
+        let Some(renderer) = &self.renderer else {
+            return;
+        };
+        for entry in render_list {
+            let available = self
+                .game
+                .quest_markers
+                .get(&entry.id)
+                .is_some_and(|m| m.is_available());
+            if !available || self.game.world.entities.hides_overhead_ui(entry.id) {
+                continue;
+            }
+            let cx = entry.screen_anchor[0];
+            let cy = entry.screen_anchor[1]
+                - entry.head_offset
+                - QUEST_DIAMOND_RADIUS
+                - QUEST_DIAMOND_EDGE
+                - 2.0;
+            self.build_quest_diamond(cx, cy, &renderer.font_atlas, calls);
+        }
+    }
+
+    /// Gold diamond with a white "!" centred on (`cx`, `cy`).
+    fn build_quest_diamond(
+        &self,
+        cx: f32,
+        cy: f32,
+        font_atlas: &ragnarok_renderer::FontAtlas,
+        calls: &mut Vec<UiDrawCall>,
+    ) {
+        // A square turned 45 degrees: its side is the half-diagonal times √2 for each
+        // radius, so the rim is the same width all round.
+        for (radius, color) in [
+            (QUEST_DIAMOND_RADIUS + QUEST_DIAMOND_EDGE, OUTLINE_COLOR),
+            (QUEST_DIAMOND_RADIUS, QUEST_DIAMOND_GOLD),
+        ] {
+            let side = radius * std::f32::consts::SQRT_2;
+            let (verts, indices) = ragnarok_ui::draw::quad_vertices_rotated(
+                cx,
+                cy,
+                side,
+                std::f32::consts::FRAC_PI_4,
+                color,
+            );
+            calls.push(UiDrawCall {
+                vertices: verts.to_vec(),
+                indices: indices.to_vec(),
+                texture: UiTextureRef::White,
+            });
+        }
+        let width = self.plate_text_width("!", font_atlas);
+        let y = cy - font_atlas.line_height / 2.0;
+        self.build_plate_text("!", cx - width / 2.0, y, [1.0; 4], font_atlas, calls);
     }
 
     /// Guild emblems above the head of every guilded character and castle

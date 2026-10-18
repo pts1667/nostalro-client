@@ -9,6 +9,8 @@ ragnarok-resources = { workspace = true }
 ragnarok-game = { workspace = true }
 ragnarok-ai = { workspace = true }
 ragnarok-renderer = { workspace = true }
+plugin-ui = { workspace = true }
+tracing = { workspace = true }
 rust-i18n = { workspace = true }
 # preserve_order keeps the server's field order when an entry is shown.
 serde_json = { workspace = true, features = ["preserve_order"] }

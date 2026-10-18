@@ -532,6 +532,26 @@ pub enum GameEvent {
         npc_id: u32,
         choice: u8,
     },
+    /// A plugin opened `window`, or replaced its window with the same id.
+    PluginWindowOpen {
+        plugin: String,
+        window: Box<plugin_ui::Window>,
+    },
+    PluginWindowClose {
+        plugin: String,
+        id: String,
+    },
+    /// A notification drawn above the unit `unit_id` (an account id for players).
+    PluginOverhead {
+        unit_id: u32,
+        plugin: String,
+        overhead: Box<plugin_ui::Overhead>,
+    },
+    /// A click, submit, row selection or close in a plugin window, for the server.
+    RequestPluginUiEvent {
+        plugin: String,
+        event: plugin_ui::UiEvent,
+    },
     WarpList {
         skill: SkillEnum,
         destinations: Vec<String>,

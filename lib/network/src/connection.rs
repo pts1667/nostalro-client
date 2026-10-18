@@ -13,8 +13,8 @@ const ZC_AID_PACKET_ID: u16 = 0x0283;
 /// One framed packet off the wire.
 pub enum Frame {
     Game(Box<dyn Packet>),
-    /// A packet of the rust-ro login server that the generated parser does not
-    /// know, see [`crate::account`]; the raw bytes, header included.
+    /// A packet of rust-ro that the generated parser does not know, see
+    /// [`crate::account`] and [`crate::plugin_ui`]; the raw bytes, header included.
     Custom(Vec<u8>),
 }
 
@@ -152,20 +152,35 @@ impl Connection {
         if let Some(len) = crate::account::frame_len(u16::from_le_bytes(id)) {
             return FrameLen::Known(len);
         }
+        match crate::plugin_ui::frame_len(u16::from_le_bytes(id)) {
+            Some(Some(len)) => return FrameLen::Known(len),
+            Some(None) => return Self::declared_len(data),
+            None => {}
+        }
         if packets_parser::is_variable_length(id, packetver) {
-            if data.len() < 4 {
-                return FrameLen::Incomplete;
-            }
-            let declared = u16::from_le_bytes([data[2], data[3]]) as usize;
-            if declared < 4 {
-                return FrameLen::Unusable;
-            }
-            return FrameLen::Known(declared);
+            return Self::declared_len(data);
         }
         match packets_parser::packet_len(id, packetver) {
             Some(len) if len >= 2 => FrameLen::Known(len),
             _ => FrameLen::Unusable,
         }
+    }
+
+    /// The length a variable packet carries after its id.
+    fn declared_len(data: &[u8]) -> FrameLen {
+        if data.len() < 4 {
+            return FrameLen::Incomplete;
+        }
+        let declared = u16::from_le_bytes([data[2], data[3]]) as usize;
+        if declared < 4 {
+            return FrameLen::Unusable;
+        }
+        FrameLen::Known(declared)
+    }
+
+    /// A rust-ro packet the generated parser does not know, handed on raw.
+    fn is_custom(id: u16) -> bool {
+        crate::account::frame_len(id).is_some() || crate::plugin_ui::frame_len(id).is_some()
     }
 
     fn drain_packets(
@@ -214,7 +229,7 @@ impl Connection {
             }
 
             let parse_buf = &remaining[..expected];
-            if crate::account::frame_len(u16::from_le_bytes([parse_buf[0], parse_buf[1]])).is_some() {
+            if Self::is_custom(u16::from_le_bytes([parse_buf[0], parse_buf[1]])) {
                 packets.push(Frame::Custom(parse_buf.to_vec()));
                 offset += expected;
                 continue;
@@ -452,5 +467,23 @@ mod tests {
             }
             _ => panic!("expected custom, game, custom frames"),
         }
+    }
+
+    #[test]
+    fn plugin_windows_are_framed_by_their_declared_length() {
+        use plugin_ui::wire::{self, WindowOpen};
+        let window = plugin_ui::Window::new("shop", "Shop", 200, plugin_ui::Node::text("x".repeat(5000)));
+        let open = wire::encode_open(&WindowOpen { plugin: "ui_shop".into(), window }).unwrap();
+        assert!(open.len() > 4096, "spans several reads");
+        let mut buffer = open[..3].to_vec();
+        assert!(Connection::drain_packets(&mut buffer, 20120307, PacketTrace::None).is_empty());
+        buffer.extend_from_slice(&open[3..4096]);
+        assert!(Connection::drain_packets(&mut buffer, 20120307, PacketTrace::None).is_empty());
+        buffer.extend_from_slice(&open[4096..]);
+        match &Connection::drain_packets(&mut buffer, 20120307, PacketTrace::None)[..] {
+            [Frame::Custom(raw)] => assert_eq!(raw, &open),
+            _ => panic!("expected one custom frame"),
+        }
+        assert!(buffer.is_empty());
     }
 }

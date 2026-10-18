@@ -81,7 +81,9 @@ impl App {
         effect: i16,
         color: u8,
     ) {
-        if color == 0 || effect == QUEST_MARKER_NONE {
+        // Icon 0 clears the marker. Colour 0 only means "no minimap dot", so a
+        // scripted questinfo icon may legitimately arrive with colour 0.
+        if effect <= 0 || effect == QUEST_MARKER_NONE {
             self.game.quest_markers.remove(&npc_id);
         } else {
             self.game.quest_markers.insert(

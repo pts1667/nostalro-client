@@ -51,6 +51,16 @@ pub struct QuestMarker {
     pub color: u8,
 }
 
+/// `effect` of the yellow "!" the server sends for an NPC with a quest available.
+pub const QUEST_AVAILABLE_EFFECT: i16 = 1;
+
+impl QuestMarker {
+    /// Whether this marker is the "!" of an NPC with a quest available.
+    pub fn is_available(&self) -> bool {
+        self.effect == QUEST_AVAILABLE_EFFECT
+    }
+}
+
 /// First emotion.act action used by the over-NPC quest markers; the marker
 /// `effect` value indexes forward from here.
 const MARKER_ACTION_BASE: usize = 81;

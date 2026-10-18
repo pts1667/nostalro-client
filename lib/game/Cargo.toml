@@ -10,6 +10,7 @@ ragnarok-ai = { workspace = true }
 glam = { workspace = true }
 ragnarok-effects = { workspace = true }
 ragnarok-profiling = { workspace = true }
+plugin-ui = { workspace = true }
 models = { workspace = true }
 movement = { workspace = true }
 tracing = { workspace = true }

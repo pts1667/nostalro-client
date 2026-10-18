@@ -536,6 +536,40 @@ crate that calls `t!` imports it with `use rust_i18n::t;`.
   English ships, so both use the fallback. A second locale needs a `hot_set_locale`
   export and a call from the host after each load.
 
+## Plugin windows and overheads
+
+rust-ro plugins describe their own windows as a tree of nodes (rust-ro
+`docs/plugin-ui.md`; the types come from its `plugin-ui` crate). After each map
+enter the client sends `CZ_CLIENT_FEATURES`, and only then does the server send
+`ZC_PLUGIN_WINDOW` and `ZC_PLUGIN_OVERHEAD`. `lib/network/src/plugin_ui.rs` frames
+and decodes them into `GameEvent::PluginWindowOpen`, `PluginWindowClose` and
+`PluginOverhead`.
+
+- `PluginWindows` (`lib/ui-component/src/game/plugin_window.rs`) holds the open
+  windows, held in `Windows::plugin_windows`. It is not a registry entry: each window
+  takes one of 32 id slots of 4096 ids (window, close button, then four ids per
+  node in depth-first order). `build_in_game_ui` dispatches those ids through the
+  z-order like registry windows, and `route_escape` closes the front-most closable
+  one.
+- The layout is measured, then placed, every frame. A column stacks its children;
+  text and separators fill its width, and other children follow the column's
+  `align`. A row lines its children up and aligns them vertically. A spacer is
+  vertical in a column and horizontal in a row. Tables scroll with
+  `helper/scrollbar.rs`.
+- Replacing a window, which is what a plugin does after each click, keeps its
+  position, scroll offsets, row selection and every input the player edited. The
+  one exception is an input whose value the plugin itself changed. Each event
+  carries every input's current value, with numbers clamped to their range.
+- Image frames are paths under the data folder. `plugin/<name>/…` files come from
+  the server's `/data` endpoint like any other file. They and item icons are
+  preloaded when a window opens.
+- Overheads live in `GameState::plugin_overheads`. `client/src/overlay/plugin_overhead.rs`
+  draws them above the unit's head with `Overhead::transform`. Overheads of one unit
+  that overlap in time stack upwards, as a base and a job level up do. Overheads are
+  cleared on map change, and windows on logout.
+
+The `plugin_window` snapshot scene renders the `ui_shop` example's shop.
+
 ## Adding a new window
 
 1. Draw the chrome with `helper::fallback` and `helper::window_chrome` (titlebar,

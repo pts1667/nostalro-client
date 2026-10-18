@@ -23,6 +23,7 @@ mod storage;
 mod trade;
 
 use crate::App;
+use crate::overlay::plugin_overhead;
 use models::enums::EnumWithMaskValueU64;
 use models::enums::skill_enums::SkillEnum;
 use ragnarok_formats::act::SpriteActionType;
@@ -40,6 +41,7 @@ use ragnarok_ui_component::account::char_create_window::CharCreateWindow;
 use ragnarok_ui_component::game::chat_room_member_window;
 use ragnarok_ui_component::game::guild_expel_dialog::GuildExpelDialog;
 use ragnarok_ui_component::game::party_helper_window::MODE_CREATE;
+use ragnarok_ui_component::game::plugin_window;
 use winit::event_loop::ActiveEventLoop;
 
 const BLADE_STOP_GRIP_FRAME: usize = 4;
@@ -1998,6 +2000,26 @@ impl App {
                     self.windows.system_menu.open = false;
                     self.channel
                         .send_packet(build_req_disconnect_packet(self.active_packetver));
+                }
+                GameEvent::PluginWindowOpen { plugin, window } => {
+                    self.windows.plugin_windows.open(&plugin, *window);
+                    let textures = self.windows.plugin_windows.textures(&self.game.data_table);
+                    self.preload_item_icons(textures);
+                }
+                GameEvent::PluginWindowClose { plugin, id } => {
+                    self.windows.plugin_windows.close(&plugin, &id);
+                }
+                GameEvent::PluginOverhead { unit_id, overhead, .. } => {
+                    if let Some(frames) = overhead.image.as_ref().map(|image| &image.frames) {
+                        let textures = frames.iter().map(|frame| plugin_window::texture_path(frame)).collect();
+                        self.preload_item_icons(textures);
+                    }
+                    plugin_overhead::push(&mut self.game.plugin_overheads, unit_id, *overhead, std::time::Instant::now());
+                }
+                GameEvent::RequestPluginUiEvent { plugin, event } => {
+                    if let Some(packet) = ragnarok_network::plugin_ui::build_event_packet(&plugin, event) {
+                        self.channel.send_packet(packet);
+                    }
                 }
                 GameEvent::RequestNpcContact { npc_id } => {
                     self.channel

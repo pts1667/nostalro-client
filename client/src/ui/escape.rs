@@ -33,6 +33,7 @@ use ragnarok_ui_component::game::my_shop_window::MY_SHOP_WINDOW_ID;
 use ragnarok_ui_component::game::party_friends_window::PARTY_FRIENDS_WINDOW_ID;
 use ragnarok_ui_component::game::party_helper_window::PARTY_HELPER_WINDOW_ID;
 use ragnarok_ui_component::game::pet_window::PET_WINDOW_ID;
+use ragnarok_ui_component::game::plugin_window::PluginWindows;
 use ragnarok_ui_component::game::quest_window::{QUEST_DETAIL_WINDOW_ID, QUEST_WINDOW_ID};
 use ragnarok_ui_component::game::read_mail_window::READ_MAIL_WINDOW_ID;
 use ragnarok_ui_component::game::reference_window::REFERENCE_WINDOW_ID;
@@ -235,6 +236,13 @@ pub fn route_escape(
 
     for win_id in ui.get_z_order().into_iter().rev() {
         if windows.escape.excluded.contains(&win_id) {
+            continue;
+        }
+        if PluginWindows::owns(win_id) {
+            if let Some(window_events) = windows.plugin_windows.escape(win_id) {
+                events.extend(window_events);
+                return events;
+            }
             continue;
         }
         let Some((_, Dispatch::Trait(accessor))) = REGISTRY.iter().find(|(id, _)| *id == win_id)

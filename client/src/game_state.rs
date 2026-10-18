@@ -562,6 +562,8 @@ pub struct GameState {
     /// NPC cutin illustrations by position slot (0 left / 1 middle / 2 right);
     /// GRF base name under `data/texture/유저인터페이스/illust/`.
     pub npc_cutins: [Option<String>; 3],
+    /// Plugin notifications above units, until they end or the map changes.
+    pub plugin_overheads: Vec<crate::overlay::plugin_overhead::PluginOverhead>,
     pub chat_rooms: ChatRoomRegistry,
     pub pending_chat_room: Option<(String, i16, bool)>,
     pub hover: HoverState,
@@ -684,6 +686,7 @@ impl GameState {
             broadcast: Broadcast::new(),
             pending_confirms: PendingConfirms::default(),
             npc_cutins: [None, None, None],
+            plugin_overheads: Vec::new(),
             chat_rooms: ChatRoomRegistry::new(),
             pending_chat_room: None,
             hover: HoverState::default(),

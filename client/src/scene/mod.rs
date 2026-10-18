@@ -392,8 +392,12 @@ impl App {
                             }
                         }
 
+                        // The "!" of an available quest is drawn as a diamond by the overlay.
                         if let (Some(marker), Some(emo_act), Some(emo_tex)) = (
-                            self.game.quest_markers.get(&entry.id),
+                            self.game
+                                .quest_markers
+                                .get(&entry.id)
+                                .filter(|marker| !marker.is_available()),
                             &self.game.assets.emotion_act,
                             &self.game.assets.emotion_textures,
                         ) {

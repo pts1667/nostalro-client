@@ -14,6 +14,7 @@ ragnarok-profiling = { workspace = true }
 ragnarok-ui = { workspace = true }
 ragnarok-ui-component = { workspace = true }
 ragnarok-audio = { workspace = true }
+plugin-ui = { workspace = true }
 models = { workspace = true }
 glam = { workspace = true }
 tracing = { workspace = true }

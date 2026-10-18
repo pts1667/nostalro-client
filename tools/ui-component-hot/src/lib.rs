@@ -89,6 +89,7 @@ use ragnarok_ui_component::game::monster_info_window::{MONSTER_INFO_WINDOW_ID, M
 use ragnarok_ui_component::game::my_shop_window::{MY_SHOP_WINDOW_ID, MyShopWindow};
 use ragnarok_ui_component::game::npc_dialog::{NPC_DIALOG_WINDOW_ID, NpcDialog};
 use ragnarok_ui_component::game::npc_shop::NpcShop;
+use ragnarok_ui_component::game::plugin_window::PluginWindows;
 use ragnarok_ui_component::game::party_friends_window::{
     PARTY_FRIENDS_WINDOW_ID, PartyFriendsWindow,
 };
@@ -130,6 +131,7 @@ const GAME_COMPONENTS: &[&str] = &[
     "storage_password",
     "cart_select",
     "npc_shop",
+    "plugin_window",
     "npc_dialog",
     "equipment",
     "system_menu",
@@ -181,6 +183,11 @@ const COMPANION_COMPONENTS: &[&str] = &[
 ];
 
 enum State {
+    PluginWindow {
+        windows: PluginWindows,
+        character: Character,
+        data: DataTable,
+    },
     Inventory {
         inv: InventoryWindow,
         character: Character,
@@ -580,6 +587,67 @@ fn wrap_texture_size_fn(f: TextureSizeFn) -> impl Fn(&str) -> Option<(u32, u32)>
     }
 }
 
+/// The shop of rust-ro's `ui_shop` example plugin, as the server sends it.
+fn plugin_window_fixture() -> plugin_ui::Window {
+    use plugin_ui::{Align, ImageRef, Node, Table};
+    let mut table = Table::new("stock", 6)
+        .column("", 32, Align::Center)
+        .column("Item", 150, Align::Start)
+        .column("Price", 70, Align::End)
+        .column("", 56, Align::Center)
+        .row_height(28);
+    for (item_id, name, price) in [
+        (501, "Red Potion", 50),
+        (502, "Orange Potion", 200),
+        (503, "Yellow Potion", 550),
+        (504, "White Potion", 1200),
+        (505, "Blue Potion", 5000),
+        (506, "Green Potion", 40),
+        (601, "Fly Wing", 60),
+        (602, "Butterfly Wing", 300),
+    ] {
+        let buy = Node::button(format!("buy:{item_id}"), "Buy");
+        table = table.row(
+            item_id.to_string(),
+            [
+                Node::item(item_id),
+                Node::text(name),
+                Node::text(format!("{price} z")),
+                if price > 1000 { buy.disabled() } else { buy },
+            ],
+        );
+    }
+    plugin_ui::Window::new(
+        "shop",
+        "Curio Trader",
+        340,
+        Node::column([
+            Node::row([
+                Node::image(
+                    ImageRef::animated(
+                        (0..4).map(|frame| format!("plugin/ui_shop/coin_{frame}.png")),
+                        8.0,
+                    ),
+                    24,
+                    24,
+                ),
+                Node::title("1,000 zeny"),
+            ])
+            .gap(8),
+            Node::wrapped("Curiosities from every corner of Rune-Midgard. Prices are ^0000ffper piece^000000."),
+            table.into(),
+            Node::row([
+                Node::text("Amount"),
+                Node::number_input("amount", 1, 1, 100),
+                Node::spacer(90),
+                Node::button("close", "Close"),
+            ]),
+            Node::text("Bought 2 Red Potion.").color("00a000"),
+        ])
+        .gap(6),
+    )
+}
+
 fn party_board_fixture() -> Vec<BookingAd> {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -849,6 +917,15 @@ fn create_single(name: &str) -> State {
                 buy_items,
                 sell_items: shop_sell_test_items(),
                 is_sell: false,
+                character: Character::new(),
+                data: DataTable::new(),
+            }
+        }
+        "plugin_window" => {
+            let mut windows = PluginWindows::default();
+            windows.open("ui_shop", plugin_window_fixture());
+            State::PluginWindow {
+                windows,
                 character: Character::new(),
                 data: DataTable::new(),
             }
@@ -2278,6 +2355,7 @@ pub const SCENE_NAMES: &[&str] = &[
     "chat_room_board",
     "cart_select",
     "npc_shop",
+    "plugin_window",
     "login",
     "login_register",
     "login_no_account",
@@ -2537,6 +2615,7 @@ fn grf_init_single(
         State::GraphicOptions { .. } => {}
         State::HotkeyConfig { .. } => {}
         State::Quest { .. } => {}
+        State::PluginWindow { .. } => {}
         State::QuestDetail { .. } => {}
         State::ChatRoomMember { .. } => {}
         State::Minimap { .. } => {}
@@ -3149,6 +3228,16 @@ impl HotCtxDefaults {
 fn build_single(state: &mut State, ui: &mut UiFrame) {
     let mut d = HotCtxDefaults::new();
     match state {
+        State::PluginWindow {
+            windows,
+            character,
+            data,
+        } => {
+            let mut ctx = d.ctx(character, data);
+            for id in windows.window_ids() {
+                windows.build_window(id, ui, &mut ctx);
+            }
+        }
         State::Inventory {
             inv,
             character,

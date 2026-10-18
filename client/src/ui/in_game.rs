@@ -12,6 +12,7 @@ use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui_component::game::drop_quantity_dialog::DropQuantityDialog;
 use ragnarok_ui_component::game::hotkey_bar::HOTKEY_BAR_WINDOW_ID;
 use ragnarok_ui_component::game::inventory_window::INV_WINDOW_ID;
+use ragnarok_ui_component::game::plugin_window::PluginWindows;
 use ragnarok_ui_component::game::minimap_window::{MarkerType, MinimapMarker, quest_marker_color};
 use ragnarok_ui_component::{BuildCtx, InGameWindow};
 use std::collections::HashMap;
@@ -103,6 +104,11 @@ pub fn build_in_game_ui(
             dispatch_window(windows, win_id, ui, &mut ctx, &mut events);
         }
     }
+    for win_id in windows.plugin_windows.window_ids() {
+        if !z_order.contains(&win_id) {
+            dispatch_window(windows, win_id, ui, &mut ctx, &mut events);
+        }
+    }
 
     let deposit_intents: Vec<u16> = events
         .iter()
@@ -138,7 +144,9 @@ pub fn build_in_game_ui(
 
     // Typing in the forum must not fire skill-bar keys either.
     windows.hotkey_bar.chat_is_active =
-        windows.chat_window.is_active() || windows.forum_window.is_typing();
+        windows.chat_window.is_active()
+            || windows.forum_window.is_typing()
+            || windows.plugin_windows.is_typing();
     windows.hotkey_bar.companion_skills.clear();
     if let Some(m) = ctx.mercenary {
         windows
@@ -381,6 +389,10 @@ fn collect_minimap_markers(
         }
     }
     for marker in quest_markers.values() {
+        // Colour 0 is "no minimap dot"; the marker itself still shows over the NPC.
+        if marker.color == 0 {
+            continue;
+        }
         markers.push(MinimapMarker {
             x: marker.x as f32,
             y: marker.y as f32,
@@ -546,6 +558,10 @@ fn dispatch_window(
     ctx: &mut BuildCtx,
     events: &mut Vec<GameEvent>,
 ) {
+    if PluginWindows::owns(win_id) {
+        events.extend(windows.plugin_windows.build_window(win_id, ui, ctx));
+        return;
+    }
     let Some((_, dispatch)) = REGISTRY.iter().find(|(id, _)| *id == win_id) else {
         return;
     };

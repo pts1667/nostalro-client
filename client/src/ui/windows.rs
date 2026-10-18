@@ -59,6 +59,7 @@ use ragnarok_ui_component::game::monster_info_window::MonsterInfoWindow;
 use ragnarok_ui_component::game::my_shop_window::MY_SHOP_WINDOW_ID;
 use ragnarok_ui_component::game::my_shop_window::MyShopWindow;
 use ragnarok_ui_component::game::npc_dialog::NpcDialog;
+use ragnarok_ui_component::game::plugin_window::PluginWindows;
 use ragnarok_ui_component::game::npc_shop::NpcShop;
 use ragnarok_ui_component::game::party_board_window::{PARTY_BOARD_WINDOW_ID, PartyBoardWindow};
 use ragnarok_ui_component::game::party_friends_window::PARTY_FRIENDS_WINDOW_ID;
@@ -114,6 +115,8 @@ pub struct Windows {
     pub read_mail_window: ReadMailWindow,
     pub cart_select_window: CartSelectWindow,
     pub npc_dialog: NpcDialog,
+    /// Windows opened by server plugins; built through the z-order like registry windows.
+    pub plugin_windows: PluginWindows,
     pub warp_list_window: WarpListWindow,
     pub item_list_selection_window: ItemListSelectionWindow,
     pub make_item_window: MakeItemWindow,
@@ -188,6 +191,7 @@ impl Windows {
             read_mail_window: ReadMailWindow::new(),
             cart_select_window: CartSelectWindow::new(),
             npc_dialog: NpcDialog::new(),
+            plugin_windows: PluginWindows::default(),
             warp_list_window: WarpListWindow::new(),
             item_list_selection_window: ItemListSelectionWindow::new(),
             make_item_window: MakeItemWindow::new(),

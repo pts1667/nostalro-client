@@ -6332,7 +6332,7 @@ mod tests {
                             effect,
                             color,
                         } => {
-                            if color == 0 || effect == 9999 {
+                            if effect <= 0 || effect == 9999 {
                                 markers.remove(&npc_id);
                             } else {
                                 markers.insert(
@@ -6422,18 +6422,27 @@ mod tests {
         apply(&mut log, &mut markers, &active);
         assert!(!log.get(2000).unwrap().active);
 
-        // 0x446 marker: color != 0 inserts, color == 0 removes the same NPC.
+        // 0x446 marker: icon 1 inserts, icon 0 removes the same NPC. Colour 0 is
+        // only "no minimap dot", so a scripted icon with colour 0 still inserts.
         let mut mark = PacketZcQuestNotifyEffect::new(packetver);
         mark.set_npc_id(555);
         mark.set_x_pos(30);
         mark.set_y_pos(40);
-        mark.set_effect(0);
+        mark.set_effect(1);
         mark.set_atype(1);
         apply(&mut log, &mut markers, &mark);
         assert_eq!(markers.get(&555).map(|m| m.color), Some(1));
 
+        let mut scripted = PacketZcQuestNotifyEffect::new(packetver);
+        scripted.set_npc_id(556);
+        scripted.set_effect(2);
+        scripted.set_atype(0);
+        apply(&mut log, &mut markers, &scripted);
+        assert_eq!(markers.get(&556).map(|m| m.effect), Some(2));
+
         let mut clear = PacketZcQuestNotifyEffect::new(packetver);
         clear.set_npc_id(555);
+        clear.set_effect(0);
         clear.set_atype(0);
         apply(&mut log, &mut markers, &clear);
         assert!(markers.get(&555).is_none());

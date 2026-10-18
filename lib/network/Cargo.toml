@@ -7,6 +7,7 @@ edition = "2024"
 ragnarok-game = { workspace = true }
 ragnarok-profiling = { workspace = true }
 packets = { workspace = true }
+plugin-ui = { workspace = true }
 models = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }

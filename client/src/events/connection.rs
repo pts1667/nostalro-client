@@ -337,6 +337,8 @@ impl App {
         self.game.character.inventory.clear();
         self.channel
             .send_packet(build_map_loaded_packet(self.active_packetver));
+        self.channel
+            .send_packet(ragnarok_network::plugin_ui::build_client_features());
         self.request_guild_data();
     }
 
@@ -449,6 +451,8 @@ impl App {
         self.game.character.inventory.clear();
         self.channel
             .send_packet(build_map_loaded_packet(self.active_packetver));
+        self.channel
+            .send_packet(ragnarok_network::plugin_ui::build_client_features());
         self.request_guild_data();
     }
 

@@ -57,6 +57,9 @@ puffin_http = "0.17"
 models = { git = "https://github.com/nmeylan/rust-ro.git", rev = "2e673a24" }
 movement = { git = "https://github.com/nmeylan/rust-ro.git", rev = "2e673a24" }
 packets = { git = "https://github.com/nmeylan/rust-ro.git", rev = "2e673a24" }
+# Plugin windows and overheads (rust-ro `docs/plugin-ui.md`). A path until rust-ro publishes the crate, then a git
+# dependency at the same rev as `packets`.
+plugin-ui = { path = "../rust-ro/lib/plugin-ui" }
 
 # Internal crates
 ragnarok-formats = { path = "lib/formats" }

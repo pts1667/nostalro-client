@@ -78,6 +78,8 @@ pub const ID_BLOCKS: &[IdBlock] = &[
     block("game/loot_filter_window.rs", 6300, 6399),
     block("game/forum_window.rs", 6400, 6499),
     block("game/party_board_window.rs", 6500, 6599),
+    // 32 slots of 4096 ids, one slot per open plugin window.
+    block("game/plugin_window.rs", 100000, 231071),
 ];
 
 #[cfg(test)]
