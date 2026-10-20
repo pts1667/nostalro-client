@@ -1,5 +1,6 @@
 use crate::helper::window_chrome::{draw_sys_button, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
+use ragnarok_game::data_table::item_resource_table::resource_icon_path;
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::item::Item;
 use ragnarok_ui::draw::{self, DrawCall, TextureRef};
@@ -164,7 +165,7 @@ impl InGameWindow for ReadMailWindow {
                 ui.draw_calls.push(DrawCall {
                     vertices: v.to_vec(),
                     indices: i.to_vec(),
-                    texture: TextureRef::Named(ragnarok_resources::ui::item::icon(res)),
+                    texture: TextureRef::Named(resource_icon_path(res)),
                 });
             }
             if mail_item.amount > 1 {

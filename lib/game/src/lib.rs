@@ -56,6 +56,7 @@ pub mod path;
 pub mod pet;
 pub mod pet_tables;
 pub mod pk_rank;
+pub mod plugin_catalog;
 pub mod poptip;
 pub mod progress_bar;
 pub mod quest;

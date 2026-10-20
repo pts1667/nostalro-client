@@ -1,4 +1,5 @@
 use crate::App;
+use ragnarok_game::data_table::item_resource_table::resource_icon_path;
 use ragnarok_game::mail::{MailboxMode, OpenedMail};
 use ragnarok_network::build_mail_get_list_packet;
 
@@ -145,6 +146,6 @@ impl App {
             .item_resource
             .as_ref()
             .and_then(|t| t.get_resource_name_for(nameid, identified))
-            .map(|name| ragnarok_resources::ui::item::icon(name))
+            .map(resource_icon_path)
     }
 }

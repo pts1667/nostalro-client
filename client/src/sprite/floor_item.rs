@@ -30,7 +30,7 @@ impl App {
             .data_table
             .item_resource
             .as_ref()
-            .and_then(|t| t.get_resource_name_for(item_id, is_identified))
+            .and_then(|t| t.get_sprite_name_for(item_id, is_identified))
             .map(|s| s.to_string());
 
         let mut floor_item = ragnarok_game::floor_item::FloorItem {

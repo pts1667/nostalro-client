@@ -149,9 +149,11 @@ impl ItemInfoWindow {
                 .unwrap_or(0)
         };
 
+        // A plugin's own icon has no collection picture; its look item's picture is not used.
         let collection_path = item
             .resource_name
             .as_ref()
+            .filter(|name| !name.starts_with(ragnarok_resources::dir::DATA))
             .map(|name| ragnarok_resources::ui::collection::named(name));
 
         let mut card_icon_paths: [Option<String>; 4] = [None, None, None, None];

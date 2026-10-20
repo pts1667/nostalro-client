@@ -1,6 +1,7 @@
 use crate::App;
 use models::enums::effect_id::EffectId;
 use models::enums::skill_enums::SkillEnum;
+use ragnarok_game::data_table::item_resource_table::resource_icon_path;
 use ragnarok_game::data_table::skill_name_table::format_skill_display_name;
 use ragnarok_game::entity::EntityState;
 use ragnarok_game::event::{RefineItemRow, VendorItem};
@@ -48,7 +49,7 @@ impl App {
             .item_resource
             .as_ref()
             .and_then(|t| t.get_resource_name_for(item_id, is_identified))
-            .map(|res| ragnarok_resources::ui::item::icon(res));
+            .map(resource_icon_path);
         (name, icon)
     }
 

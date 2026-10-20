@@ -5,6 +5,7 @@ use crate::helper::window_chrome::{draw_sys_button, text_color};
 use crate::{BuildCtx, InGameWindow, Window};
 use ragnarok_game::character::Character;
 use ragnarok_game::data_table::DataTable;
+use ragnarok_game::data_table::item_resource_table::resource_icon_path;
 use ragnarok_game::event::GameEvent;
 use ragnarok_game::mail::{
     ComposeItem, MAIL_BODY_MAX, MAIL_ROWS_PER_PAGE, MAIL_TITLE_MAX, MAIL_TO_MAX, MailboxMode,
@@ -407,7 +408,7 @@ impl MailboxWindow {
                     slot_rect.y,
                     24.0,
                     24.0,
-                    &ragnarok_resources::ui::item::icon(res),
+                    &resource_icon_path(res),
                 );
             }
             if attach.amount > 1 {

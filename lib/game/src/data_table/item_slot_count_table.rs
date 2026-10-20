@@ -14,6 +14,10 @@ impl ItemSlotCountTable {
         Self { entries }
     }
 
+    pub fn insert_plugin(&mut self, item_id: u16, slots: u8) {
+        self.entries.insert(item_id, slots);
+    }
+
     pub fn load(grf: &GrfArchive) -> Self {
         if let Ok(data) = grf.read_file(SLOT_COUNT_PATH) {
             let raw = lua_table::parse_item_name_table(&data);

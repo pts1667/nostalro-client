@@ -35,9 +35,10 @@ impl HotkeyBar {
     pub fn set_from_server(&mut self, keys: &[(i8, u32, i16)]) {
         for (i, &(is_skill, id, count)) in keys.iter().take(HOTKEY_TOTAL).enumerate() {
             self.slots[i] = if is_skill != 0 && id != 0 {
-                HotkeySlotContent::Skill {
-                    skill: SkillEnum::from_id(id),
-                    level: count,
+                // A skill the client does not know, such as a plugin's, leaves the slot empty.
+                match SkillEnum::try_from_value(id) {
+                    Ok(skill) => HotkeySlotContent::Skill { skill, level: count },
+                    Err(_) => HotkeySlotContent::Empty,
                 }
             } else if id != 0 {
                 HotkeySlotContent::Item { item_id: id as u16 }
@@ -107,6 +108,13 @@ impl HotkeyBar {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_unknown_skill_leaves_its_slot_empty() {
+        let mut bar = HotkeyBar::new();
+        bar.set_from_server(&[(1, 20000, 1)]);
+        assert_eq!(bar.get_slot(0), HotkeySlotContent::Empty);
+    }
 
     #[test]
     fn set_from_server_and_query() {

@@ -1,4 +1,4 @@
-use crate::data_table::item_resource_table::ItemResourceTable;
+use crate::data_table::item_resource_table::{ItemResourceTable, resource_icon_path};
 use models::enums::EnumWithMaskValueU64;
 use models::enums::item::{EquipmentLocation, ItemType};
 
@@ -62,9 +62,7 @@ impl Item {
     }
 
     pub fn icon_path(&self) -> Option<String> {
-        self.resource_name
-            .as_ref()
-            .map(|name| ragnarok_resources::ui::item::icon(name))
+        self.resource_name.as_deref().map(resource_icon_path)
     }
 
     pub fn is_equipment(&self) -> bool {

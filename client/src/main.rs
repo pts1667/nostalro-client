@@ -9,6 +9,7 @@ mod input;
 mod input_action;
 mod login_server;
 mod overlay;
+mod plugin_catalog;
 mod reference;
 mod scene;
 mod sound;
@@ -847,6 +848,16 @@ impl ApplicationHandler for App {
                     self.game.data_table.card_illustration =
                         Some(CardIllustrationTable::load(&grf));
                     self.game.data_table.item_description = Some(ItemDescriptionTable::load(&grf));
+                    if let Ok(bytes) = grf.read_file(ragnarok_game::plugin_catalog::CATALOG_PATH) {
+                        match plugin_catalog::parse(&bytes) {
+                            Ok(catalog) => {
+                                let items = catalog.items.len();
+                                tracing::info!("Loaded plugin catalog: {items} items");
+                                self.game.data_table.add_plugin_items(&catalog);
+                            }
+                            Err(e) => tracing::warn!("plugin catalog is unreadable: {e}"),
+                        }
+                    }
                     self.game.data_table.skill_name = Some(SkillNameTable::load(&grf));
                     self.game.data_table.skill_description =
                         Some(SkillDescriptionTable::load(&grf));

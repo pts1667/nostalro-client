@@ -22,6 +22,12 @@ impl ItemNameTable {
         }
     }
 
+    /// A plugin item shows the same name identified or not.
+    pub fn insert_plugin(&mut self, item_id: u16, name: String) {
+        self.identified_entries.insert(item_id, name.clone());
+        self.unidentified_entries.insert(item_id, name);
+    }
+
     pub fn load(grf: &GrfArchive) -> Self {
         let identified_entries = grf
             .read_file(IDENTIFIED_PATH)

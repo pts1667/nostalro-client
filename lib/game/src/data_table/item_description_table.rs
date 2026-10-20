@@ -22,6 +22,12 @@ impl ItemDescriptionTable {
         }
     }
 
+    /// A plugin item shows the same description identified or not.
+    pub fn insert_plugin(&mut self, item_id: u16, lines: Vec<String>) {
+        self.identified.insert(item_id, lines.clone());
+        self.unidentified.insert(item_id, lines);
+    }
+
     pub fn load(grf: &GrfArchive) -> Self {
         let identified = grf
             .read_file(IDENTIFIED_PATH)
