@@ -17,6 +17,7 @@ const SETUP_BTN_ID: WidgetId = WidgetId(6102);
 const FILTER_BTN_ID: WidgetId = WidgetId(6103);
 const FOLD_BTN_ID: WidgetId = WidgetId(6104);
 const LOOT_BTN_ID: WidgetId = WidgetId(6105);
+const TRAVEL_BTN_ID: WidgetId = WidgetId(6106);
 
 const GRIP_H: f32 = 6.0;
 const BTN_H: f32 = 20.0;
@@ -37,6 +38,8 @@ pub struct QolToolbar {
     pub farm_active: bool,
     /// How the autofarm hotkey reads, for the tooltip; empty when unbound.
     pub hotkey: String,
+    /// Whether a travel trip is under way.
+    pub travelling: bool,
     /// Where the window stood last frame, to keep its right edge in place when
     /// it grows or shrinks.
     last_rect: Option<Rect>,
@@ -54,6 +57,7 @@ impl QolToolbar {
             qol: QolOptions::default(),
             farm_active: false,
             hotkey: String::new(),
+            travelling: false,
             last_rect: None,
         }
     }
@@ -96,6 +100,7 @@ impl QolToolbar {
             (SETUP_BTN_ID, "Setup"),
             (LOOT_BTN_ID, self.loot_label()),
             (FILTER_BTN_ID, "Loot filter"),
+            (TRAVEL_BTN_ID, "Travel"),
         ]
     }
 
@@ -103,6 +108,7 @@ impl QolToolbar {
         match id {
             FARM_BTN_ID => self.farm_active,
             LOOT_BTN_ID => self.qol.auto_loot,
+            TRAVEL_BTN_ID => self.travelling,
             _ => false,
         }
     }
@@ -226,6 +232,8 @@ impl InGameWindow for QolToolbar {
                         "Click to stop picking up nearby items on your own".to_string()
                     }
                     LOOT_BTN_ID => "Click to pick up items within 6 cells while idle".to_string(),
+                    TRAVEL_BTN_ID if self.travelling => "A trip is under way: click to see it".to_string(),
+                    TRAVEL_BTN_ID => "Pick a town and walk there through its warps".to_string(),
                     _ => "What auto-loot and autofarm pick up, by rarity and type".to_string(),
                 };
                 draw_tooltip(ui, rect, &tip);
@@ -235,6 +243,7 @@ impl InGameWindow for QolToolbar {
                     FARM_BTN_ID => events.push(GameEvent::ToggleAutofarm),
                     SETUP_BTN_ID => events.push(GameEvent::ToggleAutofarmWindow),
                     LOOT_BTN_ID => events.extend(self.loot_events()),
+                    TRAVEL_BTN_ID => events.push(GameEvent::ToggleTravelWindow),
                     _ => events.push(GameEvent::ToggleLootFilterWindow),
                 }
             }
@@ -338,14 +347,14 @@ mod tests {
         assert!(!toolbar.qol.autofarm_enabled);
         assert_eq!(
             toolbar.buttons().iter().map(|b| b.0).collect::<Vec<_>>(),
-            [FARM_BTN_ID, SETUP_BTN_ID, LOOT_BTN_ID, FILTER_BTN_ID]
+            [FARM_BTN_ID, SETUP_BTN_ID, LOOT_BTN_ID, FILTER_BTN_ID, TRAVEL_BTN_ID]
         );
     }
 
     #[test]
     fn each_button_asks_for_its_own_thing() {
         let mut toolbar = QolToolbar::new();
-        for (n, expected) in [(0, "farm"), (1, "setup"), (2, "loot"), (3, "filter")] {
+        for (n, expected) in [(0, "farm"), (1, "setup"), (2, "loot"), (3, "filter"), (4, "travel")] {
             let (x, y) = button_centre(&mut toolbar, n);
             let mut state = StateCache::new();
             let events = build_at(&mut toolbar, &mut state, Some((x, y)));
@@ -354,6 +363,7 @@ mod tests {
                 [GameEvent::ToggleAutofarmWindow] => "setup",
                 [GameEvent::QolSettingsChanged { options }] if options.auto_loot => "loot",
                 [GameEvent::ToggleLootFilterWindow] => "filter",
+                [GameEvent::ToggleTravelWindow] => "travel",
                 other => panic!("button {n}: {other:?}"),
             };
             assert_eq!(got, expected);

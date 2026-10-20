@@ -4,7 +4,7 @@ mod combat;
 mod companion;
 mod items;
 mod movement;
-mod travel;
+pub(crate) mod travel;
 
 use crate::App;
 use models::enums::EnumWithStringValue;

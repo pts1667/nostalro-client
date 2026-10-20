@@ -2823,6 +2823,15 @@ impl App {
                 GameEvent::ToggleLootFilterWindow => {
                     self.windows.loot_filter_window.toggle();
                 }
+                GameEvent::ToggleTravelWindow => {
+                    self.toggle_travel_window();
+                }
+                GameEvent::StartTravel { map } => {
+                    self.start_travel(&map);
+                }
+                GameEvent::StopTravel => {
+                    self.stop_travel("you stopped the trip.");
+                }
                 GameEvent::ToggleHotkeyConfig => {
                     if !self.windows.hotkey_config_window.is_open() {
                         self.windows

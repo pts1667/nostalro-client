@@ -10,10 +10,26 @@ use ragnarok_game::travel::{HopKind, Travel, TravelAction, TravelHop};
 use ragnarok_network::{
     build_contact_npc_packet, build_npc_menu_select_packet, build_npc_next_packet,
 };
+use ragnarok_ui_component::game::travel_window::TravelTown;
 use serde_json::Value;
 
 /// The choice that cancels an NPC menu.
 const MENU_CANCEL: u8 = 255;
+/// Destinations asked for per page of the reference listing (its most).
+const TOWNS_PAGE: usize = 200;
+
+/// The town list the travel window shows, read a page at a time.
+#[derive(Default)]
+pub(crate) struct TravelTowns {
+    /// Whether the whole list has been read.
+    pub loaded: bool,
+    /// The page in flight, as the reference client names it.
+    pub request: Option<String>,
+    /// The towns read so far.
+    pub listed: Vec<TravelTown>,
+    /// The offset of the next page.
+    pub next: usize,
+}
 
 impl App {
     /// `/travel <map>`: asks the reference server for the way to the town, which
@@ -131,6 +147,7 @@ impl App {
 
     /// Walks the trip on, once per frame while the character stands still.
     pub(crate) fn update_travel(&mut self) {
+        self.sync_travel_window();
         if self.game.travel.is_none() {
             return;
         }
@@ -287,6 +304,102 @@ impl App {
     }
 }
 
+impl App {
+    /// The toolbar button: opens or closes the travel window, reading the town
+    /// list the first time it opens.
+    pub(crate) fn toggle_travel_window(&mut self) {
+        self.windows.travel_window.toggle();
+        if self.windows.travel_window.open
+            && !self.travel_towns.loaded
+            && self.travel_towns.request.is_none()
+        {
+            self.request_town_page();
+        }
+    }
+
+    /// Hands the travel window and the toolbar whether a trip is under way.
+    pub(crate) fn sync_travel_window(&mut self) {
+        let travelling = self.game.travel.is_some();
+        self.windows.travel_window.travelling = travelling;
+        self.windows.qol_toolbar.travelling = travelling;
+    }
+
+    fn request_town_page(&mut self) {
+        let reference = self.config.reference_url.as_deref().map(str::trim).unwrap_or("");
+        if reference.is_empty() {
+            self.windows.travel_window.status =
+                "Set reference_url in the config to list the towns.".to_string();
+            return;
+        }
+        let path = format!(
+            "/db/destinations?category=Towns&offset={}&limit={TOWNS_PAGE}",
+            self.travel_towns.next
+        );
+        self.travel_towns.request = Some(path.clone());
+        self.windows.travel_window.status = "Loading the towns...".to_string();
+        self.request_reference(path);
+    }
+
+    /// Takes a page of the town list that the reference server answered, and asks
+    /// for the next one until the list is whole.
+    pub(crate) fn deliver_towns(&mut self, path: &str, result: Result<Value, String>) {
+        if self.travel_towns.request.as_deref() != Some(path) {
+            return;
+        }
+        self.travel_towns.request = None;
+        match result.and_then(|value| towns_page_from_json(&value)) {
+            Ok((towns, total)) => {
+                self.travel_towns.listed.extend(towns);
+                self.travel_towns.next += TOWNS_PAGE;
+                if self.travel_towns.next < total {
+                    self.request_town_page();
+                    return;
+                }
+                self.travel_towns.loaded = true;
+                let towns = std::mem::take(&mut self.travel_towns.listed);
+                let window = &mut self.windows.travel_window;
+                window.status = if towns.is_empty() {
+                    "The server lists no towns.".to_string()
+                } else {
+                    "Pick a town and click Go. Walking on the map stops the trip.".to_string()
+                };
+                window.towns = towns;
+            }
+            Err(message) => {
+                self.travel_towns.listed.clear();
+                self.travel_towns.next = 0;
+                self.windows.travel_window.status = format!("Cannot list the towns: {message}");
+            }
+        }
+    }
+}
+
+/// A page of the destinations listing, asked for with `category=Towns`, and the
+/// total of that filtered listing.
+fn towns_page_from_json(value: &Value) -> Result<(Vec<TravelTown>, usize), String> {
+    let total = value
+        .get("total")
+        .and_then(Value::as_u64)
+        .ok_or("the listing has no total")?;
+    let results = value
+        .get("results")
+        .and_then(Value::as_array)
+        .ok_or("the listing has no results")?;
+    let towns = results
+        .iter()
+        .filter_map(|entry| {
+            let name = entry.get("name")?.as_str()?;
+            // A destination's id is `<map>/<x>,<y>`; the trip ends on the map.
+            let map = entry.get("id")?.as_str()?.split('/').next()?;
+            Some(TravelTown {
+                name: name.to_string(),
+                map: map.to_string(),
+            })
+        })
+        .collect();
+    Ok((towns, total as usize))
+}
+
 /// The trip the reference server planned: `{ "to": "...", "hops": [...] }`.
 pub(crate) fn route_from_json(value: &Value, now: f32) -> Result<Travel, String> {
     let to = text(value, "to")?;
@@ -406,6 +519,31 @@ mod tests {
                 menu: vec!["Dungeons".into(), "Payon Dungeon".into(), "Payon Dungeon 5".into()],
             }
         );
+    }
+
+    #[test]
+    fn a_listing_page_gives_the_town_and_its_map() {
+        let page = json!({
+            "total": 2, "offset": 0, "limit": 200,
+            "results": [
+                { "id": "prontera/156,26", "name": "Prontera", "href": "/db/destinations/prontera/156,26" },
+                { "id": "geffen/120,60", "name": "Geffen", "href": "/db/destinations/geffen/120,60" }
+            ]
+        });
+        let (towns, total) = towns_page_from_json(&page).unwrap();
+        assert_eq!(total, 2);
+        assert_eq!(
+            towns,
+            vec![
+                TravelTown { name: "Prontera".into(), map: "prontera".into() },
+                TravelTown { name: "Geffen".into(), map: "geffen".into() },
+            ]
+        );
+    }
+
+    #[test]
+    fn a_listing_without_results_is_refused() {
+        assert!(towns_page_from_json(&json!({ "total": 0 })).is_err());
     }
 
     #[test]

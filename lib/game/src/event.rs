@@ -1144,6 +1144,12 @@ pub enum GameEvent {
     ToggleAutofarmWindow,
     /// Opens or closes the loot filter window (a QoL toolbar button).
     ToggleLootFilterWindow,
+    /// Opens or closes the travel window (a QoL toolbar button).
+    ToggleTravelWindow,
+    /// Starts a trip to the town on `map` (the travel window's Go button).
+    StartTravel { map: String },
+    /// Ends the trip under way (the travel window's Stop button).
+    StopTravel,
     /// Pins the description of the hotbar skill in `slot`.
     DescribeHotkeySkill {
         skill: SkillEnum,

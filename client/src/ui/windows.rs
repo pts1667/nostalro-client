@@ -84,6 +84,7 @@ use ragnarok_ui_component::game::sound_options::SoundOptionsWindow;
 use ragnarok_ui_component::game::autofarm_window::{AUTOFARM_WINDOW_ID, AutofarmWindow};
 use ragnarok_ui_component::game::loot_filter_window::{LOOT_FILTER_WINDOW_ID, LootFilterWindow};
 use ragnarok_ui_component::game::qol_toolbar::QolToolbar;
+use ragnarok_ui_component::game::travel_window::{TRAVEL_WINDOW_ID, TravelWindow};
 use ragnarok_ui_component::game::status_icon_bar::StatusIconBarWindow;
 use ragnarok_ui_component::game::status_window::STATUS_WINDOW_ID;
 use ragnarok_ui_component::game::status_window::StatusWindow;
@@ -155,6 +156,7 @@ pub struct Windows {
     pub qol_toolbar: QolToolbar,
     pub autofarm_window: AutofarmWindow,
     pub loot_filter_window: LootFilterWindow,
+    pub travel_window: TravelWindow,
     pub guild_window: GuildWindow,
     pub emblem_picker_window: EmblemPickerWindow,
     pub party_friends_window: PartyFriendsWindow,
@@ -230,6 +232,7 @@ impl Windows {
             qol_toolbar: QolToolbar::new(),
             autofarm_window: AutofarmWindow::new(),
             loot_filter_window: LootFilterWindow::new(),
+            travel_window: TravelWindow::new(),
             guild_window: GuildWindow::new(),
             emblem_picker_window: EmblemPickerWindow::new(),
             party_friends_window: PartyFriendsWindow::new(),
@@ -393,6 +396,10 @@ pub(crate) const REGISTRY: &[(WidgetId, Dispatch)] = &[
     (
         AUTOFARM_WINDOW_ID,
         Dispatch::Trait(|w| &mut w.autofarm_window as &mut dyn InGameWindow),
+    ),
+    (
+        TRAVEL_WINDOW_ID,
+        Dispatch::Trait(|w| &mut w.travel_window as &mut dyn InGameWindow),
     ),
     (
         LOOT_FILTER_WINDOW_ID,

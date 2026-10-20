@@ -117,6 +117,8 @@ impl App {
         for (path, result) in answers {
             if path.starts_with(ROUTE_PATH) {
                 self.deliver_route(&path, result);
+            } else if self.travel_towns.request.as_deref() == Some(path.as_str()) {
+                self.deliver_towns(&path, result);
             } else {
                 self.windows.reference_window.deliver(&path, result);
             }

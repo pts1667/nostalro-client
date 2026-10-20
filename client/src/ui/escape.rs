@@ -7,6 +7,7 @@ use ragnarok_game::event::GameEvent;
 use ragnarok_game::pet::PetRoulette;
 use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui_component::game::autofarm_window::AUTOFARM_WINDOW_ID;
+use ragnarok_ui_component::game::travel_window::TRAVEL_WINDOW_ID;
 use ragnarok_ui_component::game::book_window::BOOK_WINDOW_ID;
 use ragnarok_ui_component::game::cart_select_window::CART_SELECT_WINDOW_ID;
 use ragnarok_ui_component::game::cart_window::CART_WINDOW_ID;
@@ -94,6 +95,7 @@ pub const ESC_WINDOW_NAMES: &[(&str, WidgetId)] = &[
     ("Hotkeys", HOTKEY_CONFIG_WINDOW_ID),
     ("Autofarm", AUTOFARM_WINDOW_ID),
     ("Loot Filter", LOOT_FILTER_WINDOW_ID),
+    ("Travel", TRAVEL_WINDOW_ID),
     ("Make Item", MAKE_ITEM_WINDOW_ID),
     ("Vending Setup", VENDING_SETUP_WINDOW_ID),
     ("Vending Shop", VENDING_SHOP_WINDOW_ID),

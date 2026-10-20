@@ -125,6 +125,8 @@ struct App {
     reference_textures: std::collections::VecDeque<String>,
     /// The route request of `/travel` that the reference server has not answered yet.
     travel_pending: Option<String>,
+    /// The town list of the travel window.
+    travel_towns: game_updates::travel::TravelTowns,
     /// Worker behind the forum window, started on its first request.
     forum: Option<forum::ForumClient>,
     /// Account and password of the last game login, kept in memory only so the
@@ -233,6 +235,7 @@ impl App {
             reference: None,
             reference_textures: std::collections::VecDeque::new(),
             travel_pending: None,
+            travel_towns: Default::default(),
             forum: None,
             login_credentials: None,
             login_server: login_server::LoginServerLink::new(),

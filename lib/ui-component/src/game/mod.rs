@@ -57,6 +57,7 @@ pub mod status_window;
 pub mod storage_password_window;
 pub mod storage_window;
 pub mod system_menu;
+pub mod travel_window;
 pub mod trade_window;
 pub mod vending_board;
 pub mod vending_setup_window;
