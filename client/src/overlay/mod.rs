@@ -57,7 +57,11 @@ const OUTLINE_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const OUTLINE_PASSES: usize = 3;
 /// The "!" diamond of an NPC with a quest available: `RADIUS` is the half-diagonal,
 /// `EDGE` a dark rim around it, `GAP` the space between it and the name.
-const QUEST_DIAMOND_GOLD: [f32; 4] = [1.0, 0.82, 0.2, 1.0];
+const QUEST_DIAMOND_RIM_LIGHT: [f32; 4] = [1.0, 0.93, 0.6, 1.0];
+const QUEST_DIAMOND_RIM_DARK: [f32; 4] = [0.45, 0.28, 0.02, 1.0];
+const QUEST_DIAMOND_FACE_TIP: [f32; 4] = [1.0, 0.95, 0.62, 1.0];
+const QUEST_DIAMOND_FACE_MID: [f32; 4] = [0.98, 0.78, 0.22, 1.0];
+const QUEST_DIAMOND_FACE_BASE: [f32; 4] = [0.8, 0.5, 0.06, 1.0];
 const QUEST_DIAMOND_RADIUS: f32 = 7.0;
 const QUEST_DIAMOND_EDGE: f32 = 1.5;
 const QUEST_DIAMOND_GAP: f32 = 4.0;
@@ -259,7 +263,8 @@ impl App {
         }
     }
 
-    /// Gold diamond with a white "!" centred on (`cx`, `cy`).
+    /// Glossy gold diamond with a white "!" centred on (`cx`, `cy`). Beveled like a
+    /// Windows XP button: light upper half, dark lower half, and a gloss across the top.
     fn build_quest_diamond(
         &self,
         cx: f32,
@@ -267,29 +272,64 @@ impl App {
         font_atlas: &ragnarok_renderer::FontAtlas,
         calls: &mut Vec<UiDrawCall>,
     ) {
-        // A square turned 45 degrees: its side is the half-diagonal times √2 for each
-        // radius, so the rim is the same width all round.
-        for (radius, color) in [
-            (QUEST_DIAMOND_RADIUS + QUEST_DIAMOND_EDGE, OUTLINE_COLOR),
-            (QUEST_DIAMOND_RADIUS, QUEST_DIAMOND_GOLD),
-        ] {
-            let side = radius * std::f32::consts::SQRT_2;
-            let (verts, indices) = ragnarok_ui::draw::quad_vertices_rotated(
-                cx,
-                cy,
-                side,
-                std::f32::consts::FRAC_PI_4,
-                color,
-            );
-            calls.push(UiDrawCall {
-                vertices: verts.to_vec(),
-                indices: indices.to_vec(),
-                texture: UiTextureRef::White,
-            });
-        }
+        let r = QUEST_DIAMOND_RADIUS;
+        let rim = r + QUEST_DIAMOND_EDGE;
+        Self::push_diamond_half(calls, cx, cy, rim + 1.0, true, OUTLINE_COLOR, OUTLINE_COLOR);
+        Self::push_diamond_half(calls, cx, cy, rim + 1.0, false, OUTLINE_COLOR, OUTLINE_COLOR);
+        Self::push_diamond_half(calls, cx, cy, rim, true, QUEST_DIAMOND_RIM_LIGHT, QUEST_DIAMOND_RIM_LIGHT);
+        Self::push_diamond_half(calls, cx, cy, rim, false, QUEST_DIAMOND_RIM_DARK, QUEST_DIAMOND_RIM_DARK);
+        Self::push_diamond_half(calls, cx, cy, r, true, QUEST_DIAMOND_FACE_MID, QUEST_DIAMOND_FACE_TIP);
+        Self::push_diamond_half(calls, cx, cy, r, false, QUEST_DIAMOND_FACE_MID, QUEST_DIAMOND_FACE_BASE);
+
+        // Gloss: a bright sliver fading out towards the centre of the face.
+        let vertex = |position: [f32; 2], alpha: f32| ragnarok_renderer::UiVertex {
+            position,
+            tex_coord: [0.0, 0.0],
+            color: [1.0, 1.0, 1.0, alpha],
+        };
+        calls.push(UiDrawCall {
+            vertices: vec![
+                vertex([cx, cy - 0.78 * r], 0.75),
+                vertex([cx - 0.5 * r, cy - 0.15 * r], 0.1),
+                vertex([cx + 0.5 * r, cy - 0.15 * r], 0.1),
+            ],
+            indices: vec![0, 1, 2],
+            texture: UiTextureRef::White,
+        });
+
+        // The glyph sits in the upper part of its line box, so anchor on the ascent
+        // rather than the full line height to bring it to the diamond's centre.
         let width = self.plate_text_width("!", font_atlas);
-        let y = cy - font_atlas.line_height / 2.0;
+        let y = cy - font_atlas.ascent * 0.65;
         self.build_plate_text("!", cx - width / 2.0, y, [1.0; 4], font_atlas, calls);
+    }
+
+    /// One half of a diamond of radius `r` as a triangle: the side points lie on the
+    /// horizontal centre line, the tip above (`upper`) or below it.
+    fn push_diamond_half(
+        calls: &mut Vec<UiDrawCall>,
+        cx: f32,
+        cy: f32,
+        r: f32,
+        upper: bool,
+        side: [f32; 4],
+        tip: [f32; 4],
+    ) {
+        let tip_y = if upper { cy - r } else { cy + r };
+        let vertex = |position: [f32; 2], color: [f32; 4]| ragnarok_renderer::UiVertex {
+            position,
+            tex_coord: [0.0, 0.0],
+            color,
+        };
+        calls.push(UiDrawCall {
+            vertices: vec![
+                vertex([cx - r, cy], side),
+                vertex([cx + r, cy], side),
+                vertex([cx, tip_y], tip),
+            ],
+            indices: vec![0, 1, 2],
+            texture: UiTextureRef::White,
+        });
     }
 
     /// Guild emblems above the head of every guilded character and castle

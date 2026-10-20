@@ -390,15 +390,20 @@ impl App {
                     self.windows.npc_dialog.dialog.open_text(npc_id, &text);
                 }
                 GameEvent::NpcDialogNext { npc_id } => {
-                    self.windows.npc_dialog.dialog.wait_for_next(npc_id);
+                    if !self.travel_dialog_next(npc_id) {
+                        self.windows.npc_dialog.dialog.wait_for_next(npc_id);
+                    }
                 }
-                GameEvent::NpcDialogClose { .. } => {
+                GameEvent::NpcDialogClose { npc_id } => {
+                    self.travel_dialog_closed(npc_id);
                     if self.windows.npc_dialog.dialog.is_open() {
                         self.windows.npc_dialog.dialog.wait_for_close();
                     }
                 }
                 GameEvent::NpcDialogMenu { npc_id, items } => {
-                    self.windows.npc_dialog.dialog.show_menu(npc_id, items);
+                    if !self.travel_menu(npc_id, &items) {
+                        self.windows.npc_dialog.dialog.show_menu(npc_id, items);
+                    }
                 }
                 GameEvent::WarpList {
                     skill,

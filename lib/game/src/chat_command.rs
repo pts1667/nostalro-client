@@ -12,6 +12,8 @@ pub enum ChatCommand {
     BangBang,
     Where,
     Memo,
+    /// Walks to the town (map name) given, through its warps and warper NPCs.
+    Travel(String),
     ExitRoom,
     LeaveParty,
     MakeParty(String),
@@ -150,6 +152,7 @@ pub const COMMAND_HELP: &[(&str, &str)] = &[
     ("/bingbing", "Turns the character counter clockwise."),
     ("/where", "Shows the current map and coordinates."),
     ("/memo", "Memorizes a location for the Warp Portal skill."),
+    ("/travel <map>", "Walks to a town through its warps and warper NPCs."),
     ("/q", "Leaves a chatroom."),
     ("/leave", "Leaves your party."),
     ("/organize <name>", "Creates a party."),
@@ -270,6 +273,7 @@ pub fn parse_chat_command(input: &str) -> ChatCommand {
         "/bangbang" => ChatCommand::BangBang,
         "/where" => ChatCommand::Where,
         "/memo" => ChatCommand::Memo,
+        "/travel" => ChatCommand::Travel(args.to_string()),
         "/q" => ChatCommand::ExitRoom,
         "/leave" => ChatCommand::LeaveParty,
         "/organize" => ChatCommand::MakeParty(args.to_string()),
@@ -343,6 +347,7 @@ mod tests {
     fn parses_commands_args_and_emotes() {
         assert_eq!(parse_chat_command("/sit"), ChatCommand::Sit);
         assert_eq!(parse_chat_command("/nt"), ChatCommand::ToggleNoTrade);
+        assert_eq!(parse_chat_command("/travel geffen"), ChatCommand::Travel("geffen".to_string()));
         assert_eq!(
             parse_chat_command("/organize My Party"),
             ChatCommand::MakeParty("My Party".to_string())

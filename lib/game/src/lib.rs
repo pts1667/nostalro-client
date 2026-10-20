@@ -68,6 +68,7 @@ pub mod skill_action;
 pub mod skill_msg;
 pub mod sound;
 pub mod sprite_loader;
+pub mod travel;
 pub mod sprite_path;
 pub mod star_gladiator;
 pub mod status_icon;

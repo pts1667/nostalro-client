@@ -129,6 +129,7 @@ impl App {
             }
             ChatCommand::BingBing => self.turn_body(1),
             ChatCommand::BangBang => self.turn_body(7),
+            ChatCommand::Travel(to) => self.start_travel(&to),
             ChatCommand::Where => {
                 match (
                     self.game.session.current_map.as_ref(),

@@ -591,6 +591,8 @@ pub struct GameState {
     pub effect_keys: EffectKeys,
     /// Auto-loot, rarity and autofarm state.
     pub automation: ragnarok_game::automation::Automation,
+    /// The auto-travel trip under way, if any.
+    pub travel: Option<ragnarok_game::travel::Travel>,
 }
 
 pub const COMPANION_AI_CONFIG_PATH: &str = "companion_ai.json";
@@ -724,6 +726,7 @@ impl GameState {
                     .duration_since(std::time::UNIX_EPOCH)
                     .map_or(0x9E37_79B9_7F4A_7C15, |d| d.as_nanos() as u64),
             ),
+            travel: None,
         }
     }
 

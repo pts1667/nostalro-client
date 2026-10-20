@@ -123,6 +123,8 @@ struct App {
     reference: Option<reference::ReferenceClient>,
     /// Pictures the database window asked for, loaded a few per frame.
     reference_textures: std::collections::VecDeque<String>,
+    /// The route request of `/travel` that the reference server has not answered yet.
+    travel_pending: Option<String>,
     /// Worker behind the forum window, started on its first request.
     forum: Option<forum::ForumClient>,
     /// Account and password of the last game login, kept in memory only so the
@@ -230,6 +232,7 @@ impl App {
             gr2_loader: None,
             reference: None,
             reference_textures: std::collections::VecDeque::new(),
+            travel_pending: None,
             forum: None,
             login_credentials: None,
             login_server: login_server::LoginServerLink::new(),

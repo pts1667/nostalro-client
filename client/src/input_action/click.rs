@@ -19,6 +19,7 @@ impl App {
     pub(crate) fn handle_left_click(&mut self) {
         // Taking the controls back ends autofarm.
         self.stop_autofarm("Autofarm stopped: you took control.");
+        self.stop_travel("you took control.");
         if self.try_pet_modal_click() {
             return;
         }

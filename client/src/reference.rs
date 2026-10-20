@@ -14,6 +14,8 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(3);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 /// Pictures loaded per frame; a remote file is read on the frame thread.
 const TEXTURES_PER_FRAME: usize = 2;
+/// The route to a town, which auto-travel takes instead of the database window.
+pub(crate) const ROUTE_PATH: &str = "/db/route";
 
 type Answer = (String, Result<Value, String>);
 
@@ -111,8 +113,11 @@ impl App {
     /// Moves the answers that arrived since the last frame into the window and
     /// loads a few of the pictures it asked for.
     pub(crate) fn poll_reference(&mut self) {
-        if let Some(client) = &self.reference {
-            for (path, result) in client.poll() {
+        let answers = self.reference.as_ref().map(ReferenceClient::poll).unwrap_or_default();
+        for (path, result) in answers {
+            if path.starts_with(ROUTE_PATH) {
+                self.deliver_route(&path, result);
+            } else {
                 self.windows.reference_window.deliver(&path, result);
             }
         }

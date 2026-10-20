@@ -4,6 +4,7 @@ mod combat;
 mod companion;
 mod items;
 mod movement;
+mod travel;
 
 use crate::App;
 use models::enums::EnumWithStringValue;
@@ -76,6 +77,7 @@ impl App {
         self.check_pending_pickup();
         self.check_pending_attack(delta);
         self.update_automation();
+        self.update_travel();
         self.update_progress_bar(delta);
         self.update_cast_marks(delta);
         self.check_pending_skill();
