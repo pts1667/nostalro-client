@@ -100,6 +100,8 @@ struct OpenWindow {
     arrived: Instant,
     /// Folded down to its title by the player; kept across re-opens of the id.
     collapsed: bool,
+    /// An anchored window whose unit the client does not know yet, logged once until the unit shows up.
+    waiting_for_unit: bool,
     state: WindowState,
 }
 
@@ -127,6 +129,11 @@ enum Axis {
 impl PluginWindows {
     /// Opens `window`, or replaces the open window of `plugin` with the same id where the player left it.
     pub fn open(&mut self, plugin: &str, window: PluginWindow) {
+        tracing::info!(
+            "plugin window {plugin}/{} opened ({:?})",
+            window.id,
+            window.placement
+        );
         if let Some(open) = self
             .open
             .iter_mut()
@@ -155,6 +162,7 @@ impl PluginWindows {
             shown_at: None,
             arrived: Instant::now(),
             collapsed: false,
+            waiting_for_unit: false,
             state,
         });
     }
@@ -168,22 +176,47 @@ impl PluginWindows {
     /// window until it comes back.
     pub fn place_units(&mut self, find: impl Fn(u32) -> Option<UnitAnchor>) {
         self.unit_anchors.clear();
-        for open in &self.open {
-            if let Placement::Anchored { unit_id, .. } = open.window.placement
-                && let Some(anchor) = find(unit_id)
-            {
-                self.unit_anchors.insert(unit_id, anchor);
+        for open in &mut self.open {
+            let Placement::Anchored { unit_id, .. } = open.window.placement else {
+                continue;
+            };
+            match find(unit_id) {
+                Some(anchor) => {
+                    if open.waiting_for_unit {
+                        tracing::info!(
+                            "plugin window {}/{}: unit {unit_id} is known now",
+                            open.plugin,
+                            open.window.id
+                        );
+                        open.waiting_for_unit = false;
+                    }
+                    self.unit_anchors.insert(unit_id, anchor);
+                }
+                None if !open.waiting_for_unit => {
+                    // Info, not debug: the client logs at info by default, and this fires once per wait.
+                    tracing::info!(
+                        "plugin window {}/{} hidden: the client does not know unit {unit_id}",
+                        open.plugin,
+                        open.window.id
+                    );
+                    open.waiting_for_unit = true;
+                }
+                None => {}
             }
         }
     }
 
     pub fn close(&mut self, plugin: &str, id: &str) {
+        tracing::info!("plugin window {plugin}/{id} closed");
         self.open
             .retain(|open| !(open.plugin == plugin && open.window.id == id));
     }
 
     /// Plugin windows belong to the session: the server forgets them when the character leaves.
     pub fn clear(&mut self) {
+        if !self.open.is_empty() {
+            tracing::info!("plugin windows cleared: {} open", self.open.len());
+        }
         self.open.clear();
     }
 
@@ -938,7 +971,13 @@ fn paint_lines(
     color: Option<&str>,
     look: TextLook,
 ) {
-    let color = color.and_then(parse_rgb).unwrap_or_else(text_color);
+    // Shaded text is drawn over the game, where the window body's dark default would vanish into its own outline.
+    let fallback = if look.shadow || look.outline {
+        HEADER_COLOR
+    } else {
+        text_color()
+    };
+    let color = color.and_then(parse_rgb).unwrap_or(fallback);
     let line_h = atlas.line_height;
     for (i, line) in lines.iter().enumerate() {
         let top = rect.y + i as f32 * line_h;
@@ -1263,6 +1302,10 @@ mod tests {
         frame(&mut windows, &mut state, None, "");
         assert!(windows.widget_rect(SHOP, "offer", "go").is_none());
         assert!(!windows.is_empty(), "a hidden bubble stays open");
+        assert!(windows.open[0].waiting_for_unit, "the wait is logged once");
+
+        windows.place_units(|_| Some(UnitAnchor { x: 400.0, top: 300.0 }));
+        assert!(!windows.open[0].waiting_for_unit);
     }
 
     #[test]
@@ -1293,6 +1336,32 @@ mod tests {
         let second = windows.widget_rect(SHOP, "second", "go").unwrap();
         assert!(first.y >= 30.0, "{first:?}");
         assert!(second.y >= first.y + first.h + HUD_STACK_GAP, "{first:?} {second:?}");
+    }
+
+    #[test]
+    fn outlined_text_without_a_colour_is_light_and_plain_text_keeps_the_body_colour() {
+        let mut ctx = UiContext::new(800.0, 600.0);
+        let mut state = StateCache::new();
+        let mut ui = TestFrame::new().build(&mut ctx, &mut state);
+        let atlas = ui.atlas;
+        let rect = Rect::new(0.0, 0.0, 200.0, 20.0);
+        let lines = ["Egg 0/7".to_string()];
+        let look = |outline| TextLook {
+            bold: false,
+            align: Align::Start,
+            shadow: outline,
+            outline,
+        };
+
+        paint_lines(&mut ui, atlas, rect, &lines, None, look(true));
+        assert_eq!(ui.draw_calls.last().unwrap().vertices[0].color, HEADER_COLOR);
+        paint_lines(&mut ui, atlas, rect, &lines, None, look(false));
+        assert_eq!(ui.draw_calls.last().unwrap().vertices[0].color, text_color());
+        paint_lines(&mut ui, atlas, rect, &lines, Some("ffd34d"), look(true));
+        assert_eq!(
+            ui.draw_calls.last().unwrap().vertices[0].color,
+            parse_rgb("ffd34d").unwrap()
+        );
     }
 
     #[test]

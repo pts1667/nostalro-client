@@ -89,7 +89,7 @@ use ragnarok_ui_component::game::monster_info_window::{MONSTER_INFO_WINDOW_ID, M
 use ragnarok_ui_component::game::my_shop_window::{MY_SHOP_WINDOW_ID, MyShopWindow};
 use ragnarok_ui_component::game::npc_dialog::{NPC_DIALOG_WINDOW_ID, NpcDialog};
 use ragnarok_ui_component::game::npc_shop::NpcShop;
-use ragnarok_ui_component::game::plugin_window::PluginWindows;
+use ragnarok_ui_component::game::plugin_window::{PluginWindows, UnitAnchor};
 use ragnarok_ui_component::game::party_friends_window::{
     PARTY_FRIENDS_WINDOW_ID, PartyFriendsWindow,
 };
@@ -587,6 +587,38 @@ fn wrap_texture_size_fn(f: TextureSizeFn) -> impl Fn(&str) -> Option<(u32, u32)>
     }
 }
 
+/// Where the HUD slot below the minimap starts in the plugin scenes.
+const FIXTURE_HUD_TOP: f32 = 160.0;
+
+/// A mini-quest offer of rust-ro's `alive_towns` plugin, as the server sends it.
+fn quest_offer_fixture() -> plugin_ui::Window {
+    serde_json::from_str(
+        r#"{"closable": false, "id": "offer", "node": {"align": "start", "type": "column", "gap": 4, "children": [{"align": "start", "text": "Someone has to clear the Peco Peco Eggs near Sograt Desert area 1 (moc_fild01). 7 would be a fine start.", "type": "text", "wrap": true}, {"align": "start", "color": "ffd34d", "text": "Reward: 42 base exp, 42 job exp, 350 zeny", "type": "text", "wrap": true}, {"align": "start", "color": "c8c8c8", "text": "Time limit: 2h 18m", "type": "text"}, {"align": "center", "type": "row", "gap": 4, "children": [{"enabled": true, "id": "accept:10:40:497940:1", "label": "Accept", "type": "button"}, {"enabled": true, "id": "decline:10:40:497940:1", "label": "Decline", "type": "button"}]}]}, "placement": {"offset_y": 4, "type": "anchored", "unit_id": 304204}, "title": "Greta", "width": 230}"#,
+    )
+    .expect("the alive_towns offer parses")
+}
+
+/// The `alive_towns` tracker the server opens once an offer is accepted.
+fn quest_tracker_fixture() -> plugin_ui::Window {
+    use plugin_ui::{HudSlot, Node};
+    let mut window = plugin_ui::Window::new(
+        "quests",
+        "Quests",
+        180,
+        Node::column([
+            Node::text("Peco Peco Egg 0/7").outlined(),
+            Node::text("moc_fild01, for Greta").outlined(),
+            Node::countdown(8280).outlined(),
+        ]),
+    )
+    .hud(HudSlot::BelowMinimap)
+    .frameless()
+    .collapsible();
+    // The server sends only floating windows closable.
+    window.closable = false;
+    window
+}
+
 /// The shop of rust-ro's `ui_shop` example plugin, as the server sends it.
 fn plugin_window_fixture() -> plugin_ui::Window {
     use plugin_ui::{Align, ImageRef, Node, Table};
@@ -924,6 +956,16 @@ fn create_single(name: &str) -> State {
         "plugin_window" => {
             let mut windows = PluginWindows::default();
             windows.open("ui_shop", plugin_window_fixture());
+            State::PluginWindow {
+                windows,
+                character: Character::new(),
+                data: DataTable::new(),
+            }
+        }
+        "plugin_quest" => {
+            let mut windows = PluginWindows::default();
+            windows.open("alive_towns", quest_offer_fixture());
+            windows.open("alive_towns", quest_tracker_fixture());
             State::PluginWindow {
                 windows,
                 character: Character::new(),
@@ -2356,6 +2398,7 @@ pub const SCENE_NAMES: &[&str] = &[
     "cart_select",
     "npc_shop",
     "plugin_window",
+    "plugin_quest",
     "login",
     "login_register",
     "login_no_account",
@@ -3233,6 +3276,13 @@ fn build_single(state: &mut State, ui: &mut UiFrame) {
             character,
             data,
         } => {
+            // HUD windows sit under a minimap at its default size; anchored ones over a unit at mid-screen.
+            windows.set_hud_top(FIXTURE_HUD_TOP);
+            let unit = UnitAnchor {
+                x: ui.ctx.screen_width / 2.0,
+                top: ui.ctx.screen_height / 2.0,
+            };
+            windows.place_units(|_| Some(unit));
             let mut ctx = d.ctx(character, data);
             for id in windows.window_ids() {
                 windows.build_window(id, ui, &mut ctx);
