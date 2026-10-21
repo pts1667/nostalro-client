@@ -18,6 +18,11 @@ const MAP_SIZE_MAX: f32 = 320.0;
 /// Fraction of the screen's shorter side the minimap takes up.
 const MAP_SIZE_FRACTION: f32 = 0.2;
 
+/// Gap between the minimap's top and right edges and the screen's.
+const MAP_MARGIN: f32 = 2.0;
+/// Gap between the minimap and the plugin HUD windows under it.
+const HUD_GAP: f32 = 4.0;
+
 /// Minimap edge for a screen: a fraction of its shorter side, clamped.
 fn map_size_for(screen_w: f32, screen_h: f32) -> f32 {
     (screen_w.min(screen_h) * MAP_SIZE_FRACTION)
@@ -96,6 +101,14 @@ impl Default for MinimapWindow {
 }
 
 impl MinimapWindow {
+    /// Top of the HUD slot below the minimap for a screen: under the minimap, or at the top when it is hidden.
+    pub fn hud_top(&self, screen_w: f32, screen_h: f32) -> f32 {
+        match self.visibility {
+            MinimapVisibility::Hidden => MAP_MARGIN,
+            _ => MAP_MARGIN + map_size_for(screen_w, screen_h) + HUD_GAP,
+        }
+    }
+
     pub fn new() -> Self {
         Self {
             visibility: MinimapVisibility::Visible,
@@ -257,8 +270,8 @@ impl InGameWindow for MinimapWindow {
         };
 
         let size = map_size_for(ui.ctx.screen_width, ui.ctx.screen_height);
-        let x = (ui.ctx.screen_width - size - 2.0).max(0.0);
-        let y = 2.0;
+        let x = (ui.ctx.screen_width - size - MAP_MARGIN).max(0.0);
+        let y = MAP_MARGIN;
         ui.ensure_in_z_order_with(MINIMAP_WINDOW_ID, WindowOrder::Foreground);
         ui.window_fixed(MINIMAP_WINDOW_ID, size, size, x, y);
 

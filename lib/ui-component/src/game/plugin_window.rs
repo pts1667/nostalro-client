@@ -6,8 +6,12 @@
 //! depth-first order (`Window::nodes`), so a node keeps its ids while the plugin replaces the window.
 
 use std::collections::{BTreeMap, HashMap};
+use std::time::Instant;
 
-use plugin_ui::{Align, EventKind, InputValue, Node, Table, UiEvent, Window as PluginWindow};
+use plugin_ui::{
+    Align, EventKind, Frame, InputValue, Node, Placement, Table, UiEvent, Window as PluginWindow,
+    format_countdown,
+};
 use ragnarok_game::data_table::DataTable;
 use ragnarok_game::event::GameEvent;
 use ragnarok_renderer::font_atlas::{FontAtlas, bold_char};
@@ -48,12 +52,41 @@ const NUMBER_MAX_LEN: usize = 11;
 const DISABLED_VEIL: [f32; 4] = [1.0, 1.0, 1.0, 0.55];
 const SELECTED_ROW: [f32; 4] = [0.20, 0.42, 0.88, 0.35];
 const ODD_ROW: [f32; 4] = [0.0, 0.0, 0.0, 0.04];
+/// Gap between HUD windows that stack in one slot, and the slot's margin from the screen's right edge.
+const HUD_STACK_GAP: f32 = 4.0;
+const HUD_MARGIN: f32 = 2.0;
+/// The widget after the close button: the collapse toggle, or the header line of a frameless window.
+const COLLAPSE_OFFSET: u32 = 2;
+const HEADER_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+const SHADOW_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
+/// The dark ring around outlined text, one pixel out in each direction.
+const OUTLINE_OFFSETS: [(f32, f32); 8] = [
+    (-1.0, -1.0),
+    (0.0, -1.0),
+    (1.0, -1.0),
+    (-1.0, 0.0),
+    (1.0, 0.0),
+    (-1.0, 1.0),
+    (0.0, 1.0),
+    (1.0, 1.0),
+];
+
+/// Where a unit is on screen this frame: its centre, and the top of its sprite.
+#[derive(Clone, Copy)]
+pub struct UnitAnchor {
+    pub x: f32,
+    pub top: f32,
+}
 
 #[derive(Default)]
 pub struct PluginWindows {
     open: Vec<OpenWindow>,
     /// The slot whose input had the keyboard last frame.
     typing_slot: Option<u32>,
+    /// Top of the HUD slot below the minimap, set each frame by the client.
+    hud_top: f32,
+    /// Units of the anchored windows that are on screen, set each frame.
+    unit_anchors: HashMap<u32, UnitAnchor>,
 }
 
 struct OpenWindow {
@@ -63,6 +96,10 @@ struct OpenWindow {
     placed: bool,
     /// `elapsed_secs` of the first frame, the start of image animations.
     shown_at: Option<f32>,
+    /// When the window last arrived, the start of its countdowns; a re-sent window starts them again.
+    arrived: Instant,
+    /// Folded down to its title by the player; kept across re-opens of the id.
+    collapsed: bool,
     state: WindowState,
 }
 
@@ -97,6 +134,7 @@ impl PluginWindows {
         {
             open.state.sync(&window);
             open.window = window;
+            open.arrived = Instant::now();
             return;
         }
         let Some(slot) = (0..SLOTS).find(|slot| self.open.iter().all(|open| open.slot != *slot))
@@ -115,8 +153,28 @@ impl PluginWindows {
             slot,
             placed: false,
             shown_at: None,
+            arrived: Instant::now(),
+            collapsed: false,
             state,
         });
+    }
+
+    /// Sets the top of the HUD slot below the minimap for this frame.
+    pub fn set_hud_top(&mut self, top: f32) {
+        self.hud_top = top;
+    }
+
+    /// Finds the units of the anchored windows on screen this frame. A unit that `find` does not return hides its
+    /// window until it comes back.
+    pub fn place_units(&mut self, find: impl Fn(u32) -> Option<UnitAnchor>) {
+        self.unit_anchors.clear();
+        for open in &self.open {
+            if let Placement::Anchored { unit_id, .. } = open.window.placement
+                && let Some(anchor) = find(unit_id)
+            {
+                self.unit_anchors.insert(unit_id, anchor);
+            }
+        }
     }
 
     pub fn close(&mut self, plugin: &str, id: &str) {
@@ -199,8 +257,33 @@ impl PluginWindows {
         let Some(index) = self.open.iter().position(|open| open.base() == id.0) else {
             return Vec::new();
         };
+        let (screen_w, screen_h) = (ui.ctx.screen_width, ui.ctx.screen_height);
+        let placement = self.open[index].window.placement;
+        let fixed = match placement {
+            Placement::Floating => None,
+            Placement::Hud { .. } => {
+                // Stacks under the windows of its slot that opened before it.
+                let mut top = self.hud_top;
+                for open in &self.open[..index] {
+                    if matches!(open.window.placement, Placement::Hud { .. }) {
+                        top += open.size(ui.atlas, screen_h).1 + HUD_STACK_GAP;
+                    }
+                }
+                let x = screen_w - HUD_MARGIN - f32::from(self.open[index].window.width);
+                Some((x.max(0.0), top))
+            }
+            Placement::Anchored { unit_id, offset_y } => {
+                // Its unit is out of view: the bubble waits, shown again when the unit comes back.
+                let Some(anchor) = self.unit_anchors.get(&unit_id).copied() else {
+                    self.open[index].state.widget_rects.clear();
+                    return Vec::new();
+                };
+                let (width, height) = self.open[index].size(ui.atlas, screen_h);
+                Some(anchored_position(anchor, offset_y, width, height, screen_w, screen_h))
+            }
+        };
         let slot = self.open[index].slot;
-        let (events, closed, typing) = self.open[index].build(ui, ctx);
+        let (events, closed, typing) = self.open[index].build(ui, ctx, fixed);
         if typing {
             self.typing_slot = Some(slot);
         } else if self.typing_slot == Some(slot) {
@@ -218,42 +301,133 @@ impl OpenWindow {
         PLUGIN_WINDOW_BASE + self.slot * SLOT_SPAN
     }
 
+    /// Height of the title bar, or of the header line of a frameless window that can collapse; 0 for a frameless
+    /// window that cannot.
+    fn head_h(&self, atlas: &FontAtlas) -> f32 {
+        match self.window.frame {
+            Frame::Standard => TITLE_H,
+            Frame::None if self.window.collapsible => atlas.line_height + 2.0,
+            Frame::None => 0.0,
+        }
+    }
+
+    /// Padding around the content: the standard frame's, none for a frameless window.
+    fn pad(&self) -> f32 {
+        match self.window.frame {
+            Frame::Standard => PAD,
+            Frame::None => 0.0,
+        }
+    }
+
     fn size(&self, atlas: &FontAtlas, screen_h: f32) -> (f32, f32) {
         let width = f32::from(self.window.width);
+        let head = self.head_h(atlas);
+        let folded = self.window.collapsible && self.collapsed;
         let height = match self.window.height {
+            Some(_) if folded => head,
             Some(height) => f32::from(height),
+            None if folded => head,
             None => {
-                TITLE_H
-                    + 2.0 * PAD
-                    + measure(atlas, &self.window.node, width - 2.0 * PAD, Axis::Column).1
+                let pad = self.pad();
+                let content = measure(atlas, &self.window.node, width - 2.0 * pad, Axis::Column).1;
+                head + 2.0 * pad + content
             }
         };
         (width, height.min(screen_h.max(TITLE_H)))
     }
 
     /// The events of the frame, whether the player closed the window, and whether one of its inputs has the keyboard.
-    fn build(&mut self, ui: &mut UiFrame, ctx: &mut BuildCtx) -> (Vec<GameEvent>, bool, bool) {
+    /// `fixed` is where an anchored or HUD window is drawn; a floating window is placed and moved by the player.
+    fn build(
+        &mut self,
+        ui: &mut UiFrame,
+        ctx: &mut BuildCtx,
+        fixed: Option<(f32, f32)>,
+    ) -> (Vec<GameEvent>, bool, bool) {
         let window_id = WidgetId(self.base());
         let (width, height) = self.size(ui.atlas, ui.ctx.screen_height);
-        if !self.placed {
-            let cascade = self.slot as f32 * CASCADE;
-            let x = ((ui.ctx.screen_width - width) / 2.0).floor() + cascade;
-            let y = ((ui.ctx.screen_height - height) / 3.0).floor() + cascade;
-            ui.set_window_position(window_id, x, y);
-            self.placed = true;
-        }
+        let head = self.head_h(ui.atlas);
         let seconds = ui.elapsed_secs - *self.shown_at.get_or_insert(ui.elapsed_secs);
-        let win = ui.window_at(window_id, width, height, TITLE_H, 0.0, 0.0);
+        let win = match fixed {
+            Some((x, y)) => ui.window_fixed(window_id, width, height, x, y),
+            None => {
+                if !self.placed {
+                    let cascade = self.slot as f32 * CASCADE;
+                    let x = ((ui.ctx.screen_width - width) / 2.0).floor() + cascade;
+                    let y = ((ui.ctx.screen_height - height) / 3.0).floor() + cascade;
+                    ui.set_window_position(window_id, x, y);
+                    self.placed = true;
+                }
+                ui.window_at(window_id, width, height, head, 0.0, 0.0)
+            }
+        };
         ui.interact(window_id, win);
 
-        draw_titlebar(ui, win.x, win.y, width, TITLE_H);
-        ui.text(
-            win.x + 16.0,
-            win.y + TITLE_H - 3.0,
-            &self.window.title,
-            text_color(),
-        );
-        fallback::window_body(ui, win.x, win.y + TITLE_H, width, height - TITLE_H);
+        let mut toggled = false;
+        match self.window.frame {
+            Frame::Standard => {
+                draw_titlebar(ui, win.x, win.y, width, TITLE_H);
+                ui.text(
+                    win.x + 16.0,
+                    win.y + TITLE_H - 3.0,
+                    &self.window.title,
+                    text_color(),
+                );
+                if !self.collapsed {
+                    fallback::window_body(ui, win.x, win.y + TITLE_H, width, height - TITLE_H);
+                }
+                if self.window.collapsible {
+                    // Left of the close button, when there is one.
+                    let close_space = if self.window.closable {
+                        CLOSE_BTN_SIZE + 3.0
+                    } else {
+                        0.0
+                    };
+                    let rect = Rect::new(
+                        win.x + width - CLOSE_BTN_SIZE - 3.0 - close_space,
+                        win.y + (TITLE_H - CLOSE_BTN_SIZE) / 2.0,
+                        CLOSE_BTN_SIZE,
+                        CLOSE_BTN_SIZE,
+                    );
+                    let response = ui.interact(WidgetId(self.base() + COLLAPSE_OFFSET), rect);
+                    if response.hovered() {
+                        ui.any_interactive_hovered = true;
+                    }
+                    let glyph = if self.collapsed { '+' } else { '-' };
+                    draw_sys_button(
+                        ui,
+                        rect,
+                        (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE),
+                        response.hovered(),
+                        Some(glyph),
+                    );
+                    toggled = response.clicked();
+                }
+            }
+            Frame::None if self.window.collapsible => {
+                // The title as a header line, with a shadowed and outlined text and no background.
+                let rect = Rect::new(win.x, win.y, width, head);
+                let response = ui.interact(WidgetId(self.base() + COLLAPSE_OFFSET), rect);
+                if response.hovered() {
+                    ui.any_interactive_hovered = true;
+                }
+                let marker = if self.collapsed { '+' } else { '-' };
+                let label = format!("{marker} {}", self.window.title);
+                let line_y = baseline(ui.atlas, win.y, head);
+                let look = TextLook {
+                    bold: false,
+                    align: Align::Start,
+                    shadow: true,
+                    outline: true,
+                };
+                paint_text(ui, win.x, line_y, &label, HEADER_COLOR, look);
+                toggled = response.clicked();
+            }
+            Frame::None => {}
+        }
+        if toggled {
+            self.collapsed = !self.collapsed;
+        }
 
         let mut closed = false;
         if self.window.closable {
@@ -278,27 +452,33 @@ impl OpenWindow {
         }
 
         self.state.widget_rects.clear();
+        let pad = self.pad();
+        let elapsed = self.arrived.elapsed().as_secs() as u32;
+        let collapsed = self.collapsed;
         let mut painter = Painter {
             window_id: &self.window.id,
             base: self.base(),
             seconds,
+            elapsed,
             state: &mut self.state,
             events: Vec::new(),
             widget_clicked: false,
             typing: false,
         };
-        let avail = width - 2.0 * PAD;
-        let (_, content_h) = measure(ui.atlas, &self.window.node, avail, Axis::Column);
-        let mut index = 0;
-        painter.draw(
-            ui,
-            ctx.data,
-            &self.window.node,
-            &mut index,
-            Rect::new(win.x + PAD, win.y + TITLE_H + PAD, avail, content_h),
-            avail,
-            Axis::Column,
-        );
+        let avail = width - 2.0 * pad;
+        if !collapsed {
+            let (_, content_h) = measure(ui.atlas, &self.window.node, avail, Axis::Column);
+            let mut index = 0;
+            painter.draw(
+                ui,
+                ctx.data,
+                &self.window.node,
+                &mut index,
+                Rect::new(win.x + pad, win.y + head + pad, avail, content_h),
+                avail,
+                Axis::Column,
+            );
+        }
 
         let typing = painter.typing;
         let mut events: Vec<GameEvent> = painter
@@ -411,6 +591,8 @@ struct Painter<'w> {
     window_id: &'w str,
     base: u32,
     seconds: f32,
+    /// Whole seconds since the window arrived, which the countdowns have counted down by.
+    elapsed: u32,
     state: &'w mut WindowState,
     events: Vec<UiEvent>,
     /// A button took this frame's click, so the table row under it is not selected too.
@@ -460,7 +642,10 @@ impl Painter<'_> {
                 let mut y = rect.y;
                 for child in &column.children {
                     let (w, h) = measure(atlas, child, avail, Axis::Column);
-                    let fills = matches!(child, Node::Text { .. } | Node::Separator);
+                    let fills = matches!(
+                        child,
+                        Node::Text { .. } | Node::Countdown { .. } | Node::Separator
+                    );
                     let (x, w) = if fills {
                         (rect.x, avail)
                     } else {
@@ -510,25 +695,41 @@ impl Painter<'_> {
                 bold,
                 align,
                 wrap,
+                shadow,
+                outline,
             } => {
-                let color = color
-                    .as_deref()
-                    .and_then(parse_rgb)
-                    .unwrap_or_else(text_color);
-                let line_h = atlas.line_height;
-                for (i, line) in text_lines(atlas, text, *bold, *wrap, avail)
-                    .iter()
-                    .enumerate()
-                {
-                    let top = rect.y + i as f32 * line_h;
-                    let x = rect.x + aligned(*align, rect.w - text_width(atlas, line, *bold));
-                    let baseline = baseline(atlas, top, line_h);
-                    if *bold {
-                        ui.text_bold(x, baseline, line, color);
-                    } else {
-                        ui.colored_text(x, baseline, line, color);
-                    }
-                }
+                let lines = text_lines(atlas, text, *bold, *wrap, avail);
+                let look = TextLook {
+                    bold: *bold,
+                    align: *align,
+                    shadow: *shadow,
+                    outline: *outline,
+                };
+                paint_lines(ui, atlas, rect, &lines, color.as_deref(), look);
+            }
+            Node::Countdown {
+                seconds,
+                color,
+                bold,
+                align,
+                shadow,
+                outline,
+            } => {
+                let left = seconds.saturating_sub(self.elapsed);
+                let look = TextLook {
+                    bold: *bold,
+                    align: *align,
+                    shadow: *shadow,
+                    outline: *outline,
+                };
+                paint_lines(
+                    ui,
+                    atlas,
+                    rect,
+                    &[format_countdown(left)],
+                    color.as_deref(),
+                    look,
+                );
             }
             Node::Image { image, .. } => {
                 if let Some(frame) = image.frame_at(self.seconds) {
@@ -719,6 +920,83 @@ impl Painter<'_> {
 }
 
 /// Width and height of `node` laid out in `avail` pixels of width, inside a column or a row.
+/// How a line of text is drawn over whatever is behind it.
+#[derive(Clone, Copy)]
+struct TextLook {
+    bold: bool,
+    align: Align,
+    shadow: bool,
+    outline: bool,
+}
+
+/// Draws the lines of a text node or countdown, one under the other inside `rect`.
+fn paint_lines(
+    ui: &mut UiFrame,
+    atlas: &FontAtlas,
+    rect: Rect,
+    lines: &[String],
+    color: Option<&str>,
+    look: TextLook,
+) {
+    let color = color.and_then(parse_rgb).unwrap_or_else(text_color);
+    let line_h = atlas.line_height;
+    for (i, line) in lines.iter().enumerate() {
+        let top = rect.y + i as f32 * line_h;
+        let x = rect.x + aligned(look.align, rect.w - text_width(atlas, line, look.bold));
+        paint_text(ui, x, baseline(atlas, top, line_h), line, color, look);
+    }
+}
+
+/// One line of text, with its shadow or outline drawn in black underneath.
+fn paint_text(
+    ui: &mut UiFrame,
+    x: f32,
+    baseline: f32,
+    line: &str,
+    color: [f32; 4],
+    look: TextLook,
+) {
+    if look.outline {
+        let plain = draw::strip_color_codes(line);
+        for (dx, dy) in OUTLINE_OFFSETS {
+            shade(ui, x + dx, baseline + dy, &plain, look.bold);
+        }
+    } else if look.shadow {
+        let plain = draw::strip_color_codes(line);
+        shade(ui, x + 1.0, baseline + 1.0, &plain, look.bold);
+    }
+    if look.bold {
+        ui.text_bold(x, baseline, line, color);
+    } else {
+        ui.colored_text(x, baseline, line, color);
+    }
+}
+
+fn shade(ui: &mut UiFrame, x: f32, y: f32, plain: &str, bold: bool) {
+    if bold {
+        ui.text_bold(x, y, plain, SHADOW_COLOR);
+    } else {
+        ui.text(x, y, plain, SHADOW_COLOR);
+    }
+}
+
+/// Above the unit's sprite, centred on it and kept on screen.
+fn anchored_position(
+    anchor: UnitAnchor,
+    offset_y: i16,
+    width: f32,
+    height: f32,
+    screen_w: f32,
+    screen_h: f32,
+) -> (f32, f32) {
+    let x = anchor.x - width / 2.0;
+    let y = anchor.top - f32::from(offset_y) - height;
+    (
+        x.clamp(0.0, (screen_w - width).max(0.0)),
+        y.clamp(0.0, (screen_h - height).max(0.0)),
+    )
+}
+
 fn measure(atlas: &FontAtlas, node: &Node, avail: f32, axis: Axis) -> (f32, f32) {
     match node {
         Node::Column(column) => {
@@ -763,6 +1041,10 @@ fn measure(atlas: &FontAtlas, node: &Node, avail: f32, axis: Axis) -> (f32, f32)
                 .fold(0.0, f32::max);
             (width, lines.len() as f32 * atlas.line_height)
         }
+        Node::Countdown { seconds, bold, .. } => (
+            text_width(atlas, &format_countdown(*seconds), *bold),
+            atlas.line_height,
+        ),
         Node::Image { width, height, .. } => (f32::from(*width), f32::from(*height)),
         Node::ItemIcon { .. } => (ICON_SIZE, ICON_SIZE),
         Node::Button { label, .. } => (
@@ -957,6 +1239,79 @@ mod tests {
     }
 
     /// Builds every open window for one frame, with the pointer at `click` when given.
+    fn button(id: &str) -> Node {
+        Node::Button {
+            id: id.to_string(),
+            label: "Go".to_string(),
+            enabled: true,
+        }
+    }
+
+    #[test]
+    fn an_anchored_window_sits_above_its_unit_and_waits_while_the_unit_is_out_of_view() {
+        let mut windows = PluginWindows::default();
+        let mut state = StateCache::new();
+        let bubble = Window::new("offer", "Ann", 220, button("go")).anchored(7, 4);
+        windows.open(SHOP, bubble);
+
+        windows.place_units(|unit| (unit == 7).then_some(UnitAnchor { x: 400.0, top: 300.0 }));
+        frame(&mut windows, &mut state, None, "");
+        let go = windows.widget_rect(SHOP, "offer", "go").unwrap();
+        assert!(go.y + go.h <= 296.0, "{go:?}");
+
+        windows.place_units(|_| None);
+        frame(&mut windows, &mut state, None, "");
+        assert!(windows.widget_rect(SHOP, "offer", "go").is_none());
+        assert!(!windows.is_empty(), "a hidden bubble stays open");
+    }
+
+    #[test]
+    fn anchored_windows_are_centred_above_the_unit_and_kept_on_screen() {
+        let above = UnitAnchor { x: 400.0, top: 300.0 };
+        assert_eq!(anchored_position(above, 4, 200.0, 100.0, 800.0, 600.0), (300.0, 196.0));
+        let corner = UnitAnchor { x: 10.0, top: 20.0 };
+        assert_eq!(anchored_position(corner, 0, 200.0, 100.0, 800.0, 600.0), (0.0, 0.0));
+        let edge = UnitAnchor { x: 790.0, top: 595.0 };
+        assert_eq!(anchored_position(edge, 0, 200.0, 100.0, 800.0, 600.0), (600.0, 495.0));
+    }
+
+    #[test]
+    fn hud_windows_stack_under_the_hud_top_in_opening_order() {
+        let mut windows = PluginWindows::default();
+        let mut state = StateCache::new();
+        let hud = |id: &str| {
+            Window::new(id, "Quests", 190, button("go"))
+                .hud(plugin_ui::HudSlot::BelowMinimap)
+                .frameless()
+        };
+        windows.open(SHOP, hud("first"));
+        windows.open(SHOP, hud("second"));
+        windows.set_hud_top(30.0);
+        frame(&mut windows, &mut state, None, "");
+
+        let first = windows.widget_rect(SHOP, "first", "go").unwrap();
+        let second = windows.widget_rect(SHOP, "second", "go").unwrap();
+        assert!(first.y >= 30.0, "{first:?}");
+        assert!(second.y >= first.y + first.h + HUD_STACK_GAP, "{first:?} {second:?}");
+    }
+
+    #[test]
+    fn a_collapsed_window_draws_no_content_and_stays_collapsed_across_a_reopen() {
+        let mut windows = PluginWindows::default();
+        let mut state = StateCache::new();
+        let tracker = Window::new("tracker", "Quests", 190, button("go")).collapsible();
+        windows.open(SHOP, tracker.clone());
+        frame(&mut windows, &mut state, None, "");
+        assert!(windows.widget_rect(SHOP, "tracker", "go").is_some());
+
+        windows.open[0].collapsed = true;
+        frame(&mut windows, &mut state, None, "");
+        assert!(windows.widget_rect(SHOP, "tracker", "go").is_none());
+
+        windows.open(SHOP, tracker);
+        assert!(windows.open[0].collapsed, "a re-sent window keeps its fold");
+    }
+
     fn frame(
         windows: &mut PluginWindows,
         state: &mut StateCache,

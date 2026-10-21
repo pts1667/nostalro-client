@@ -12,7 +12,7 @@ use ragnarok_ui::frame::{UiFrame, WidgetId};
 use ragnarok_ui_component::game::drop_quantity_dialog::DropQuantityDialog;
 use ragnarok_ui_component::game::hotkey_bar::HOTKEY_BAR_WINDOW_ID;
 use ragnarok_ui_component::game::inventory_window::INV_WINDOW_ID;
-use ragnarok_ui_component::game::plugin_window::PluginWindows;
+use ragnarok_ui_component::game::plugin_window::{PluginWindows, UnitAnchor};
 use ragnarok_ui_component::game::minimap_window::{MarkerType, MinimapMarker, quest_marker_color};
 use ragnarok_ui_component::{BuildCtx, InGameWindow};
 use std::collections::HashMap;
@@ -22,11 +22,25 @@ pub fn build_in_game_ui(
     windows: &mut Windows,
     ui: &mut UiFrame,
     _texture_size_fn: &dyn Fn(&str) -> Option<(u32, u32)>,
-    _render_list: &[RenderEntry],
+    render_list: &[RenderEntry],
 ) -> Vec<GameEvent> {
     let mut events = Vec::new();
 
     windows.npc_shop.setup_modal(ui);
+    windows
+        .plugin_windows
+        .set_hud_top(windows.minimap_window.hud_top(ui.ctx.screen_width, ui.ctx.screen_height));
+    // An anchored plugin window sits over its unit, which is hidden while the unit is off screen.
+    windows.plugin_windows.place_units(|unit_id| {
+        let key = game.world.entities.resolve_key(unit_id);
+        render_list
+            .iter()
+            .find(|entry| entry.id == key)
+            .map(|entry| UnitAnchor {
+                x: entry.screen_anchor[0],
+                top: entry.screen_anchor[1] - entry.head_offset,
+            })
+    });
 
     // The server never sends our own HP via party, and same-map members' HP only
     // arrives on change — so refresh rows from live state before `ctx` borrows
