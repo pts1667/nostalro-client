@@ -1789,6 +1789,21 @@ impl App {
                 GameEvent::AdoptionMessage { msg_no } => {
                     self.handle_adoption_message(msg_no);
                 }
+                GameEvent::PluginWindowOpen { plugin, window } => {
+                    self.windows.plugin_windows.open(&plugin, *window);
+                    let textures = self.windows.plugin_windows.textures(&self.game.data_table);
+                    self.preload_item_icons(textures);
+                }
+                GameEvent::PluginWindowClose { plugin, id } => {
+                    self.windows.plugin_windows.close(&plugin, &id);
+                }
+                GameEvent::PluginOverhead { unit_id, overhead, .. } => {
+                    if let Some(frames) = overhead.image.as_ref().map(|image| &image.frames) {
+                        let textures = frames.iter().map(|frame| plugin_window::texture_path(frame)).collect();
+                        self.preload_item_icons(textures);
+                    }
+                    plugin_overhead::push(&mut self.game.plugin_overheads, unit_id, *overhead, std::time::Instant::now());
+                }
 
                 _ => {}
             }
@@ -2005,21 +2020,6 @@ impl App {
                     self.windows.system_menu.open = false;
                     self.channel
                         .send_packet(build_req_disconnect_packet(self.active_packetver));
-                }
-                GameEvent::PluginWindowOpen { plugin, window } => {
-                    self.windows.plugin_windows.open(&plugin, *window);
-                    let textures = self.windows.plugin_windows.textures(&self.game.data_table);
-                    self.preload_item_icons(textures);
-                }
-                GameEvent::PluginWindowClose { plugin, id } => {
-                    self.windows.plugin_windows.close(&plugin, &id);
-                }
-                GameEvent::PluginOverhead { unit_id, overhead, .. } => {
-                    if let Some(frames) = overhead.image.as_ref().map(|image| &image.frames) {
-                        let textures = frames.iter().map(|frame| plugin_window::texture_path(frame)).collect();
-                        self.preload_item_icons(textures);
-                    }
-                    plugin_overhead::push(&mut self.game.plugin_overheads, unit_id, *overhead, std::time::Instant::now());
                 }
                 GameEvent::RequestPluginUiEvent { plugin, event } => {
                     if let Some(packet) = ragnarok_network::plugin_ui::build_event_packet(&plugin, event) {
