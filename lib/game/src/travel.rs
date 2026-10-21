@@ -4,6 +4,9 @@
 
 /// Chebyshev distance, in cells, at which the character can talk to an NPC.
 pub const TALK_RANGE: i32 = 2;
+/// Chebyshev distance, in cells, at which the character counts as having reached
+/// a waypoint of its hop.
+pub const WAYPOINT_REACH: i32 = 1;
 /// Seconds one hop may take before the trip gives up.
 pub const HOP_TIMEOUT_SECS: f32 = 60.0;
 /// Dialogue pages a trip presses through before it gives up on an NPC.
@@ -32,6 +35,10 @@ pub struct TravelHop {
     /// Conditions the server reports on the way (quest, zeny, item...). The
     /// trip still tries; the NPC refuses when they are not met.
     pub checks: Vec<String>,
+    /// Cells the character walks through on the way to the hop's cell, each one
+    /// within reach of the last. Empty when the server planned no path: the
+    /// character then walks straight to the hop's cell.
+    pub path: Vec<(u16, u16)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,6 +66,8 @@ pub struct Travel {
     pub to: String,
     hops: Vec<TravelHop>,
     index: usize,
+    /// The next waypoint of the current hop's path.
+    waypoint: usize,
     hop_started: f32,
     /// The NPC has been talked to on this hop.
     contacted: bool,
@@ -80,6 +89,7 @@ impl Travel {
             to,
             hops,
             index: 0,
+            waypoint: 0,
             hop_started: now,
             contacted: false,
             talking: false,
@@ -152,6 +162,16 @@ impl Travel {
         }
         if self.chosen {
             return TravelAction::Wait;
+        }
+        // Walks the hop's path one waypoint at a time. Reaching one is progress, so
+        // the hop's clock starts again.
+        while let Some(&(wx, wy)) = hop.path.get(self.waypoint) {
+            let away = (player.0 - i32::from(wx)).abs().max((player.1 - i32::from(wy)).abs());
+            if away > WAYPOINT_REACH {
+                return TravelAction::Walk { x: wx, y: wy, range: 0 };
+            }
+            self.waypoint += 1;
+            self.hop_started = now;
         }
         let (x, y) = (i32::from(hop.x), i32::from(hop.y));
         match &hop.kind {
@@ -227,6 +247,7 @@ impl Travel {
 
     /// Clears what one hop left behind, and starts its clock.
     fn reset_hop(&mut self, now: f32) {
+        self.waypoint = 0;
         self.hop_started = now;
         self.contacted = false;
         self.talking = false;
@@ -261,7 +282,7 @@ mod tests {
     use super::*;
 
     fn warp(map: &str, x: u16, y: u16, to_map: &str) -> TravelHop {
-        TravelHop { map: map.into(), x, y, to_map: to_map.into(), kind: HopKind::Warp, checks: vec![] }
+        TravelHop { map: map.into(), x, y, to_map: to_map.into(), kind: HopKind::Warp, checks: vec![], path: vec![] }
     }
 
     fn warper(map: &str, x: u16, y: u16, to_map: &str, menu: &[&str]) -> TravelHop {
@@ -275,7 +296,38 @@ mod tests {
                 menu: menu.iter().map(|entry| entry.to_string()).collect(),
             },
             checks: vec![],
+            path: vec![],
         }
+    }
+
+    #[test]
+    fn a_hop_walks_its_path_one_waypoint_at_a_time() {
+        let mut hop = warp("prt_fild08", 200, 100, "geffen");
+        hop.path = vec![(120, 100), (160, 100), (200, 100)];
+        let mut travel = Travel::new("geffen".into(), vec![hop], 0.0);
+        assert_eq!(travel.step(0.0, "prt_fild08", (100, 100)), TravelAction::Walk { x: 120, y: 100, range: 0 });
+        assert_eq!(travel.step(0.5, "prt_fild08", (119, 100)), TravelAction::Walk { x: 160, y: 100, range: 0 });
+        assert_eq!(travel.step(1.0, "prt_fild08", (160, 100)), TravelAction::Walk { x: 200, y: 100, range: 0 });
+        assert_eq!(travel.step(1.5, "prt_fild08", (200, 100)), TravelAction::Wait);
+    }
+
+    #[test]
+    fn reaching_a_waypoint_restarts_the_hop_clock() {
+        let mut hop = warp("prt_fild08", 400, 100, "geffen");
+        hop.path = vec![(100, 100), (400, 100)];
+        let mut travel = Travel::new("geffen".into(), vec![hop], 0.0);
+        assert_eq!(travel.step(50.0, "prt_fild08", (99, 100)), TravelAction::Walk { x: 400, y: 100, range: 0 });
+        assert_eq!(travel.step(70.0, "prt_fild08", (100, 100)), TravelAction::Walk { x: 400, y: 100, range: 0 });
+    }
+
+    #[test]
+    fn a_warper_is_talked_to_once_its_path_brings_the_character_in_range() {
+        let mut hop = warper("prt_fild08", 160, 30, "geffen", &["Geffen"]);
+        hop.path = vec![(130, 30), (158, 30)];
+        let mut travel = Travel::new("geffen".into(), vec![hop], 0.0);
+        assert_eq!(travel.step(0.0, "prt_fild08", (100, 30)), TravelAction::Walk { x: 130, y: 30, range: 0 });
+        assert_eq!(travel.step(1.0, "prt_fild08", (130, 30)), TravelAction::Walk { x: 158, y: 30, range: 0 });
+        assert_eq!(travel.step(2.0, "prt_fild08", (158, 30)), TravelAction::Talk);
     }
 
     #[test]

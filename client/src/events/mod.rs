@@ -29,6 +29,7 @@ use models::enums::skill_enums::SkillEnum;
 use ragnarok_formats::act::SpriteActionType;
 use ragnarok_game::app_state::AppState;
 use ragnarok_game::autocounter;
+use ragnarok_game::data_table::DataTable;
 use ragnarok_game::chat_room::ChatRoom;
 use ragnarok_game::entity::{EntityType, ForcedAnimation};
 use ragnarok_game::event::GameEvent;
@@ -41,10 +42,43 @@ use ragnarok_ui_component::account::char_create_window::CharCreateWindow;
 use ragnarok_ui_component::game::chat_room_member_window;
 use ragnarok_ui_component::game::guild_expel_dialog::GuildExpelDialog;
 use ragnarok_ui_component::game::party_helper_window::MODE_CREATE;
-use ragnarok_ui_component::game::plugin_window;
+use ragnarok_ui_component::game::plugin_window::{self, PluginWindows};
+use std::time::Instant;
 use winit::event_loop::ActiveEventLoop;
 
 const BLADE_STOP_GRIP_FRAME: usize = 4;
+
+/// Applies a plugin UI event from the server to the windows and overheads it
+/// touches, and returns the textures it needs loaded before it is drawn. Events
+/// of other kinds are not plugin UI and return nothing.
+pub(crate) fn apply_plugin_event(
+    event: GameEvent,
+    windows: &mut PluginWindows,
+    overheads: &mut Vec<plugin_overhead::PluginOverhead>,
+    data: &DataTable,
+    now: Instant,
+) -> Vec<String> {
+    match event {
+        GameEvent::PluginWindowOpen { plugin, window } => {
+            windows.open(&plugin, *window);
+            windows.textures(data)
+        }
+        GameEvent::PluginWindowClose { plugin, id } => {
+            windows.close(&plugin, &id);
+            Vec::new()
+        }
+        GameEvent::PluginOverhead { unit_id, overhead, .. } => {
+            let textures: Vec<String> = overhead
+                .image
+                .as_ref()
+                .map(|image| image.frames.iter().map(|frame| plugin_window::texture_path(frame)).collect())
+                .unwrap_or_default();
+            plugin_overhead::push(overheads, unit_id, *overhead, now);
+            textures
+        }
+        _ => Vec::new(),
+    }
+}
 
 pub(crate) fn char_create_error_message(error_code: u8) -> &'static str {
     match error_code {
@@ -1789,20 +1823,15 @@ impl App {
                 GameEvent::AdoptionMessage { msg_no } => {
                     self.handle_adoption_message(msg_no);
                 }
-                GameEvent::PluginWindowOpen { plugin, window } => {
-                    self.windows.plugin_windows.open(&plugin, *window);
-                    let textures = self.windows.plugin_windows.textures(&self.game.data_table);
+                GameEvent::PluginWindowOpen { .. } | GameEvent::PluginWindowClose { .. } | GameEvent::PluginOverhead { .. } => {
+                    let textures = apply_plugin_event(
+                        event,
+                        &mut self.windows.plugin_windows,
+                        &mut self.game.plugin_overheads,
+                        &self.game.data_table,
+                        Instant::now(),
+                    );
                     self.preload_item_icons(textures);
-                }
-                GameEvent::PluginWindowClose { plugin, id } => {
-                    self.windows.plugin_windows.close(&plugin, &id);
-                }
-                GameEvent::PluginOverhead { unit_id, overhead, .. } => {
-                    if let Some(frames) = overhead.image.as_ref().map(|image| &image.frames) {
-                        let textures = frames.iter().map(|frame| plugin_window::texture_path(frame)).collect();
-                        self.preload_item_icons(textures);
-                    }
-                    plugin_overhead::push(&mut self.game.plugin_overheads, unit_id, *overhead, std::time::Instant::now());
                 }
 
                 _ => {}
@@ -3304,5 +3333,41 @@ impl App {
                 _ => {}
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ::plugin_ui::wire::{OverheadMessage, WindowClose, WindowOpen, encode_close, encode_open, encode_overhead};
+    use ::plugin_ui::{Node, Overhead, Window};
+
+    /// Decodes a packet the server sent, then applies it the way the game does.
+    fn deliver(packet: &[u8], windows: &mut PluginWindows, overheads: &mut Vec<plugin_overhead::PluginOverhead>) {
+        let event = ragnarok_network::plugin_ui::dispatch(packet).expect("the packet decodes");
+        apply_plugin_event(event, windows, overheads, &DataTable::default(), Instant::now());
+    }
+
+    #[test]
+    fn a_window_and_an_overhead_from_the_server_reach_the_game() {
+        let window = Window::new("shop", "Shop", 200, Node::text("Hello"));
+        let open = encode_open(&WindowOpen { plugin: "ui_shop".into(), window }).unwrap();
+        let overhead = encode_overhead(
+            7,
+            &OverheadMessage { plugin: "ui_shop".into(), overhead: Overhead::text("Hi", None, 500) },
+        )
+        .unwrap();
+        let close = encode_close(&WindowClose { plugin: "ui_shop".into(), id: "shop".into() }).unwrap();
+        let mut windows = PluginWindows::default();
+        let mut overheads = Vec::new();
+
+        deliver(&open, &mut windows, &mut overheads);
+        assert_eq!(windows.window_ids().len(), 1);
+
+        deliver(&overhead, &mut windows, &mut overheads);
+        assert_eq!(overheads.len(), 1);
+
+        deliver(&close, &mut windows, &mut overheads);
+        assert!(windows.window_ids().is_empty());
     }
 }

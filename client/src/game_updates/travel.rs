@@ -440,7 +440,32 @@ fn hop_from_json(entry: &Value) -> Result<TravelHop, String> {
         to_map: text(entry, "to_map")?,
         kind,
         checks,
+        path: waypoints(entry)?,
     })
+}
+
+/// The cells the reference server planned for a hop. A hop without them walks
+/// straight to its cell.
+fn waypoints(entry: &Value) -> Result<Vec<(u16, u16)>, String> {
+    let Some(points) = entry.get("path") else {
+        return Ok(Vec::new());
+    };
+    points
+        .as_array()
+        .ok_or("the route has a path that is not a list")?
+        .iter()
+        .map(|point| match point.as_array().map(Vec::as_slice) {
+            Some([x, y]) => Ok((coordinate(x)?, coordinate(y)?)),
+            _ => Err("the route has a path point that is not a cell".to_string()),
+        })
+        .collect()
+}
+
+fn coordinate(value: &Value) -> Result<u16, String> {
+    value
+        .as_u64()
+        .and_then(|value| u16::try_from(value).ok())
+        .ok_or_else(|| "the route has a path point that is not a cell".to_string())
 }
 
 /// The entries an NPC hop picks, level by level. A hop without them is refused:
@@ -498,6 +523,31 @@ mod tests {
             travel.hops()[1].kind,
             HopKind::Npc { name: "Warper#prt".into(), menu: vec!["Cities".into(), "Geffen".into()] }
         );
+    }
+
+    #[test]
+    fn a_hop_reads_the_path_the_server_planned_and_none_when_absent() {
+        let route = json!({
+            "to": "geffen",
+            "hops": [
+                { "kind": "warp", "map": "prontera", "x": 156, "y": 20, "to_map": "prt_fild08", "checks": [], "path": [[150, 20], [156, 20]] },
+                { "kind": "warp", "map": "prt_fild08", "x": 170, "y": 380, "to_map": "geffen", "checks": [] }
+            ]
+        });
+        let travel = route_from_json(&route, 0.0).unwrap();
+        assert_eq!(travel.hops()[0].path, vec![(150, 20), (156, 20)]);
+        assert!(travel.hops()[1].path.is_empty());
+    }
+
+    #[test]
+    fn a_path_point_that_is_not_a_cell_refuses_the_route() {
+        let route = json!({
+            "to": "geffen",
+            "hops": [
+                { "kind": "warp", "map": "prontera", "x": 156, "y": 20, "to_map": "prt_fild08", "checks": [], "path": [[150]] }
+            ]
+        });
+        assert!(route_from_json(&route, 0.0).is_err());
     }
 
     #[test]
