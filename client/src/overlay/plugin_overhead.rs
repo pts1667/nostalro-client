@@ -2,7 +2,7 @@
 //! moved by the overhead's motions until its duration ends.
 
 use std::collections::HashMap;
-use std::time::Instant;
+use web_time::Instant;
 
 use plugin_ui::Overhead;
 use ragnarok_game::cursor::RenderEntry;

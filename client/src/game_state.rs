@@ -722,8 +722,8 @@ impl GameState {
             schedulers: Schedulers::new(),
             effect_keys: EffectKeys::default(),
             automation: ragnarok_game::automation::Automation::new(
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
+                web_time::SystemTime::now()
+                    .duration_since(web_time::UNIX_EPOCH)
                     .map_or(0x9E37_79B9_7F4A_7C15, |d| d.as_nanos() as u64),
             ),
             travel: None,

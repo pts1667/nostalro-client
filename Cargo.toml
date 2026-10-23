@@ -53,6 +53,16 @@ symphonia = { version = "0.5", default-features = false, features = ["wav", "pcm
 puffin = "0.20"
 puffin_http = "0.17"
 
+# Web build (wasm32). `web-time` is `std::time` on native and `performance.now()` in a browser,
+# where `std::time::Instant::now()` panics.
+web-time = "1.1"
+wasm-bindgen = "0.2.118"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = "0.3"
+ruzstd = "0.8"
+console_error_panic_hook = "0.1"
+
 # Server crate git dependencies
 models = { git = "https://github.com/nmeylan/rust-ro.git", rev = "2e673a24" }
 movement = { git = "https://github.com/nmeylan/rust-ro.git", rev = "2e673a24" }

@@ -28,7 +28,7 @@ I also wanted a clear view on what is implemented and what is not.
 - Support all packet versions up to 20120307 without recompiling
 - Support **ALL** visual effects accurately
 - Do not alter original game resources: render actual resources with high dpi support
-- Runnable on Windows and Linux
+- Runnable on Windows and Linux, and in a browser with WebGPU
 - Use a "mini framework" for the UI, in immediate mode, inspired by `egui`
 
 # Prerequisites
@@ -162,6 +162,35 @@ cargo run --bin ragnarok-client --release
 ```
 
 The client reads `config.json` from the current directory, so run it from the repository root.
+
+# Run in a browser
+
+The client also builds for the web (`wasm32-unknown-unknown`) and runs in a browser with WebGPU: current Chrome or Edge, Firefox 141+, Safari 26+. It talks to the same rust-ro server, which accepts WebSocket clients on its game ports (`server.enable_websocket`, on by default), and reads the client data from the `/data` endpoint. GRF archives on disk, `data_dir` and the download cache do not exist in a browser; the browser's HTTP cache keeps the files instead.
+
+Once, install the target (the toolchain file already lists it) and the `wasm-bindgen` CLI at the version of the crate:
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo install wasm-bindgen-cli --version 0.2.118 --locked
+```
+
+Build into `web/dist` (`-Dev` / `--dev` for an unoptimized build), then serve it:
+
+```bash
+./web/build.ps1          # or: sh web/build.sh
+python web/serve.py      # http://127.0.0.1:8080/
+```
+
+There are two ways to put the page in front of players:
+
+- **From rust-ro itself.** Set `client_data.web_root` in the server config to the `web/dist` folder: the client data endpoint (port 6903) then serves the page at `/`. rust-ro answers browsers from any origin on `/data`, `/db`, `/wiki` and `/forum`, so nothing else is needed. The default site config (`web/config.sample.json`) names the server's ports on `{host}`, which the client replaces with the host name the page was loaded from. The server does not compress the 20 MB `.wasm`; put a compressing proxy in front of it for players far from the server.
+- **For development, `web/serve.py`.** It serves the page and forwards `/data`, `/db`, `/wiki` and `/forum` to the server's ports, so everything comes from one origin, and it tunnels the forum's WebSocket. Its settings are in `web/config.dev.json`.
+
+To use other settings, copy one of these files to `web/config.json` (git-ignored) and adjust `login_servers` before building. The build copies `web/config.json`, or `web/config.sample.json` when there is none, next to the page.
+
+In the browser, settings are saved in the page's local storage. On start the client reads them and takes the server addresses (`login_servers`, `data_url`, `reference_url`, `forum_url`, `websocket_url`) from the site's `config.json`, so a site can move its servers. A URL starting with `/` is resolved against the page, and `{host}` in a URL or a login server's `host` is the page's host name. `websocket_url` (web only) maps a game server's `host:port` to a WebSocket URL for a server behind a reverse proxy, for instance `wss://ro.example.com/game/{port}`; without it the client connects to `ws://host:port/`, or `wss://` from an https page. `?log=debug` on the page's URL raises the console log level.
+
+Differences from the desktop build: files are fetched with a synchronous request on first use, as the desktop client does; effect textures and skill effects load when they first play instead of on map entry, so an effect may show untextured for a frame the first time; sound starts after the first click or key press; paste asks the browser for clipboard access; guild emblems cannot be read from disk; browser shortcuts such as Ctrl+W stay with the browser.
 
 # Set up a server
 

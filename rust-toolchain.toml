@@ -2,3 +2,5 @@
 channel = "stable"
 # components for development
 components = ["rust-src", "rust-analyzer"]
+# The web build (`web/build.ps1`).
+targets = ["wasm32-unknown-unknown"]

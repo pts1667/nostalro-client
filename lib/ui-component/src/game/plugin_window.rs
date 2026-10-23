@@ -6,7 +6,7 @@
 //! depth-first order (`Window::nodes`), so a node keeps its ids while the plugin replaces the window.
 
 use std::collections::{BTreeMap, HashMap};
-use std::time::Instant;
+use web_time::Instant;
 
 use plugin_ui::{
     Align, EventKind, Frame, InputValue, Node, Placement, Table, UiEvent, Window as PluginWindow,

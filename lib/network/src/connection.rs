@@ -4,9 +4,8 @@ use std::panic;
 use packets::packets::Packet;
 use packets::packets_parser;
 use ragnarok_profiling::debug::{self, PacketTrace};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
-use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
+
+use crate::transport::Transport;
 
 const ZC_AID_PACKET_ID: u16 = 0x0283;
 
@@ -44,19 +43,16 @@ fn carries_secret(name: &str) -> bool {
 }
 
 pub struct Connection {
-    reader: OwnedReadHalf,
-    writer: OwnedWriteHalf,
+    transport: Transport,
     recv_buffer: Vec<u8>,
     expect_aid_preamble: bool,
 }
 
 impl Connection {
+    /// `addr` is the server's `host:port`.
     pub async fn connect(addr: &str, expect_aid_preamble: bool) -> io::Result<Self> {
-        let stream = TcpStream::connect(addr).await?;
-        let (reader, writer) = stream.into_split();
         Ok(Self {
-            reader,
-            writer,
+            transport: Transport::connect(addr).await?,
             recv_buffer: Vec::with_capacity(4096),
             expect_aid_preamble,
         })
@@ -82,7 +78,7 @@ impl Connection {
                 }
             }
         }
-        self.writer.write_all(data).await
+        self.transport.write_all(data).await
     }
 
     fn estimate_packet_len(data: &[u8]) -> usize {
@@ -99,12 +95,11 @@ impl Connection {
         &mut self,
         packetver: u32,
     ) -> Result<Vec<Frame>, ConnectionError> {
-        let mut buf = [0u8; 4096];
-        let n = self.reader.read(&mut buf).await?;
+        let start = self.recv_buffer.len();
+        let n = self.transport.read_into(&mut self.recv_buffer).await?;
         if n == 0 {
             return Err(ConnectionError::Disconnected);
         }
-        self.recv_buffer.extend_from_slice(&buf[..n]);
 
         let trace = debug::packet_trace();
 
@@ -112,7 +107,7 @@ impl Connection {
             tracing::info!(
                 "TCP read: {n} bytes, buffer_total={}, first_16={:02x?}",
                 self.recv_buffer.len(),
-                &buf[..n.min(16)]
+                &self.recv_buffer[start..start + n.min(16)]
             );
         }
 

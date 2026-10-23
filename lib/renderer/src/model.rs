@@ -111,7 +111,7 @@ impl ModelRenderer {
             };
         }
 
-        let start = std::time::Instant::now();
+        let start = web_time::Instant::now();
 
         let (rsm_cache, static_instances, animated_instances) =
             load_rsw_instances(&rsw_models, gnd, grf);

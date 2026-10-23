@@ -1,5 +1,6 @@
 use models::enums::skill_enums::SkillEnum;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use web_time::Instant;
 
 pub const GUILD_PERM_INVITE: i32 = 0x001;
 pub const GUILD_PERM_EXPEL: i32 = 0x010;

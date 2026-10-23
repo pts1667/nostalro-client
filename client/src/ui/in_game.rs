@@ -17,7 +17,7 @@ use ragnarok_ui_component::game::minimap_window::{MarkerType, MinimapMarker, que
 use ragnarok_ui_component::game::quest_window::{QUEST_TRACKER_ID, quest_tracker};
 use ragnarok_ui_component::{BuildCtx, InGameWindow};
 use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
+use web_time::{SystemTime, UNIX_EPOCH};
 
 pub fn build_in_game_ui(
     game: &mut GameState,

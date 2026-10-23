@@ -10,27 +10,41 @@
 //! that character's threads and comments, starting after the last one it
 //! handled. Answers are collected by `poll`.
 
+#[cfg(not(target_arch = "wasm32"))]
 use std::io::ErrorKind;
+#[cfg(not(target_arch = "wasm32"))]
 use std::net::{TcpStream, ToSocketAddrs};
-use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender, TryRecvError};
+use std::sync::mpsc::{self, Receiver};
+#[cfg(not(target_arch = "wasm32"))]
+use std::sync::mpsc::{RecvTimeoutError, Sender, TryRecvError};
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::{Duration, Instant};
+use std::time::Duration;
+#[cfg(not(target_arch = "wasm32"))]
+use web_time::Instant;
 
 use ragnarok_game::app_state::AppState;
 use ragnarok_game::event::ForumRequest;
 use serde_json::{Value, json};
+#[cfg(not(target_arch = "wasm32"))]
 use tungstenite::client::IntoClientRequest;
+#[cfg(not(target_arch = "wasm32"))]
 use tungstenite::http::HeaderValue;
+#[cfg(not(target_arch = "wasm32"))]
 use tungstenite::stream::MaybeTlsStream;
+#[cfg(not(target_arch = "wasm32"))]
 use tungstenite::{HandshakeError, Message, WebSocket};
 
 use crate::App;
 use crate::reference::{join_url, parse_answer};
 
+#[cfg(not(target_arch = "wasm32"))]
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(3);
+#[cfg(not(target_arch = "wasm32"))]
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 /// How long a read of the WebSocket waits before the watcher checks whether
 /// the character it watches changed.
+#[cfg(not(target_arch = "wasm32"))]
 const WATCH_TICK: Duration = Duration::from_millis(500);
 /// Wait before connecting again after a failure, doubled up to the maximum.
 const RETRY_MIN: Duration = Duration::from_secs(2);
@@ -67,9 +81,16 @@ pub(crate) enum ForumAnswer {
     Notice(Value),
 }
 
+/// Where the client hands work to the worker: a thread on native, tasks of the
+/// page in a browser.
+#[cfg(not(target_arch = "wasm32"))]
+type Queue<T> = Sender<T>;
+#[cfg(target_arch = "wasm32")]
+type Queue<T> = tokio::sync::mpsc::UnboundedSender<T>;
+
 pub(crate) struct ForumClient {
-    jobs: Sender<Job>,
-    watches: Sender<Option<Watch>>,
+    jobs: Queue<Job>,
+    watches: Queue<Option<Watch>>,
     answers: Receiver<ForumAnswer>,
     /// The character last handed to the watcher.
     watching: Option<Identity>,
@@ -96,6 +117,7 @@ struct Session {
 }
 
 /// What the two threads share: the server, the token and the way back.
+#[cfg(not(target_arch = "wasm32"))]
 struct Shared {
     base_url: String,
     agent: ureq::Agent,
@@ -103,6 +125,7 @@ struct Shared {
     answers: Sender<ForumAnswer>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Shared {
     fn session(&self) -> MutexGuard<'_, Option<Session>> {
         self.session.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -135,7 +158,15 @@ impl Shared {
 }
 
 impl ForumClient {
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn spawn(base_url: &str) -> Self {
+        let (answer_tx, answer_rx) = mpsc::channel::<ForumAnswer>();
+        let (jobs, watches) = web::spawn(base_url.trim().trim_end_matches('/').to_string(), answer_tx);
+        Self { jobs, watches, answers: answer_rx, watching: None }
+    }
+
     /// `base_url` is the forum server, for instance `http://127.0.0.1:6902`.
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn spawn(base_url: &str) -> Self {
         let (job_tx, job_rx) = mpsc::channel::<Job>();
         let (watch_tx, watch_rx) = mpsc::channel::<Option<Watch>>();
@@ -193,6 +224,7 @@ impl ForumClient {
 
 /// Runs one request, signing in first when there is no token for the
 /// character, and once more when the server refuses the token it had.
+#[cfg(not(target_arch = "wasm32"))]
 fn serve(shared: &Shared, job: &Job) -> Result<Value, String> {
     let (token, fresh) = shared.token(&job.identity).map_err(Failure::message)?;
     match call(&shared.agent, &shared.base_url, &job.request, &token) {
@@ -216,6 +248,7 @@ enum End {
 
 /// The watcher thread: keeps the WebSocket of the watched character open,
 /// connecting again with growing waits when it drops.
+#[cfg(not(target_arch = "wasm32"))]
 fn watch(shared: &Shared, watches: &Receiver<Option<Watch>>) {
     let mut target: Option<Watch> = None;
     let mut delay = RETRY_MIN;
@@ -252,10 +285,12 @@ fn watch(shared: &Shared, watches: &Receiver<Option<Watch>>) {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 type Socket = WebSocket<MaybeTlsStream<TcpStream>>;
 
 /// One connection: signs in when needed, opens the socket after the last reply
 /// handled, and passes on replies until it drops or the target changes.
+#[cfg(not(target_arch = "wasm32"))]
 fn watch_once(shared: &Shared, target: &mut Watch, watches: &Receiver<Option<Watch>>) -> End {
     let token = match shared.token(&target.identity) {
         Ok((token, _)) => token,
@@ -320,6 +355,7 @@ fn socket_url(base_url: &str, after: u64) -> String {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn open_socket(base_url: &str, token: &str, after: u64) -> Result<Socket, Failure> {
     let other = |e: &dyn std::fmt::Display| Failure::Other(e.to_string());
     let url = socket_url(base_url, after);
@@ -356,6 +392,7 @@ fn open_socket(base_url: &str, token: &str, after: u64) -> Result<Socket, Failur
 }
 
 /// Signs in as the character, and answers the token and the character's name.
+#[cfg(not(target_arch = "wasm32"))]
 fn sign_in(agent: &ureq::Agent, base_url: &str, identity: &Identity) -> Result<(String, String), Failure> {
     let body = |account: &str| {
         json!({ "account": account, "password": identity.password, "character": identity.character })
@@ -383,6 +420,7 @@ fn registration_name(account: &str) -> Option<&str> {
     (!stem.is_empty()).then_some(stem)
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn call(agent: &ureq::Agent, base_url: &str, request: &ForumRequest, token: &str) -> Result<Value, Failure> {
     let (method, path, body) = route(request);
     send(agent, base_url, method, &path, Some(token), body)
@@ -412,6 +450,7 @@ fn route(request: &ForumRequest) -> (&'static str, String, Option<Value>) {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn send(
     agent: &ureq::Agent,
     base_url: &str,
@@ -539,6 +578,226 @@ impl App {
     }
 }
 
+/// The worker in a browser: the same two jobs as the native threads, as tasks
+/// of the page, over `fetch` and the browser's WebSocket.
+#[cfg(target_arch = "wasm32")]
+mod web {
+    use std::rc::Rc;
+    use std::sync::mpsc::Sender;
+
+    use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
+    use web_time::Instant;
+
+    use super::*;
+    use crate::web::{TextSocket, fetch_text, sleep};
+
+    struct Shared {
+        base_url: String,
+        /// Held across a sign-in, so the two tasks never sign in at once.
+        session: tokio::sync::Mutex<Option<Session>>,
+        answers: Sender<ForumAnswer>,
+    }
+
+    impl Shared {
+        async fn token(&self, identity: &Identity) -> Result<(String, bool), Failure> {
+            let mut session = self.session.lock().await;
+            if let Some(current) = session.as_ref()
+                && current.identity == *identity
+            {
+                return Ok((current.token.clone(), false));
+            }
+            *session = None;
+            let (token, name) = sign_in(&self.base_url, identity).await?;
+            *session = Some(Session { identity: identity.clone(), token: token.clone() });
+            let _ = self.answers.send(ForumAnswer::SignedIn(name));
+            Ok((token, true))
+        }
+
+        async fn forget(&self, token: &str) {
+            let mut session = self.session.lock().await;
+            if session.as_ref().is_some_and(|s| s.token == token) {
+                *session = None;
+            }
+        }
+    }
+
+    pub(super) fn spawn(
+        base_url: String,
+        answers: Sender<ForumAnswer>,
+    ) -> (UnboundedSender<Job>, UnboundedSender<Option<Watch>>) {
+        let shared = Rc::new(Shared { base_url, session: tokio::sync::Mutex::new(None), answers });
+        let (job_tx, mut job_rx) = unbounded_channel::<Job>();
+        let (watch_tx, watch_rx) = unbounded_channel::<Option<Watch>>();
+        let requests = shared.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            // Ends when the client is dropped and the job queue closes.
+            while let Some(job) = job_rx.recv().await {
+                let result = serve(&requests, &job).await;
+                if requests.answers.send(ForumAnswer::Reply(job.request, result)).is_err() {
+                    break;
+                }
+            }
+        });
+        wasm_bindgen_futures::spawn_local(watch(shared, watch_rx));
+        (job_tx, watch_tx)
+    }
+
+    async fn serve(shared: &Shared, job: &Job) -> Result<Value, String> {
+        let (token, fresh) = shared.token(&job.identity).await.map_err(Failure::message)?;
+        match call(&shared.base_url, &job.request, &token).await {
+            Err(Failure::Unauthorized(_)) if !fresh => {
+                shared.forget(&token).await;
+                let (token, _) = shared.token(&job.identity).await.map_err(Failure::message)?;
+                call(&shared.base_url, &job.request, &token).await.map_err(Failure::message)
+            }
+            result => result.map_err(Failure::message),
+        }
+    }
+
+    async fn sign_in(base_url: &str, identity: &Identity) -> Result<(String, String), Failure> {
+        let body = |account: &str| {
+            json!({ "account": account, "password": identity.password, "character": identity.character })
+        };
+        let issued = match send(base_url, "POST", "/forum/auth", None, Some(body(&identity.account))).await {
+            Err(Failure::Other(message)) => match registration_name(&identity.account) {
+                Some(account) => send(base_url, "POST", "/forum/auth", None, Some(body(account))).await?,
+                None => return Err(Failure::Other(message)),
+            },
+            result => result?,
+        };
+        let token = issued.get("token").and_then(Value::as_str);
+        let name = issued.pointer("/character/name").and_then(Value::as_str);
+        match (token, name) {
+            (Some(token), name) => Ok((token.to_string(), name.unwrap_or(&identity.character).to_string())),
+            (None, _) => Err(Failure::Other("the sign-in answer has no token".to_string())),
+        }
+    }
+
+    async fn call(base_url: &str, request: &ForumRequest, token: &str) -> Result<Value, Failure> {
+        let (method, path, body) = route(request);
+        send(base_url, method, &path, Some(token), body).await
+    }
+
+    async fn send(
+        base_url: &str,
+        method: &str,
+        path: &str,
+        token: Option<&str>,
+        body: Option<Value>,
+    ) -> Result<Value, Failure> {
+        let url = join_url(base_url, path);
+        let bearer = token.map(|token| format!("Bearer {token}"));
+        let mut headers = vec![("Accept", "application/json")];
+        if method == "POST" {
+            headers.push(("Content-Type", "application/json"));
+        }
+        if let Some(bearer) = &bearer {
+            headers.push(("Authorization", bearer));
+        }
+        let body = (method == "POST").then(|| body.unwrap_or(Value::Null).to_string());
+        let (status, text) = fetch_text(method, &url, &headers, body).await.map_err(Failure::Other)?;
+        match parse_answer(status, &text) {
+            Err(message) if status == 401 => Err(Failure::Unauthorized(message)),
+            result => result.map_err(Failure::Other),
+        }
+    }
+
+    async fn watch(shared: Rc<Shared>, mut watches: UnboundedReceiver<Option<Watch>>) {
+        let mut target: Option<Watch> = None;
+        let mut delay = RETRY_MIN;
+        loop {
+            let Some(current) = target.as_mut() else {
+                match watches.recv().await {
+                    Some(next) => target = next,
+                    None => return,
+                }
+                continue;
+            };
+            let started = Instant::now();
+            match watch_once(&shared, current, &mut watches).await {
+                End::Retarget(next) => {
+                    target = next;
+                    delay = RETRY_MIN;
+                }
+                End::Stopped => return,
+                End::Failed(failure) => {
+                    if started.elapsed() >= STABLE {
+                        delay = RETRY_MIN;
+                    }
+                    tracing::debug!("forum replies: {}, trying again in {delay:?}", failure.message());
+                    tokio::select! {
+                        next = watches.recv() => match next {
+                            Some(next) => {
+                                target = next;
+                                delay = RETRY_MIN;
+                            }
+                            None => return,
+                        },
+                        _ = sleep(delay) => delay = (delay * 2).min(RETRY_MAX),
+                    }
+                }
+            }
+        }
+    }
+
+    /// A browser cannot send the token as a header on a WebSocket, so it goes in
+    /// the query. Nor does it say why a socket failed to open: the token is
+    /// dropped then, and the next attempt signs in again.
+    async fn watch_once(
+        shared: &Shared,
+        target: &mut Watch,
+        watches: &mut UnboundedReceiver<Option<Watch>>,
+    ) -> End {
+        let token = match shared.token(&target.identity).await {
+            Ok((token, _)) => token,
+            Err(failure) => return End::Failed(failure),
+        };
+        let url = format!(
+            "{}&token={}",
+            socket_url(&shared.base_url, target.after),
+            js_sys::encode_uri_component(&token)
+        );
+        let mut socket = match TextSocket::open(&url).await {
+            Ok(socket) => socket,
+            Err(reason) => {
+                shared.forget(&token).await;
+                return End::Failed(Failure::Other(reason));
+            }
+        };
+        loop {
+            tokio::select! {
+                next = watches.recv() => {
+                    return match next {
+                        Some(next) => End::Retarget(next),
+                        None => End::Stopped,
+                    };
+                }
+                text = socket.next() => {
+                    let Some(text) = text else {
+                        return End::Failed(Failure::Other("the server closed the socket".into()));
+                    };
+                    let Ok(event) = serde_json::from_str::<Value>(&text) else {
+                        continue;
+                    };
+                    if event.get("event").and_then(Value::as_str) != Some("reply") {
+                        continue;
+                    }
+                    let Some(seq) = event.get("seq").and_then(Value::as_u64) else {
+                        continue;
+                    };
+                    if seq <= target.after {
+                        continue;
+                    }
+                    target.after = seq;
+                    if shared.answers.send(ForumAnswer::Notice(event)).is_err() {
+                        return End::Stopped;
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -617,9 +876,9 @@ mod tests {
 
     fn wait_for(client: &ForumClient, count: usize) -> Vec<ForumAnswer> {
         let mut answers = Vec::new();
-        let deadline = std::time::Instant::now() + Duration::from_secs(15);
+        let deadline = web_time::Instant::now() + Duration::from_secs(15);
         while answers.len() < count {
-            assert!(std::time::Instant::now() < deadline, "only {} of {count} answers came", answers.len());
+            assert!(web_time::Instant::now() < deadline, "only {} of {count} answers came", answers.len());
             answers.extend(client.poll());
             std::thread::sleep(Duration::from_millis(20));
         }

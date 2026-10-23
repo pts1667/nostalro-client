@@ -23,7 +23,7 @@ pub struct UiContext {
     pub typed_chars: Vec<char>,
     pub pressed_codes: Vec<KeyCode>,
     pub key_labels: KeyLabels,
-    last_click_time: std::time::Instant,
+    last_click_time: web_time::Instant,
     last_click_pos: (f32, f32),
     pub key_backspace: bool,
     pub key_enter: bool,
@@ -72,7 +72,7 @@ impl UiContext {
             typed_chars: Vec::new(),
             pressed_codes: Vec::new(),
             key_labels: KeyLabels::resolve(),
-            last_click_time: std::time::Instant::now(),
+            last_click_time: web_time::Instant::now(),
             last_click_pos: (0.0, 0.0),
             now_ms: 0,
             key_backspace: false,
@@ -132,6 +132,9 @@ impl UiContext {
         self.key_f10 = false;
         self.key_f12 = false;
         self.scroll_delta = 0.0;
+        if let Some(text) = crate::clipboard::take_late_text() {
+            self.inject_pasted_text(&text);
+        }
     }
 
     fn is_paste_chord(&self, event: &winit::event::KeyEvent) -> bool {
@@ -143,9 +146,7 @@ impl UiContext {
     }
 
     fn paste_from_clipboard(&mut self) {
-        if let Ok(mut clipboard) = arboard::Clipboard::new()
-            && let Ok(text) = clipboard.get_text()
-        {
+        if let Some(text) = crate::clipboard::read_text() {
             self.inject_pasted_text(&text);
         }
     }
@@ -168,7 +169,7 @@ impl UiContext {
                 if *button == MouseButton::Left {
                     match state {
                         ElementState::Pressed => {
-                            let now = std::time::Instant::now();
+                            let now = web_time::Instant::now();
                             let elapsed = now.duration_since(self.last_click_time).as_millis();
                             let dx = self.mouse_x - self.last_click_pos.0;
                             let dy = self.mouse_y - self.last_click_pos.1;

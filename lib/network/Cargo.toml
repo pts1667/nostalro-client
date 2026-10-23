@@ -4,11 +4,23 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+web-time = { workspace = true }
 ragnarok-game = { workspace = true }
 ragnarok-profiling = { workspace = true }
 packets = { workspace = true }
 plugin-ui = { workspace = true }
 models = { workspace = true }
 tracing = { workspace = true }
-tokio = { workspace = true }
 encoding_rs = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+
+# A browser has no sockets and no tokio runtime: the game servers are reached
+# over WebSocket and the loop runs as a `spawn_local` task.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tokio = { version = "1", default-features = false, features = ["sync", "macros"] }
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = ["Window", "Location", "WebSocket", "BinaryType", "MessageEvent", "CloseEvent", "Event"] }

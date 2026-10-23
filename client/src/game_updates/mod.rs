@@ -84,6 +84,11 @@ impl App {
         self.check_pending_ground_skill();
         self.check_pending_skill_unit_cast();
         self.poll_gr2_loads();
+        // A few per frame: each is a request the page waits on.
+        #[cfg(target_arch = "wasm32")]
+        if let (Some(renderer), Some(grf)) = (&mut self.renderer, self.grf.as_ref()) {
+            renderer.load_wanted_effect_textures(grf, 4);
+        }
         self.poll_reference();
         self.poll_forum();
         self.poll_login_server();
@@ -174,7 +179,7 @@ impl App {
                 if self.str_effects.get(&name).is_none() {
                     self.str_effects.load(
                         &name,
-                        &[],
+                        ragnarok_game::effect::effect_str_aliases(&name),
                         grf,
                         &mut renderer.texture_cache,
                         &renderer.device.device,

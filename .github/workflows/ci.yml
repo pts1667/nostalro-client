@@ -45,5 +45,8 @@ jobs:
       - name: Build
         run: cargo build --workspace --all-targets --locked
 
+      - name: Check the web build
+        run: cargo check -p ragnarok-client --target wasm32-unknown-unknown --locked
+
       - name: Test
         run: cargo test --workspace --locked

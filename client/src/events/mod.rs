@@ -43,7 +43,7 @@ use ragnarok_ui_component::game::chat_room_member_window;
 use ragnarok_ui_component::game::guild_expel_dialog::GuildExpelDialog;
 use ragnarok_ui_component::game::party_helper_window::MODE_CREATE;
 use ragnarok_ui_component::game::plugin_window::{self, PluginWindows};
-use std::time::Instant;
+use web_time::Instant;
 use winit::event_loop::ActiveEventLoop;
 
 const BLADE_STOP_GRIP_FRAME: usize = 4;

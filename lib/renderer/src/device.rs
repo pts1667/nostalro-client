@@ -50,10 +50,13 @@ impl RenderDevice {
         tracing::info!("GPU: {} ({:?})", info.name, info.backend);
 
         let required_limits = wgpu::Limits::default().using_resolution(adapter.limits());
+        // Native-only: a WebGPU adapter does not offer it.
+        let required_features =
+            adapter.features() & wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES;
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: Some("ragnarok-client"),
-                required_features: wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
+                required_features,
                 required_limits,
                 memory_hints: wgpu::MemoryHints::Performance,
                 ..Default::default()
@@ -63,14 +66,21 @@ impl RenderDevice {
 
         let size = window.inner_size();
         let surface_caps = surface.get_capabilities(&adapter);
-        let surface_format = surface_caps
+        let configured_format = surface_caps
             .formats
             .iter()
             .copied()
             .find(|f| f.is_srgb())
             .or_else(|| surface_caps.formats.first().copied())
             .unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb);
+        // A WebGPU canvas has no sRGB format, only sRGB views of a plain one:
+        // the frame is then drawn through such a view, as natively.
+        let surface_format = configured_format.add_srgb_suffix();
         let scene_format = surface_format.remove_srgb_suffix();
+        let view_formats: Vec<_> = [surface_format, scene_format]
+            .into_iter()
+            .filter(|&format| format != configured_format)
+            .collect();
 
         let present_mode = if surface_caps
             .present_modes
@@ -83,17 +93,13 @@ impl RenderDevice {
 
         let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface_format,
+            format: configured_format,
             width: size.width.max(1),
             height: size.height.max(1),
             present_mode,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
             desired_maximum_frame_latency: 2,
-            view_formats: if scene_format == surface_format {
-                vec![]
-            } else {
-                vec![scene_format]
-            },
+            view_formats,
         };
         surface.configure(&device, &surface_config);
 

@@ -1,11 +1,12 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use web_time::Instant;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 use crate::bgm_retry::BgmRetry;
-use crate::decode::{self, Pcm};
+use crate::decode::{self, DecodeError, Pcm};
 use crate::mixer::MixerCore;
 
 const CACHE_EXPIRE: Duration = Duration::from_secs(15);
@@ -16,9 +17,13 @@ struct CacheEntry {
     last_used: Instant,
 }
 
+/// A track the browser has decoded, for `tick` to start.
+#[cfg(target_arch = "wasm32")]
+type DecodedBgm = std::rc::Rc<std::cell::RefCell<Option<(String, Result<Pcm, DecodeError>)>>>;
+
 pub struct SoundManager {
     core: Option<Arc<Mutex<MixerCore>>>,
-    _stream: Option<cpal::Stream>,
+    stream: Option<cpal::Stream>,
     cache: HashMap<String, CacheEntry>,
     failed: HashSet<String>,
     bgm_retry: BgmRetry,
@@ -27,6 +32,8 @@ pub struct SoundManager {
     last_sweep: Instant,
     dropped_voices: u64,
     paused: bool,
+    #[cfg(target_arch = "wasm32")]
+    decoded_bgm: DecodedBgm,
 }
 
 impl SoundManager {
@@ -34,7 +41,7 @@ impl SoundManager {
         match init_stream(bgm_volume, sfx_volume) {
             Ok((core, stream, out_rate)) => Self {
                 core: Some(core),
-                _stream: Some(stream),
+                stream: Some(stream),
                 cache: HashMap::new(),
                 failed: HashSet::new(),
                 bgm_retry: BgmRetry::default(),
@@ -43,6 +50,8 @@ impl SoundManager {
                 last_sweep: Instant::now(),
                 dropped_voices: 0,
                 paused: false,
+                #[cfg(target_arch = "wasm32")]
+                decoded_bgm: DecodedBgm::default(),
             },
             Err(e) => {
                 tracing::warn!("audio disabled: {e}");
@@ -54,7 +63,7 @@ impl SoundManager {
     pub fn disabled() -> Self {
         Self {
             core: None,
-            _stream: None,
+            stream: None,
             cache: HashMap::new(),
             failed: HashSet::new(),
             bgm_retry: BgmRetry::default(),
@@ -63,11 +72,23 @@ impl SoundManager {
             last_sweep: Instant::now(),
             dropped_voices: 0,
             paused: false,
+            #[cfg(target_arch = "wasm32")]
+            decoded_bgm: DecodedBgm::default(),
         }
     }
 
     pub fn is_enabled(&self) -> bool {
         self.core.is_some()
+    }
+
+    /// Starts the output again. A browser keeps it suspended until the player
+    /// has interacted with the page, so the web build calls this on input.
+    pub fn resume_output(&self) {
+        if let Some(stream) = &self.stream
+            && let Err(e) = stream.play()
+        {
+            tracing::debug!("audio output not resumed: {e}");
+        }
     }
 
     pub fn play_sfx(
@@ -125,8 +146,7 @@ impl SoundManager {
     }
 
     pub fn play_bgm(&mut self, key: &str, load: impl FnOnce() -> Option<Vec<u8>>) {
-        let Some(core) = &self.core else { return };
-        if self.current_bgm.as_deref() == Some(key) {
+        if self.core.is_none() || self.current_bgm.as_deref() == Some(key) {
             return;
         }
         let Some(bytes) = load() else {
@@ -134,7 +154,31 @@ impl SoundManager {
             self.bgm_retry.schedule(key, Instant::now());
             return;
         };
-        match decode::decode(&bytes, self.out_rate) {
+        #[cfg(not(target_arch = "wasm32"))]
+        self.start_bgm(key, decode::decode(&bytes, self.out_rate));
+        // The previous track plays on until `tick` finds this one decoded.
+        #[cfg(target_arch = "wasm32")]
+        {
+            self.current_bgm = Some(key.to_string());
+            self.bgm_retry.clear();
+            let slot = self.decoded_bgm.clone();
+            let (key, out_rate) = (key.to_string(), self.out_rate);
+            wasm_bindgen_futures::spawn_local(async move {
+                let decoded = match decode::decode_in_browser(&bytes, out_rate).await {
+                    Ok(pcm) => Ok(pcm),
+                    Err(e) => {
+                        tracing::debug!("the browser cannot decode bgm {key}: {e}");
+                        decode::decode(&bytes, out_rate)
+                    }
+                };
+                *slot.borrow_mut() = Some((key, decoded));
+            });
+        }
+    }
+
+    fn start_bgm(&mut self, key: &str, decoded: Result<Pcm, DecodeError>) {
+        let Some(core) = &self.core else { return };
+        match decoded {
             Ok(pcm) => {
                 core.lock().unwrap().play_bgm(Arc::new(pcm));
                 self.current_bgm = Some(key.to_string());
@@ -142,6 +186,9 @@ impl SoundManager {
             }
             Err(e) => {
                 tracing::warn!("failed to decode bgm {key}: {e}");
+                if self.current_bgm.as_deref() == Some(key) {
+                    self.current_bgm = None;
+                }
                 self.bgm_retry.schedule(key, Instant::now());
             }
         }
@@ -186,6 +233,16 @@ impl SoundManager {
     }
 
     pub fn tick(&mut self) {
+        // A track stopped or replaced while it was decoded is dropped.
+        #[cfg(target_arch = "wasm32")]
+        {
+            let decoded = self.decoded_bgm.borrow_mut().take();
+            if let Some((key, decoded)) = decoded
+                && self.current_bgm.as_deref() == Some(key.as_str())
+            {
+                self.start_bgm(&key, decoded);
+            }
+        }
         let now = Instant::now();
         if now.duration_since(self.last_sweep) >= SWEEP_INTERVAL {
             self.last_sweep = now;

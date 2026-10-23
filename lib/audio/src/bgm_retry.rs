@@ -1,4 +1,5 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use web_time::Instant;
 
 pub const BGM_RETRY_INTERVAL: Duration = Duration::from_secs(10);
 

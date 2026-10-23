@@ -69,6 +69,8 @@ use ragnarok_formats::gnd::GndFile;
 use ragnarok_formats::grf::GrfArchive;
 use ragnarok_formats::rsm::RsmFile;
 use ragnarok_formats::rsw::{RswFile, RswObject};
+use std::cell::RefCell;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -161,6 +163,11 @@ pub struct Renderer {
     filter_effects: bool,
     /// Effect textures uploaded so far, so a filter change can rebuild them.
     effect_textures: Vec<String>,
+    /// With effect textures loaded on demand, the names frames looked up and
+    /// did not find; `None` when they are all preloaded.
+    wanted_effect_textures: Option<RefCell<HashSet<String>>>,
+    /// Names loaded on demand once, found or not.
+    tried_effect_textures: HashSet<String>,
 }
 
 /// The view planes the fog table's `near`/`far` columns are fractions of. Not
@@ -181,6 +188,7 @@ fn build_effect_records<'tex>(
     logical_w: f32,
     logical_h: f32,
     primitives: &effect::EffectPrimitiveRegistry,
+    wanted: Option<&RefCell<HashSet<String>>>,
 ) -> Vec<DrawRecord<'tex>> {
     let texture_lookup = |name: &str| -> Option<&'tex wgpu::BindGroup> {
         if name.is_empty() {
@@ -188,11 +196,17 @@ fn build_effect_records<'tex>(
         }
         // Runtime-composed textures are registered under their own key, which must not
         // be rewritten into a GRF path.
-        name.split('|').find_map(|candidate| {
+        let found = name.split('|').find_map(|candidate| {
             texture_cache
                 .get(candidate)
                 .or_else(|| texture_cache.get(&effect::effect_texture_path(candidate)))
-        })
+        });
+        if found.is_none()
+            && let Some(wanted) = wanted
+        {
+            wanted.borrow_mut().insert(name.to_string());
+        }
+        found
     };
     let mut records: Vec<DrawRecord<'tex>> = Vec::new();
     records.extend(prepare_billboard_records(
@@ -342,6 +356,8 @@ impl Renderer {
             lightmap_enabled: true,
             filter_effects: true,
             effect_textures: Vec::new(),
+            wanted_effect_textures: None,
+            tried_effect_textures: HashSet::new(),
         }
     }
 
@@ -657,6 +673,40 @@ impl Renderer {
         }
     }
 
+    /// Loads effect textures as frames ask for them instead of all of them
+    /// up front, for a client whose every file read is a request (a browser).
+    /// An effect draws without its texture until the next frames load it.
+    pub fn load_effect_textures_on_demand(&mut self) {
+        self.wanted_effect_textures.get_or_insert_default();
+    }
+
+    /// Loads up to `budget` of the effect textures frames asked for and did
+    /// not find, each name once.
+    pub fn load_wanted_effect_textures(&mut self, grf: &GrfArchive, budget: usize) {
+        let Some(wanted) = &self.wanted_effect_textures else {
+            return;
+        };
+        let names: Vec<String> = {
+            let mut wanted = wanted.borrow_mut();
+            wanted.retain(|name| !self.tried_effect_textures.contains(name));
+            let names: Vec<String> = wanted.iter().take(budget).cloned().collect();
+            for name in &names {
+                wanted.remove(name);
+            }
+            names
+        };
+        for name in names {
+            let paths: Vec<String> = name.split('|').map(effect::effect_texture_path).collect();
+            self.tried_effect_textures.insert(name);
+            for path in &paths {
+                self.preload_effect_textures(std::slice::from_ref(path), grf);
+                if self.texture_cache.get(path).is_some() {
+                    break;
+                }
+            }
+        }
+    }
+
     pub fn preload_textures(&mut self, paths: &[&str], grf: &GrfArchive) -> bool {
         let mut all_loaded = true;
         for path in paths {
@@ -807,7 +857,10 @@ impl Renderer {
                 .device
                 .device
                 .create_command_encoder(&Default::default());
-            let view = output.texture.create_view(&Default::default());
+            let view = output.texture.create_view(&wgpu::TextureViewDescriptor {
+                format: Some(self.device.surface_format),
+                ..Default::default()
+            });
             self.screen_distortion
                 .resolve(&mut encoder, &self.device.queue, &view);
             self.device.queue.submit(std::iter::once(encoder.finish()));
@@ -957,6 +1010,7 @@ impl Renderer {
                 logical_w,
                 logical_h,
                 &self.effect_primitives,
+                self.wanted_effect_textures.as_ref(),
             );
             if !behind_records.is_empty() {
                 self.effect_dispatcher.dispatch(
@@ -1063,6 +1117,7 @@ impl Renderer {
                 logical_w,
                 logical_h,
                 &self.effect_primitives,
+                self.wanted_effect_textures.as_ref(),
             )
         };
         records.extend(sprite_particle_records);

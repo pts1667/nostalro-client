@@ -1,3 +1,4 @@
+mod clipboard;
 pub mod context;
 pub mod draw;
 pub mod frame;

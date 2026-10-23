@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ragnarok Online</title>
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  /* The client follows the canvas size: the page decides it. */
+  #nostalro { display: block; width: 100vw; height: 100vh; outline: none; }
+  #status {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #ddd; font: 16px/1.5 system-ui, sans-serif; text-align: center; padding: 16px;
+    pointer-events: none;
+  }
+  #status.error { color: #f88; pointer-events: auto; }
+</style>
+</head>
+<body>
+<canvas id="nostalro" tabindex="0" oncontextmenu="return false"></canvas>
+<div id="status">Loading…</div>
+<script type="module">
+  const status = document.getElementById('status');
+  const fail = (message) => { status.textContent = message; status.className = 'error'; };
+  if (!navigator.gpu) {
+    fail('This browser has no WebGPU. Use a current Chrome, Edge, Firefox or Safari.');
+  } else {
+    try {
+      const { default: init } = await import('./nostalro.js');
+      await init();
+      status.remove();
+      document.getElementById('nostalro').focus();
+    } catch (e) {
+      console.error(e);
+      fail('The client failed to start: ' + e + ' (see the console)');
+    }
+  }
+</script>
+</body>
+</html>

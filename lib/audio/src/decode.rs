@@ -103,6 +103,47 @@ fn decode_probe(bytes: Vec<u8>, out_rate: u32) -> Result<Pcm, DecodeError> {
     Ok(Pcm { samples, channels })
 }
 
+/// Decodes with the browser's own decoder, which runs off the page's thread:
+/// symphonia in wasm blocks the page for seconds on a whole BGM track.
+#[cfg(target_arch = "wasm32")]
+pub async fn decode_in_browser(bytes: &[u8], out_rate: u32) -> Result<Pcm, DecodeError> {
+    use wasm_bindgen::JsCast;
+
+    let js = |e: wasm_bindgen::JsValue| DecodeError(format!("{e:?}"));
+    // Decoding through a context at `out_rate` also resamples.
+    let context =
+        web_sys::OfflineAudioContext::new_with_number_of_channels_and_length_and_sample_rate(
+            2,
+            1,
+            out_rate as f32,
+        )
+        .map_err(js)?;
+    let data = js_sys::Uint8Array::from(bytes).buffer();
+    let promise = context.decode_audio_data(&data).map_err(js)?;
+    let buffer: web_sys::AudioBuffer = wasm_bindgen_futures::JsFuture::from(promise)
+        .await
+        .map_err(js)?
+        .dyn_into()
+        .map_err(js)?;
+    let channels = buffer.number_of_channels() as usize;
+    let frames = buffer.length() as usize;
+    if channels == 0 || frames == 0 {
+        return Err(DecodeError("no samples decoded".into()));
+    }
+    let planes = (0..channels)
+        .map(|c| buffer.get_channel_data(c as u32))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(js)?;
+    let mut samples = Vec::with_capacity(frames * channels);
+    for i in 0..frames {
+        samples.extend(planes.iter().map(|plane| plane[i]));
+    }
+    Ok(Pcm {
+        samples,
+        channels: channels as u16,
+    })
+}
+
 fn resample(samples: &[f32], channels: usize, from: u32, to: u32) -> Vec<f32> {
     let frames = samples.len() / channels;
     if frames == 0 {

@@ -15,6 +15,8 @@ mod scene;
 mod sound;
 mod sprite;
 mod ui;
+#[cfg(target_arch = "wasm32")]
+mod web;
 
 use config::Config;
 use game_state::{CursorInput, CursorPending, GameState, cursor_type_from_hover};
@@ -46,7 +48,7 @@ use ragnarok_game::sprite_path::{HiddenRender, hidden_render};
 use ragnarok_network::{NetworkCommand, build_reqname_packet, network_loop};
 use ragnarok_renderer::effect::EffectHolder;
 use ragnarok_renderer::{
-    EffectSpriteCache, GridSelectorRenderer, Renderer, SpriteVertex, StrEffectCache, block_on,
+    EffectSpriteCache, GridSelectorRenderer, Renderer, SpriteVertex, StrEffectCache,
 };
 use ragnarok_ui::context::UiContext;
 use ragnarok_ui::frame::{UiFrame, UiOutput};
@@ -64,7 +66,8 @@ use ragnarok_ui_component::game::confirm_dialog::ConfirmDialog;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use web_time::Instant;
 use tokio::sync::mpsc;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -169,6 +172,10 @@ struct App {
     pending_events: Vec<GameEvent>,
     window_focused: bool,
     profiler: ragnarok_profiling::Profiler,
+    /// Web build: where the task creating the renderer leaves it, with the DPI
+    /// scale it was made for.
+    #[cfg(target_arch = "wasm32")]
+    pending_renderer: std::rc::Rc<std::cell::RefCell<Option<(Renderer, f32)>>>,
     /// Window must be dropped last
     window: Option<Arc<Window>>,
 }
@@ -178,6 +185,10 @@ impl App {
     /// cache is off. Unless `data_cache` says otherwise it is off for a server
     /// on this machine.
     fn data_cache_dir(&self, data_url: &str) -> Option<PathBuf> {
+        // A browser has no disk: its HTTP cache keeps the files instead.
+        if cfg!(target_arch = "wasm32") {
+            return None;
+        }
         let enabled = self
             .config
             .data_cache
@@ -271,6 +282,8 @@ impl App {
             pending_events: Vec::new(),
             window_focused: true,
             profiler: ragnarok_profiling::Profiler::default(),
+            #[cfg(target_arch = "wasm32")]
+            pending_renderer: Default::default(),
         }
     }
 
@@ -394,8 +407,9 @@ impl App {
             let fog = if self.config.fog { map_data.fog } else { None };
             renderer.load_map(&map_data.gnd, &map_data.rsw, grf, fog);
 
-            let effect_textures = ragnarok_game::effect::effect_texture_paths();
-            renderer.preload_effect_textures(&effect_textures, grf);
+            // A browser fetches each file: there they load as effects need them.
+            #[cfg(not(target_arch = "wasm32"))]
+            renderer.preload_effect_textures(&ragnarok_game::effect::effect_texture_paths(), grf);
 
             spr_paths.extend(ragnarok_game::effect::custom_effect_sprite_paths());
             spr_paths.extend(ragnarok_game::effect::effect_spr_paths());
@@ -425,6 +439,8 @@ impl App {
                 );
             }
 
+            // In a browser skill effects load when they first play.
+            #[cfg(not(target_arch = "wasm32"))]
             for aliases in ragnarok_game::effect::effect_str_names() {
                 self.str_effects.load(
                     aliases[0],
@@ -520,8 +536,18 @@ impl App {
         let packetver = self.active_packetver;
         let debug_delay_ms = self.config.debug_network_delay_ms;
         let start_time = self.start_time;
+        // A browser has one thread: the loop is a task of the page's event loop.
+        #[cfg(target_arch = "wasm32")]
+        wasm_bindgen_futures::spawn_local(network_loop(
+            cmd_rx,
+            event_tx,
+            packetver,
+            debug_delay_ms,
+            start_time,
+        ));
         // Spawn on dedicated thread with single-threaded runtime
         // because network_loop uses non-Send packet types
+        #[cfg(not(target_arch = "wasm32"))]
         std::thread::spawn(move || {
             let rt = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
@@ -738,14 +764,18 @@ impl ApplicationHandler for App {
             return;
         }
 
-        let attrs = WindowAttributes::default()
-            .with_title("Ragnarok Online")
-            .with_inner_size(winit::dpi::LogicalSize::new(
-                self.config.screen_width,
-                self.config.screen_height,
-            ));
+        let attrs = WindowAttributes::default().with_title("Ragnarok Online");
+        // In a browser the page sizes the canvas, and fullscreen needs a click.
+        #[cfg(target_arch = "wasm32")]
+        let attrs = web::window_attributes(attrs);
+        #[cfg(not(target_arch = "wasm32"))]
+        let attrs = attrs.with_inner_size(winit::dpi::LogicalSize::new(
+            self.config.screen_width,
+            self.config.screen_height,
+        ));
 
         let window = Arc::new(event_loop.create_window(attrs).unwrap());
+        #[cfg(not(target_arch = "wasm32"))]
         if self.config.fullscreen {
             window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
         }
@@ -755,11 +785,76 @@ impl ApplicationHandler for App {
         } else {
             os_scale
         };
-        let mut renderer = block_on(Renderer::new(
-            window.clone(),
-            self.config.font_px_height(),
-            dpi_scale,
-        ));
+        self.window = Some(window.clone());
+        let renderer = Renderer::new(window, self.config.font_px_height(), dpi_scale);
+        #[cfg(not(target_arch = "wasm32"))]
+        self.start(ragnarok_renderer::block_on(renderer), dpi_scale);
+        // The GPU is only reached asynchronously in a browser: the start
+        // finishes in `about_to_wait` once the renderer is there.
+        #[cfg(target_arch = "wasm32")]
+        {
+            let slot = self.pending_renderer.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                *slot.borrow_mut() = Some((renderer.await, dpi_scale));
+            });
+        }
+    }
+
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
+        if let Some(ui_ctx) = &mut self.ui_context {
+            ui_ctx.handle_event(&event);
+        }
+        // A browser lets audio start once the player has clicked or typed.
+        #[cfg(target_arch = "wasm32")]
+        if matches!(
+            event,
+            WindowEvent::MouseInput { .. } | WindowEvent::KeyboardInput { .. }
+        ) {
+            self.sound.resume_output();
+        }
+
+        match event {
+            WindowEvent::CloseRequested => self.handle_close_requested(event_loop),
+            WindowEvent::Resized(size) => self.handle_resize(size),
+            WindowEvent::Focused(focused) => self.handle_focus_changed(focused),
+            WindowEvent::MouseInput { state, button, .. } => self.handle_mouse_input(state, button),
+            WindowEvent::CursorMoved { position, .. } => self.handle_cursor_moved(position),
+            WindowEvent::KeyboardInput { event, .. } => self.handle_keyboard_input(event),
+            WindowEvent::ModifiersChanged(modifiers) => self.handle_modifiers_changed(modifiers),
+            // In a browser frames come before the GPU, and so before `start`.
+            WindowEvent::RedrawRequested if self.renderer.is_some() => self.redraw(event_loop),
+            _ => {}
+        }
+    }
+
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let ready = self.pending_renderer.borrow_mut().take();
+            if let Some((renderer, dpi_scale)) = ready {
+                self.start(renderer, dpi_scale);
+            }
+        }
+        let now = Instant::now();
+        if now >= self.next_frame {
+            self.next_frame = now + FRAME_INTERVAL;
+            if let Some(window) = &self.window {
+                window.request_redraw();
+            }
+        }
+        event_loop.set_control_flow(ControlFlow::WaitUntil(self.next_frame));
+    }
+}
+
+impl App {
+    /// The rest of the start once the renderer exists: client data, the first
+    /// screen and the network.
+    fn start(&mut self, mut renderer: Renderer, dpi_scale: f32) {
+        let Some(window) = self.window.clone() else {
+            return;
+        };
+        #[cfg(target_arch = "wasm32")]
+        renderer.load_effect_textures_on_demand();
         renderer.set_fog_scale(self.config.custom.fog_scale);
         renderer.set_world_filtering(self.config.custom.filtering.world, None);
         renderer.set_effect_filtering(self.config.custom.filtering.effects, None);
@@ -904,186 +999,159 @@ impl ApplicationHandler for App {
         self.play_bgm_track("01.mp3");
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
-        if let Some(ui_ctx) = &mut self.ui_context {
-            ui_ctx.handle_event(&event);
+    fn redraw(&mut self, event_loop: &ActiveEventLoop) {
+        self.profiler.new_frame();
+        ragnarok_profiling::profile_scope!("frame");
+        let elapsed = self.start_time.elapsed().as_secs_f32();
+
+        self.handle_game_events(event_loop);
+
+        let (
+            UiOutput {
+                draw_calls: ui_draw_calls,
+                tooltip_draw_calls,
+                any_hovered: ui_any_hovered,
+                any_interactive_hovered: ui_any_interactive,
+            },
+            ui_events,
+        ) = self.build_ui(elapsed);
+        self.input.ui_hovered = ui_any_hovered;
+        self.apply_leftover_wheel();
+        if let Some(dirty) = self.windows.hotkey_config_window.take_dirty_bindings() {
+            self.config.keybindings = dirty.interface;
+            self.config.emotion_keys = dirty.emotion;
+            self.config.save("config.json");
         }
+        let mut queued = std::mem::take(&mut self.pending_events);
+        queued.extend(ui_events);
+        self.handle_ui_events(queued, event_loop);
 
-        match event {
-            WindowEvent::CloseRequested => self.handle_close_requested(event_loop),
-            WindowEvent::Resized(size) => self.handle_resize(size),
-            WindowEvent::Focused(focused) => self.handle_focus_changed(focused),
-            WindowEvent::MouseInput { state, button, .. } => self.handle_mouse_input(state, button),
-            WindowEvent::CursorMoved { position, .. } => self.handle_cursor_moved(position),
-            WindowEvent::KeyboardInput { event, .. } => self.handle_keyboard_input(event),
-            WindowEvent::ModifiersChanged(modifiers) => self.handle_modifiers_changed(modifiers),
-            WindowEvent::RedrawRequested => {
-                self.profiler.new_frame();
-                ragnarok_profiling::profile_scope!("frame");
-                let elapsed = self.start_time.elapsed().as_secs_f32();
-
-                self.handle_game_events(event_loop);
-
-                let (
-                    UiOutput {
-                        draw_calls: ui_draw_calls,
-                        tooltip_draw_calls,
-                        any_hovered: ui_any_hovered,
-                        any_interactive_hovered: ui_any_interactive,
-                    },
-                    ui_events,
-                ) = self.build_ui(elapsed);
-                self.input.ui_hovered = ui_any_hovered;
-                self.apply_leftover_wheel();
-                if let Some(dirty) = self.windows.hotkey_config_window.take_dirty_bindings() {
-                    self.config.keybindings = dirty.interface;
-                    self.config.emotion_keys = dirty.emotion;
-                    self.config.save("config.json");
-                }
-                let mut queued = std::mem::take(&mut self.pending_events);
-                queued.extend(ui_events);
-                self.handle_ui_events(queued, event_loop);
-
-                if self.game.session.pending_disconnect_exit {
-                    event_loop.exit();
-                }
-                let now = Instant::now();
-                let raw_delta = now.duration_since(self.last_frame_instant).as_secs_f32();
-                self.last_frame_instant = now;
-                if raw_delta > 0.0 {
-                    let instant_fps = 1.0 / raw_delta;
-                    self.fps_smoothed = if self.fps_smoothed == 0.0 {
-                        instant_fps
-                    } else {
-                        self.fps_smoothed * 0.9 + instant_fps * 0.1
-                    };
-                }
-                let delta = raw_delta.min(0.1);
-                self.run_game_updates(delta, elapsed);
-                self.drain_sound_queue(delta);
-
-                let hovered = self.update_grid_hover();
-                let render_list = self.compute_render_list();
-                let floor_item_render_list = self.compute_floor_item_render_list(elapsed);
-                let mut cart_render_list = self.compute_cart_render_list();
-                cart_render_list.extend(self.compute_falcon_render_list());
-                // A stealthed actor the local player can't see is not hoverable or
-                // attackable: drop it before hit-testing (self stays out of picking
-                // regardless, so its shadow-only self view never enters here).
-                let pick_render_list: Vec<RenderEntry> = render_list
-                    .iter()
-                    .filter(|entry| {
-                        self.game.world.entities.get(entry.id).is_none_or(|e| {
-                            hidden_render(
-                                e.effect_state,
-                                self.hidden_viewer_for(entry.id),
-                                self.player_clairvoyant(),
-                            ) != HiddenRender::Skip
-                        })
-                    })
-                    .copied()
-                    .collect();
-                self.prune_companion_targets();
-                let hover = self.resolve_hover(
-                    hovered,
-                    &pick_render_list,
-                    &floor_item_render_list,
-                    ui_any_hovered,
-                    ui_any_interactive,
-                );
-                let cursor = cursor_type_from_hover(
-                    &hover,
-                    CursorInput {
-                        in_game: self.game.session.app_state == AppState::InGame,
-                        right_mouse_down: self.input.right_mouse_down,
-                        ui_any_hovered,
-                        ui_any_interactive_hovered: ui_any_interactive,
-                        item_drag_active: ragnarok_ui::frame::drag_active(&self.ui_state_cache),
-                    },
-                    CursorPending {
-                        companion_target_armed: self
-                            .game
-                            .companions
-                            .companion_attack_target
-                            .iter()
-                            .any(Option::is_some),
-                        pending_companion_skill: self
-                            .game
-                            .pending_casts
-                            .pending_companion_skill
-                            .is_some(),
-                        pending_companion_patrol: self
-                            .game
-                            .pending_casts
-                            .pending_companion_patrol
-                            .is_some(),
-                        capture_targeting: self.game.companions.capture_targeting,
-                        pending_skill: self.game.pending_casts.pending_skill_target.is_some(),
-                        marriage_targeting: self.game.pending_casts.marriage_targeting,
-                    },
-                );
-                self.game.assets.cursor_animation.set_cursor_type(cursor);
-                self.game.hover = hover;
-
-                let hovered_named_id = self
-                    .game
-                    .hover
-                    .target_id()
-                    .or(self.game.hover.hovered_player_id)
-                    .or(self.game.hover.hovered_self_id);
-                let hovered_floor_item_id = self.game.hover.hovered_floor_item_id;
-                if let Some(entity_id) = hovered_named_id
-                    && let Some(entity) = self.game.world.entities.get_mut(entity_id)
-                    && !entity.name_requested
-                {
-                    entity.name_requested = true;
-                    self.channel
-                        .send_packet(build_reqname_packet(entity_id, self.active_packetver));
-                }
-
-                let cursor_clips =
-                    self.build_cursor_sprite_clips(delta, &render_list, &floor_item_render_list);
-                let lock_cursor_clips = self.build_lock_cursor_clips(delta, &render_list);
-
-                let world_overlay_calls = self.build_world_overlays(
-                    &render_list,
-                    &floor_item_render_list,
-                    hovered_named_id,
-                    hovered_floor_item_id,
-                );
-                let skill_level_calls = self.build_skill_overlay();
-
-                self.compose_and_render(
-                    &render_list,
-                    &floor_item_render_list,
-                    &cart_render_list,
-                    elapsed,
-                    delta,
-                    cursor_clips,
-                    lock_cursor_clips,
-                    world_overlay_calls,
-                    skill_level_calls,
-                    ui_draw_calls,
-                    tooltip_draw_calls,
-                );
-
-                if let Some(ui_ctx) = &mut self.ui_context {
-                    ui_ctx.begin_frame();
-                }
-            }
-            _ => {}
+        if self.game.session.pending_disconnect_exit {
+            event_loop.exit();
         }
-    }
-
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         let now = Instant::now();
-        if now >= self.next_frame {
-            self.next_frame = now + FRAME_INTERVAL;
-            if let Some(window) = &self.window {
-                window.request_redraw();
-            }
+        let raw_delta = now.duration_since(self.last_frame_instant).as_secs_f32();
+        self.last_frame_instant = now;
+        if raw_delta > 0.0 {
+            let instant_fps = 1.0 / raw_delta;
+            self.fps_smoothed = if self.fps_smoothed == 0.0 {
+                instant_fps
+            } else {
+                self.fps_smoothed * 0.9 + instant_fps * 0.1
+            };
         }
-        event_loop.set_control_flow(ControlFlow::WaitUntil(self.next_frame));
+        let delta = raw_delta.min(0.1);
+        self.run_game_updates(delta, elapsed);
+        self.drain_sound_queue(delta);
+
+        let hovered = self.update_grid_hover();
+        let render_list = self.compute_render_list();
+        let floor_item_render_list = self.compute_floor_item_render_list(elapsed);
+        let mut cart_render_list = self.compute_cart_render_list();
+        cart_render_list.extend(self.compute_falcon_render_list());
+        // A stealthed actor the local player can't see is not hoverable or
+        // attackable: drop it before hit-testing (self stays out of picking
+        // regardless, so its shadow-only self view never enters here).
+        let pick_render_list: Vec<RenderEntry> = render_list
+            .iter()
+            .filter(|entry| {
+                self.game.world.entities.get(entry.id).is_none_or(|e| {
+                    hidden_render(
+                        e.effect_state,
+                        self.hidden_viewer_for(entry.id),
+                        self.player_clairvoyant(),
+                    ) != HiddenRender::Skip
+                })
+            })
+            .copied()
+            .collect();
+        self.prune_companion_targets();
+        let hover = self.resolve_hover(
+            hovered,
+            &pick_render_list,
+            &floor_item_render_list,
+            ui_any_hovered,
+            ui_any_interactive,
+        );
+        let cursor = cursor_type_from_hover(
+            &hover,
+            CursorInput {
+                in_game: self.game.session.app_state == AppState::InGame,
+                right_mouse_down: self.input.right_mouse_down,
+                ui_any_hovered,
+                ui_any_interactive_hovered: ui_any_interactive,
+                item_drag_active: ragnarok_ui::frame::drag_active(&self.ui_state_cache),
+            },
+            CursorPending {
+                companion_target_armed: self
+                    .game
+                    .companions
+                    .companion_attack_target
+                    .iter()
+                    .any(Option::is_some),
+                pending_companion_skill: self
+                    .game
+                    .pending_casts
+                    .pending_companion_skill
+                    .is_some(),
+                pending_companion_patrol: self
+                    .game
+                    .pending_casts
+                    .pending_companion_patrol
+                    .is_some(),
+                capture_targeting: self.game.companions.capture_targeting,
+                pending_skill: self.game.pending_casts.pending_skill_target.is_some(),
+                marriage_targeting: self.game.pending_casts.marriage_targeting,
+            },
+        );
+        self.game.assets.cursor_animation.set_cursor_type(cursor);
+        self.game.hover = hover;
+
+        let hovered_named_id = self
+            .game
+            .hover
+            .target_id()
+            .or(self.game.hover.hovered_player_id)
+            .or(self.game.hover.hovered_self_id);
+        let hovered_floor_item_id = self.game.hover.hovered_floor_item_id;
+        if let Some(entity_id) = hovered_named_id
+            && let Some(entity) = self.game.world.entities.get_mut(entity_id)
+            && !entity.name_requested
+        {
+            entity.name_requested = true;
+            self.channel
+                .send_packet(build_reqname_packet(entity_id, self.active_packetver));
+        }
+
+        let cursor_clips =
+            self.build_cursor_sprite_clips(delta, &render_list, &floor_item_render_list);
+        let lock_cursor_clips = self.build_lock_cursor_clips(delta, &render_list);
+
+        let world_overlay_calls = self.build_world_overlays(
+            &render_list,
+            &floor_item_render_list,
+            hovered_named_id,
+            hovered_floor_item_id,
+        );
+        let skill_level_calls = self.build_skill_overlay();
+
+        self.compose_and_render(
+            &render_list,
+            &floor_item_render_list,
+            &cart_render_list,
+            elapsed,
+            delta,
+            cursor_clips,
+            lock_cursor_clips,
+            world_overlay_calls,
+            skill_level_calls,
+            ui_draw_calls,
+            tooltip_draw_calls,
+        );
+
+        if let Some(ui_ctx) = &mut self.ui_context {
+            ui_ctx.begin_frame();
+        }
     }
 }
 
@@ -1091,22 +1159,15 @@ fn pick_account_background(paths: &[String]) -> Option<String> {
     if paths.is_empty() {
         return None;
     }
-    let idx = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+    let idx = web_time::SystemTime::now()
+        .duration_since(web_time::UNIX_EPOCH)
         .map(|d| d.subsec_nanos() as usize)
         .unwrap_or(0)
         % paths.len();
     Some(paths[idx].clone())
 }
 
-fn main() {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-        )
-        .init();
-
+fn load_config() -> Config {
     let config = Config::load_or_default("config.json");
     ragnarok_profiling::debug::init(
         config.debug.trace_packet,
@@ -1115,8 +1176,34 @@ fn main() {
         config.debug.trace_texture_load,
         config.debug.trace_sprite_scale,
     );
+    #[cfg(target_arch = "wasm32")]
+    ragnarok_network::transport::set_websocket_url_template(config.websocket_url.clone());
+    config
+}
 
+#[cfg(not(target_arch = "wasm32"))]
+fn main() {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
+
+    let config = load_config();
     let event_loop = EventLoop::new().unwrap();
     let mut app = App::new(config);
     event_loop.run_app(&mut app).unwrap();
+}
+
+/// Started by the page once the module loaded; returns at once and the
+/// browser drives the event loop from then on.
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    use winit::platform::web::EventLoopExtWebSys;
+
+    web::init_logging();
+    let config = load_config();
+    let event_loop = EventLoop::new().unwrap();
+    event_loop.spawn_app(App::new(config));
 }

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
@@ -386,6 +387,10 @@ pub struct Config {
     /// inside of the archive's `data/` folder (e.g. `sprite/…`, `texture/…`) and
     /// take priority over every entry in `grf_paths`.
     pub data_dir: Option<String>,
+    /// Web build only: the WebSocket URL of a game server at `host:port`, for a
+    /// server behind a reverse proxy, with `{host}`, `{port}` and `{addr}`
+    /// replaced. `None` connects to `ws://host:port/` (`wss://` on an https page).
+    pub websocket_url: Option<String>,
     pub debug_network_delay_ms: u32,
     pub debug: DebugConfig,
     pub window_state: HashMap<u32, WindowStateEntry>,
@@ -489,6 +494,7 @@ impl Default for Config {
             data_cache: None,
             data_cache_dir: None,
             data_dir: None,
+            websocket_url: None,
             debug_network_delay_ms: 0,
             debug: DebugConfig::default(),
             window_state: HashMap::new(),
@@ -542,12 +548,67 @@ impl Config {
         self.admin_account_ids.contains(&account_id)
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn save(&self, path: &str) {
         if let Ok(json) = serde_json::to_string_pretty(self) {
             let _ = std::fs::write(path, json);
         }
     }
 
+    /// In a browser the settings are kept in the page's local storage.
+    #[cfg(target_arch = "wasm32")]
+    pub fn save(&self, _path: &str) {
+        if let Ok(json) = serde_json::to_string(self) {
+            crate::web::storage_set(crate::web::CONFIG_KEY, &json);
+        }
+    }
+
+    fn from_json(content: &str) -> Self {
+        let mut config: Config = serde_json::from_str(content).unwrap_or_else(|e| {
+            tracing::warn!("Failed to parse config: {e}, using defaults");
+            Config::default()
+        });
+        config.keybindings.fill_missing_from_defaults();
+        if config.custom.accessibility {
+            config.accessibility.bold_name_plates = true;
+        }
+        config
+    }
+
+    /// The settings saved in the browser, with the server addresses of the
+    /// `config.json` next to the page, which the site deploys and can change.
+    #[cfg(target_arch = "wasm32")]
+    pub fn load_or_default(path: &str) -> Self {
+        let site: Option<serde_json::Value> = crate::web::get_text_sync(path)
+            .and_then(|text| serde_json::from_str(&text).ok());
+        let saved: Option<serde_json::Value> = crate::web::storage_get(crate::web::CONFIG_KEY)
+            .and_then(|text| serde_json::from_str(&text).ok());
+        let merged = match (saved, site) {
+            (Some(mut saved), Some(site)) => {
+                for key in crate::web::SITE_KEYS {
+                    if let (Some(value), Some(saved)) = (site.get(*key), saved.as_object_mut()) {
+                        saved.insert(key.to_string(), value.clone());
+                    }
+                }
+                saved
+            }
+            (Some(saved), None) => saved,
+            (None, Some(site)) => site,
+            (None, None) => return Config::default(),
+        };
+        let mut config = Self::from_json(&merged.to_string());
+        for url in [&mut config.data_url, &mut config.reference_url, &mut config.forum_url] {
+            if let Some(url) = url {
+                *url = crate::web::absolute_url(url.trim());
+            }
+        }
+        for server in &mut config.login_servers {
+            server.host = crate::web::with_page_host(&server.host);
+        }
+        config
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn load_or_default(path: &str) -> Self {
         let path = Path::new(path);
         if path.exists() {
@@ -555,15 +616,7 @@ impl Config {
                 tracing::warn!("Failed to read config: {e}, using defaults");
                 String::new()
             });
-            let mut config: Config = serde_json::from_str(&content).unwrap_or_else(|e| {
-                tracing::warn!("Failed to parse config: {e}, using defaults");
-                Config::default()
-            });
-            config.keybindings.fill_missing_from_defaults();
-            if config.custom.accessibility {
-                config.accessibility.bold_name_plates = true;
-            }
-            config
+            Self::from_json(&content)
         } else {
             let config = Config::default();
             if let Ok(json) = serde_json::to_string_pretty(&config) {

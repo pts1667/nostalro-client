@@ -244,6 +244,20 @@ pub fn effect_str_names() -> Vec<&'static [&'static str]> {
     out
 }
 
+/// The other names the STR file of an effect named `name` (the first of its
+/// [`effect_str_names`] entry) goes by, for loading it on demand.
+pub fn effect_str_aliases(name: &str) -> &'static [&'static str] {
+    static BY_NAME: std::sync::LazyLock<
+        std::collections::HashMap<&'static str, &'static [&'static str]>,
+    > = std::sync::LazyLock::new(|| {
+        effect_str_names()
+            .into_iter()
+            .map(|aliases| (aliases[0], &aliases[1..]))
+            .collect()
+    });
+    BY_NAME.get(name).copied().unwrap_or(&[])
+}
+
 pub fn effect_spr_paths() -> Vec<&'static str> {
     use models::enums::EnumWithNumberValue;
     use models::enums::effect_id::EffectId;

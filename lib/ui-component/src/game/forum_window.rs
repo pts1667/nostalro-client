@@ -5,7 +5,7 @@
 //! the client, which signs in as the playing character, hands the answer back
 //! through [`ForumWindow::deliver`]. Every text is shown as plain text.
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use web_time::{SystemTime, UNIX_EPOCH};
 
 use crate::game::reference_window::{clipped_text, quad};
 use crate::helper::scrollbar::{SCROLLBAR_W, ScrollbarIds, scrollbar};

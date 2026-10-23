@@ -3,6 +3,7 @@
 //! dead server never stalls a frame; answers are collected by `poll`.
 
 use std::sync::mpsc::{self, Receiver, Sender};
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
 use serde_json::Value;
@@ -10,7 +11,9 @@ use serde_json::Value;
 use crate::App;
 use crate::sprite::thumbnail;
 
+#[cfg(not(target_arch = "wasm32"))]
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(3);
+#[cfg(not(target_arch = "wasm32"))]
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 /// Pictures loaded per frame; a remote file is read on the frame thread.
 const TEXTURES_PER_FRAME: usize = 2;
@@ -20,10 +23,38 @@ pub(crate) const ROUTE_PATH: &str = "/db/route";
 type Answer = (String, Result<Value, String>);
 
 pub(crate) struct ReferenceClient {
+    #[cfg(not(target_arch = "wasm32"))]
     requests: Sender<String>,
+    /// Web build: each request is a `fetch` task that answers here.
+    #[cfg(target_arch = "wasm32")]
+    base_url: String,
+    #[cfg(target_arch = "wasm32")]
+    answer_tx: Sender<Answer>,
     answers: Receiver<Answer>,
 }
 
+#[cfg(target_arch = "wasm32")]
+impl ReferenceClient {
+    pub(crate) fn spawn(base_url: &str) -> Self {
+        let (answer_tx, answers) = mpsc::channel::<Answer>();
+        let base_url = base_url.trim().trim_end_matches('/').to_string();
+        Self { base_url, answer_tx, answers }
+    }
+
+    pub(crate) fn request(&self, path: String) -> Result<(), String> {
+        let url = join_url(&self.base_url, &path);
+        let answers = self.answer_tx.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            let result = crate::web::fetch_text("GET", &url, &[("Accept", "application/json")], None)
+                .await
+                .and_then(|(status, body)| parse_answer(status, &body));
+            let _ = answers.send((path, result));
+        });
+        Ok(())
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 impl ReferenceClient {
     /// `base_url` is the reference server, for instance `http://127.0.0.1:6904`.
     pub(crate) fn spawn(base_url: &str) -> Self {
@@ -51,12 +82,15 @@ impl ReferenceClient {
     pub(crate) fn request(&self, path: String) -> Result<(), String> {
         self.requests.send(path).map_err(|_| "the reference worker stopped".to_string())
     }
+}
 
+impl ReferenceClient {
     pub(crate) fn poll(&self) -> Vec<Answer> {
         std::iter::from_fn(|| self.answers.try_recv().ok()).collect()
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn fetch(agent: &ureq::Agent, base_url: &str, path: &str) -> Result<Value, String> {
     let url = join_url(base_url, path);
     let mut response = agent

@@ -5,7 +5,7 @@
 //! [`GameEvent::RequestPartyBooking`] and the client hands what the server
 //! answers, and the ads going up and down, to [`PartyBoardWindow::deliver`].
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use web_time::{SystemTime, UNIX_EPOCH};
 
 use crate::game::reference_window::{clipped_text, quad};
 use crate::helper::dropdown::{Dropdown, OPTION_H};

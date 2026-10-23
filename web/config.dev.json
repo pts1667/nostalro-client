@@ -1,0 +1,8 @@
+{
+  "login_servers": [
+    { "name": "Local", "host": "127.0.0.1", "port": 6900, "packetver": 20111102 }
+  ],
+  "data_url": "/data",
+  "reference_url": "/",
+  "forum_url": "/"
+}

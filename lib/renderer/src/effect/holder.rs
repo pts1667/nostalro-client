@@ -1261,7 +1261,7 @@ fn rand_u32() -> u32 {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
     let mut h = DefaultHasher::new();
-    std::time::Instant::now().hash(&mut h);
+    web_time::Instant::now().hash(&mut h);
     std::thread::current().id().hash(&mut h);
     h.finish() as u32
 }

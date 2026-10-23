@@ -9,10 +9,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::FormatError;
 
+#[cfg(not(target_arch = "wasm32"))]
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 /// Covers the largest download, a BGM track, on a slow link.
+#[cfg(not(target_arch = "wasm32"))]
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 /// Cap on one response body, compressed or not.
+#[cfg(not(target_arch = "wasm32"))]
 const MAX_BODY_BYTES: u64 = 512 * 1024 * 1024;
 /// Per-file checksum list, one JSON object per line.
 const CHECK: &str = "check";
@@ -64,6 +67,7 @@ struct Entry {
 /// list entry points to are deleted. Without a cache every read is a download.
 pub struct RemoteData {
     base_url: String,
+    #[cfg(not(target_arch = "wasm32"))]
     agent: ureq::Agent,
     files: HashMap<String, Entry>,
     cache: Option<PathBuf>,
@@ -77,6 +81,7 @@ impl RemoteData {
     /// `http://127.0.0.1:6903/data`. `cache_dir` is the root of the on-disk
     /// cache; this endpoint's files live in a subfolder of it.
     pub fn connect(base_url: &str, cache_dir: Option<&Path>) -> Result<Self, FormatError> {
+        #[cfg(not(target_arch = "wasm32"))]
         let agent: ureq::Agent = ureq::Agent::config_builder()
             .timeout_connect(Some(CONNECT_TIMEOUT))
             .timeout_global(Some(REQUEST_TIMEOUT))
@@ -96,6 +101,7 @@ impl RemoteData {
         });
         let mut remote = RemoteData {
             base_url,
+            #[cfg(not(target_arch = "wasm32"))]
             agent,
             files: HashMap::new(),
             cache,
@@ -182,7 +188,7 @@ impl RemoteData {
             )));
         }
 
-        let data = self.fetch(key)?;
+        let data = self.fetch_versioned(key, &entry.md5)?;
         if let Some(path) = cached {
             // A different length means the server changed the file after the
             // list was fetched: use it this time, but do not file it under the
@@ -271,6 +277,50 @@ impl RemoteData {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn fetch_versioned(&self, key: &str, _md5: &str) -> Result<Vec<u8>, FormatError> {
+        self.fetch(key)
+    }
+
+    /// The browser cannot be told to accept zstd (and Safari never does), so a
+    /// file the setup stored compressed is asked for under its `.zst` name,
+    /// which the endpoint sends as it is, and decoded here. A server set up
+    /// without compression answers 404 for it, and then the plain name.
+    /// `?v=<md5>` changes the URL with the content, so the browser's HTTP cache
+    /// can keep the file as long as the server allows.
+    #[cfg(target_arch = "wasm32")]
+    fn fetch_versioned(&self, key: &str, md5: &str) -> Result<Vec<u8>, FormatError> {
+        let query = if md5.is_empty() { String::new() } else { format!("?v={md5}") };
+        if web::stored_compressed(key) {
+            let url = format!("{}/{}.zst{query}", self.base_url, encode_path(key));
+            match web::get(&url) {
+                Ok(body) => return web::zstd_decode(&body, &url),
+                Err(FormatError::Io(e)) if e.kind() == ErrorKind::NotFound => {}
+                Err(e) => return Err(e),
+            }
+        }
+        web::get(&format!("{}/{}{query}", self.base_url, encode_path(key)))
+    }
+
+    /// The `/data/check` list goes by `check.jsonl.zst` too, which the endpoint
+    /// sends compressed as it is, a fraction of the plain list. A server set up
+    /// without compression answers 404 for it, and then the plain name.
+    #[cfg(target_arch = "wasm32")]
+    fn fetch(&self, key: &str) -> Result<Vec<u8>, FormatError> {
+        if key != CHECK {
+            return self.fetch_versioned(key, "");
+        }
+        let url = format!("{}/check.jsonl.zst", self.base_url);
+        match web::get(&url) {
+            Ok(body) => web::zstd_decode(&body, &url),
+            Err(FormatError::Io(e)) if e.kind() == ErrorKind::NotFound => {
+                web::get(&format!("{}/{CHECK}", self.base_url))
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn fetch(&self, key: &str) -> Result<Vec<u8>, FormatError> {
         let url = format!("{}/{}", self.base_url, encode_path(key));
         let mut response = self
@@ -413,6 +463,69 @@ fn encode_path(path: &str) -> String {
         }
     }
     out
+}
+
+/// HTTP in a browser: a synchronous `XMLHttpRequest`, so `read` keeps blocking
+/// the caller exactly as the native client does on a first download.
+#[cfg(target_arch = "wasm32")]
+mod web {
+    use std::io::{Error, ErrorKind, Read};
+
+    use web_sys::XmlHttpRequest;
+
+    use crate::FormatError;
+
+    /// The rule `client-data-setup` stores files by: everything is written only
+    /// as `<name>.zst` except formats that are already compressed.
+    pub(super) fn stored_compressed(key: &str) -> bool {
+        let extension = key.rsplit_once('.').map_or("", |(_, ext)| ext).to_ascii_lowercase();
+        !matches!(extension.as_str(), "mp3" | "ogg" | "png" | "jpg" | "jpeg")
+    }
+
+    fn js_error(url: &str, e: wasm_bindgen::JsValue) -> FormatError {
+        FormatError::Io(Error::other(format!("GET {url}: {e:?}")))
+    }
+
+    /// A synchronous request on the page's thread cannot ask for an
+    /// `arraybuffer`; the `x-user-defined` charset hands each byte over as one
+    /// char whose low byte is the byte.
+    pub(super) fn get(url: &str) -> Result<Vec<u8>, FormatError> {
+        let xhr = XmlHttpRequest::new().map_err(|e| js_error(url, e))?;
+        xhr.open_with_async("GET", url, false).map_err(|e| js_error(url, e))?;
+        xhr.override_mime_type("text/plain; charset=x-user-defined")
+            .map_err(|e| js_error(url, e))?;
+        // A refused connection or a missing CORS header throws a NetworkError.
+        xhr.send().map_err(|e| js_error(url, e))?;
+        let status = xhr.status().map_err(|e| js_error(url, e))?;
+        match status {
+            200..=299 => {}
+            404 => {
+                return Err(FormatError::Io(Error::new(
+                    ErrorKind::NotFound,
+                    format!("GET {url}: HTTP 404"),
+                )));
+            }
+            0 => {
+                return Err(FormatError::Io(Error::other(format!(
+                    "GET {url}: no answer (server down or no CORS header)"
+                ))));
+            }
+            _ => return Err(FormatError::Io(Error::other(format!("GET {url}: HTTP {status}")))),
+        }
+        let text = xhr.response_text().map_err(|e| js_error(url, e))?.unwrap_or_default();
+        Ok(text.chars().map(|c| c as u32 as u8).collect())
+    }
+
+    pub(super) fn zstd_decode(body: &[u8], url: &str) -> Result<Vec<u8>, FormatError> {
+        let mut source = body;
+        let mut decoder = ruzstd::decoding::StreamingDecoder::new(&mut source)
+            .map_err(|e| FormatError::DecompressionFailed(format!("{url}: {e}")))?;
+        let mut out = Vec::new();
+        decoder
+            .read_to_end(&mut out)
+            .map_err(|e| FormatError::DecompressionFailed(format!("{url}: {e}")))?;
+        Ok(out)
+    }
 }
 
 #[cfg(test)]

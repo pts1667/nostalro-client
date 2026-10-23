@@ -46,10 +46,12 @@ fn cell_light_at(world_pos: vec3<f32>) -> vec3<f32> {
         return vec3<f32>(0.0);
     }
     let uv = vec2<f32>(world_pos.x, world_pos.z) * cell_light.uv_scale + cell_light.uv_bias;
+    // Sampled before the bounds test: WebGPU wants uniform control flow here.
+    let light = textureSample(cell_light_texture, cell_light_sampler, uv).rgb;
     if (any(uv < vec2<f32>(0.0)) || any(uv > vec2<f32>(1.0))) {
         return vec3<f32>(0.0);
     }
-    return textureSample(cell_light_texture, cell_light_sampler, uv).rgb;
+    return light;
 }
 
 fn linear_to_srgb(c: vec3<f32>) -> vec3<f32> {

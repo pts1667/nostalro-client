@@ -91,23 +91,39 @@ pub(crate) struct Gr2Loader {
     /// Entities waiting on each model file still being read.
     waiting: HashMap<String, Vec<u32>>,
     generation: u64,
+    /// Web build: the worker's end of the channels, run from `take_ready`.
+    #[cfg(target_arch = "wasm32")]
+    worker: Option<(Arc<GrfArchive>, Receiver<Job>, Sender<Done>)>,
+}
+
+fn run_job(grf: &GrfArchive, job: Job) -> Done {
+    let asset = load_gr2_asset(grf, &job.model_name, &job.path);
+    Done {
+        path: job.path,
+        generation: job.generation,
+        asset,
+    }
 }
 
 impl Gr2Loader {
+    /// A browser has no threads to spare: the models are read on the frame
+    /// thread, one per frame.
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn spawn(grf: Arc<GrfArchive>) -> Self {
+        let (job_tx, job_rx) = mpsc::channel::<Job>();
+        let (done_tx, done_rx) = mpsc::channel::<Done>();
+        let mut loader = Gr2Loader::new(job_tx, done_rx);
+        loader.worker = Some((grf, job_rx, done_tx));
+        loader
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn spawn(grf: Arc<GrfArchive>) -> Self {
         let (job_tx, job_rx) = mpsc::channel::<Job>();
         let (done_tx, done_rx) = mpsc::channel::<Done>();
         std::thread::spawn(move || {
             for job in job_rx {
-                let asset = load_gr2_asset(&grf, &job.model_name, &job.path);
-                if done_tx
-                    .send(Done {
-                        path: job.path,
-                        generation: job.generation,
-                        asset,
-                    })
-                    .is_err()
-                {
+                if done_tx.send(run_job(&grf, job)).is_err() {
                     return;
                 }
             }
@@ -121,6 +137,8 @@ impl Gr2Loader {
             done,
             waiting: HashMap::new(),
             generation: 0,
+            #[cfg(target_arch = "wasm32")]
+            worker: None,
         }
     }
 
@@ -156,6 +174,12 @@ impl Gr2Loader {
 
     /// Loads finished since the last call, as `(path, asset, waiting gids)`.
     pub(crate) fn take_ready(&mut self) -> Vec<(String, Option<Gr2LoadedAsset>, Vec<u32>)> {
+        #[cfg(target_arch = "wasm32")]
+        if let Some((grf, jobs, done)) = &self.worker
+            && let Ok(job) = jobs.try_recv()
+        {
+            let _ = done.send(run_job(grf, job));
+        }
         let mut ready = Vec::new();
         while let Ok(done) = self.done.try_recv() {
             if done.generation != self.generation {

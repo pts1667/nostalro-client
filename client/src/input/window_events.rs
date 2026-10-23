@@ -100,7 +100,7 @@ impl App {
     /// Consumes the pending right-press so a third click can't count as another
     /// double.
     fn take_right_double_click(&mut self) -> bool {
-        let now = std::time::Instant::now();
+        let now = web_time::Instant::now();
         let pos = self.input.mouse_position;
         let is_double = self.input.last_right_press.is_some_and(|(at, (px, py))| {
             let dx = (pos.0 - px) as f32;

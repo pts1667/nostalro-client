@@ -5,6 +5,8 @@ pub mod helpers;
 pub mod plugin_ui;
 pub mod sender;
 pub mod session;
+mod timer;
+pub mod transport;
 
 use connection::{Connection, ConnectionError, Frame};
 use handler::dispatch_packet;
@@ -70,9 +72,9 @@ pub use sender::{
 };
 use session::{Session, SessionState};
 use std::collections::VecDeque;
-use std::time::Instant;
+use web_time::Instant;
 use tokio::sync::mpsc;
-use tokio::time::{self, Duration};
+use std::time::Duration;
 use tracing::{error, info};
 
 #[derive(Debug, Clone)]
@@ -100,7 +102,7 @@ pub async fn network_loop(
     let mut connection: Option<Connection> = None;
     let mut session = Session::new(packetver);
     let mut keepalive = KeepaliveMode::Off;
-    let mut keepalive_interval = time::interval(Duration::from_secs(10));
+    let mut keepalive_interval = timer::interval(Duration::from_secs(10));
     keepalive_interval.reset();
     let mut keepalive_send_time_ms: u32 = 0;
     let delay_duration = Duration::from_millis(debug_delay_ms as u64);
@@ -201,7 +203,7 @@ pub async fn network_loop(
                 }
                 _ = async {
                     match next_release {
-                        Some(t) => time::sleep(t.saturating_duration_since(Instant::now())).await,
+                        Some(t) => timer::sleep(t.saturating_duration_since(Instant::now())).await,
                         None => std::future::pending::<()>().await,
                     }
                 } => {}

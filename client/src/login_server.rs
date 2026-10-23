@@ -7,7 +7,8 @@ use ragnarok_game::app_state::AppState;
 use ragnarok_network::NetworkCommand;
 use ragnarok_network::account::{self, CreateAccountError};
 use ragnarok_ui_component::account::login_window::LoginMode;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use web_time::Instant;
 
 /// How long the server has to answer `CA_SERVER_INFO`.
 const TIMEOUT: Duration = Duration::from_secs(5);

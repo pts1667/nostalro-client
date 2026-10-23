@@ -14,7 +14,7 @@ pub struct InputState {
     pub left_mouse_down: bool,
     /// When and where the last right-press landed, for the world's own
     /// double-click detection (UI widgets have their own on `Response`).
-    pub last_right_press: Option<(std::time::Instant, (f64, f64))>,
+    pub last_right_press: Option<(web_time::Instant, (f64, f64))>,
     pub last_mouse_pos: Option<(f64, f64)>,
     pub mouse_position: (f64, f64),
     pub walk_packet_cooldown: f32,

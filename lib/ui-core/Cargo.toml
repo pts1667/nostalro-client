@@ -7,10 +7,18 @@ edition = "2024"
 test-support = []
 
 [dependencies]
+web-time = { workspace = true }
 ragnarok-renderer = { workspace = true }
 ragnarok-resources = { workspace = true }
 winit = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 arboard = { version = "3", features = ["wayland-data-control"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tracing = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+web-sys = { workspace = true, features = ["Window", "Navigator", "Clipboard"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 wayland-client = { workspace = true }
