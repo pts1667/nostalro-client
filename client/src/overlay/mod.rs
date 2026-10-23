@@ -297,10 +297,15 @@ impl App {
             texture: UiTextureRef::White,
         });
 
-        // The glyph sits in the upper part of its line box, so anchor on the ascent
-        // rather than the full line height to bring it to the diamond's centre.
+        // Text is placed by its baseline, so centre the glyph's own bounds on the face.
+        let mark = if self.config.accessibility.bold_name_plates {
+            ragnarok_renderer::font_atlas::bold_char('!')
+        } else {
+            '!'
+        };
+        let glyph = font_atlas.glyph(mark);
         let width = self.plate_text_width("!", font_atlas);
-        let y = cy - font_atlas.ascent * 0.65;
+        let y = cy - glyph.offset[1] - glyph.size[1] / 2.0;
         self.build_plate_text("!", cx - width / 2.0, y, [1.0; 4], font_atlas, calls);
     }
 

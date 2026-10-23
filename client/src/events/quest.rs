@@ -7,9 +7,23 @@ const QUEST_MARKER_NONE: i16 = 9999;
 impl App {
     pub(super) fn handle_quest_list_received(&mut self, quests: Vec<QuestListEntry>) {
         self.game.quest_log.clear();
+        let ids: Vec<u32> = quests.iter().map(|entry| entry.id).collect();
         for entry in quests {
             self.game.quest_log.set_list_entry(entry);
         }
+        self.preload_quest_textures(ids);
+    }
+
+    /// The icons of the quest list and the artwork of the detail window.
+    fn preload_quest_textures(&mut self, ids: Vec<u32>) {
+        let paths = self
+            .game
+            .data_table
+            .quest_display
+            .as_ref()
+            .map(|t| t.textures(ids))
+            .unwrap_or_default();
+        self.preload_item_icons(paths);
     }
 
     pub(super) fn handle_quest_missions_received(&mut self, missions: Vec<QuestMissionData>) {
@@ -26,6 +40,7 @@ impl App {
             .as_ref()
             .map(|t| t.title(quest.id))
             .unwrap_or_else(|| "Unknown Quest".to_string());
+        self.preload_quest_textures(vec![quest.id]);
         self.game.quest_log.add(quest);
         self.windows.chat_window.add_message(
             format!("Quest added : {title}"),

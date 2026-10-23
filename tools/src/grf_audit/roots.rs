@@ -175,19 +175,14 @@ pub fn collect(
             quests.icon_texture(id),
             Origin::Table("quest display table")
         );
-        need!(
-            quests.image_texture(id),
-            Origin::Table("quest display table")
-        );
+        if let Some(image) = quests.image_texture(id) {
+            need!(image, Origin::Table("quest display table"));
+        }
     }
-    // An id the table has no row for falls back to the default artwork, which
+    // An id the table has no row for falls back to the default icon, which
     // the server can put on screen for any quest it sends.
     need!(
         quests.icon_texture(u32::MAX),
-        Origin::Table("quest display table")
-    );
-    need!(
-        quests.image_texture(u32::MAX),
         Origin::Table("quest display table")
     );
 

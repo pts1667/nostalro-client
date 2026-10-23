@@ -14,8 +14,10 @@ use ragnarok_ui_component::game::hotkey_bar::HOTKEY_BAR_WINDOW_ID;
 use ragnarok_ui_component::game::inventory_window::INV_WINDOW_ID;
 use ragnarok_ui_component::game::plugin_window::{PluginWindows, UnitAnchor};
 use ragnarok_ui_component::game::minimap_window::{MarkerType, MinimapMarker, quest_marker_color};
+use ragnarok_ui_component::game::quest_window::{QUEST_TRACKER_ID, quest_tracker};
 use ragnarok_ui_component::{BuildCtx, InGameWindow};
 use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn build_in_game_ui(
     game: &mut GameState,
@@ -27,6 +29,13 @@ pub fn build_in_game_ui(
     let mut events = Vec::new();
 
     windows.npc_shop.setup_modal(ui);
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |since| since.as_secs());
+    windows.plugin_windows.show_own(
+        QUEST_TRACKER_ID,
+        quest_tracker(&game.quest_log, &game.data_table, now),
+    );
     windows
         .plugin_windows
         .set_hud_top(windows.minimap_window.hud_top(ui.ctx.screen_width, ui.ctx.screen_height));

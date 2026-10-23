@@ -3498,6 +3498,7 @@ dependencies = [
  "models",
  "plugin-ui",
  "ragnarok-ai",
+ "ragnarok-formats",
  "ragnarok-game",
  "ragnarok-resources",
  "ragnarok-ui",

@@ -95,7 +95,8 @@ use ragnarok_ui_component::game::party_friends_window::{
 };
 use ragnarok_ui_component::game::pet_window::{PET_WINDOW_ID, PetWindow};
 use ragnarok_ui_component::game::quest_window::{
-    QUEST_DETAIL_WINDOW_ID, QUEST_WINDOW_ID, QuestDetailWindow, QuestWindow,
+    QUEST_DETAIL_WINDOW_ID, QUEST_TRACKER_ID, QUEST_WINDOW_ID, QuestDetailWindow, QuestWindow,
+    quest_tracker,
 };
 use ragnarok_ui_component::game::read_mail_window::{READ_MAIL_WINDOW_ID, ReadMailWindow};
 use ragnarok_ui_component::game::reference_window::{REFERENCE_WINDOW_ID, ReferenceWindow};
@@ -570,7 +571,50 @@ fn demo_quest_log() -> QuestLog {
                 objectives: vec![obj(1113, "Drops", 2, 2)],
             },
         ],
+        tracked: Some(1000),
     }
+}
+
+/// The `questid2display.txt` rows of `demo_quest_log`, none with artwork.
+fn demo_quest_data() -> DataTable {
+    use ragnarok_formats::lua_table::QuestDisplay;
+    use ragnarok_game::data_table::quest_display_table::QuestDisplayTable;
+    let row = |title: &str, description: &str, summary: &str| QuestDisplay {
+        title: title.to_string(),
+        icon_name: "SG_FEEL".to_string(),
+        image_name: "QUE_NOIMAGE".to_string(),
+        description: description.to_string(),
+        summary: summary.to_string(),
+    };
+    let mut data = DataTable::new();
+    data.quest_display = Some(QuestDisplayTable::from_entries(HashMap::from([
+        (
+            1000,
+            row(
+                "Pest Control",
+                "The farmers south of Prontera cannot work their fields: Porings and Lunatics eat the \
+                 crops faster than they grow. Thin their numbers and report back to the farmer.",
+                "Hunt ^FF0000Porings^000000 and Lunatics.",
+            ),
+        ),
+        (
+            1001,
+            row(
+                "Fabre Hunt",
+                "A Fabre has been seen near the city gates.",
+                "Hunt a Fabre before the day ends.",
+            ),
+        ),
+        (
+            1002,
+            row(
+                "Drops for the Alchemist",
+                "Collect Drops for the alchemist.",
+                "Done.",
+            ),
+        ),
+    ])));
+    data
 }
 
 type TextureSizeFn = unsafe extern "C" fn(*const u8, usize, *mut u32, *mut u32) -> bool;
@@ -966,10 +1010,13 @@ fn create_single(name: &str) -> State {
             let mut windows = PluginWindows::default();
             windows.open("alive_towns", quest_offer_fixture());
             windows.open("alive_towns", quest_tracker_fixture());
+            // The quest the player tracks goes above the plugin's.
+            let data = demo_quest_data();
+            windows.show_own(QUEST_TRACKER_ID, quest_tracker(&demo_quest_log(), &data, 0));
             State::PluginWindow {
                 windows,
                 character: Character::new(),
-                data: DataTable::new(),
+                data,
             }
         }
         "login" => State::Login {
@@ -1502,7 +1549,7 @@ fn create_single(name: &str) -> State {
                 win,
                 log: demo_quest_log(),
                 character: Character::new(),
-                data: DataTable::new(),
+                data: demo_quest_data(),
             }
         }
         "quest_detail" => {
@@ -1514,7 +1561,7 @@ fn create_single(name: &str) -> State {
                 win,
                 log,
                 character: Character::new(),
-                data: DataTable::new(),
+                data: demo_quest_data(),
             }
         }
         "minimap" => {

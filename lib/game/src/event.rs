@@ -1860,6 +1860,10 @@ pub enum GameEvent {
     OpenQuestDetail {
         quest_id: u32,
     },
+    /// UI: Track button → follow the quest in the HUD tracker, or stop with `None`.
+    TrackQuest {
+        quest_id: Option<u32>,
+    },
     ToggleQuestWindow,
 
     // --- Marriage ---

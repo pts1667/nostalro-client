@@ -73,11 +73,19 @@ pub fn marker_sprite_action(effect: i16) -> usize {
 #[derive(Debug, Clone, Default)]
 pub struct QuestLog {
     pub quests: Vec<Quest>,
+    /// The quest the player follows in the HUD tracker. Kept while the list is resent,
+    /// and shown only while the quest is in the log.
+    pub tracked: Option<u32>,
 }
 
 impl QuestLog {
     pub fn clear(&mut self) {
         self.quests.clear();
+    }
+
+    /// The tracked quest, while it is in the log.
+    pub fn tracked_quest(&self) -> Option<&Quest> {
+        self.tracked.and_then(|id| self.get(id))
     }
 
     fn index_of(&self, id: u32) -> Option<usize> {
@@ -133,6 +141,10 @@ impl QuestLog {
     pub fn remove(&mut self, id: u32) -> bool {
         if let Some(i) = self.index_of(id) {
             self.quests.remove(i);
+            // A finished or dropped quest stops being tracked.
+            if self.tracked == Some(id) {
+                self.tracked = None;
+            }
             true
         } else {
             false
@@ -232,5 +244,24 @@ mod tests {
         assert_eq!(log.get(2000).unwrap().objectives[0].required, 5);
         assert!(log.remove(2000));
         assert!(log.get(2000).is_none());
+    }
+
+    #[test]
+    fn the_tracked_quest_survives_a_resent_list_and_ends_with_the_quest() {
+        let mut log = QuestLog::default();
+        let entry = QuestListEntry {
+            id: 1009,
+            active: true,
+        };
+        log.set_list_entry(entry);
+        log.tracked = Some(1009);
+
+        log.clear();
+        assert!(log.tracked_quest().is_none());
+        log.set_list_entry(entry);
+        assert_eq!(log.tracked_quest().map(|q| q.id), Some(1009));
+
+        log.remove(1009);
+        assert_eq!(log.tracked, None);
     }
 }

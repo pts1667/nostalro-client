@@ -2738,6 +2738,9 @@ impl App {
                 GameEvent::OpenQuestDetail { quest_id } => {
                     self.windows.quest_detail_window.open(quest_id);
                 }
+                GameEvent::TrackQuest { quest_id } => {
+                    self.game.quest_log.tracked = quest_id;
+                }
                 GameEvent::RequestToggleQuestActive { quest_id, active } => {
                     self.channel
                         .send_packet(ragnarok_network::build_active_quest_packet(

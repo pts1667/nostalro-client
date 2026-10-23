@@ -15,5 +15,6 @@ ragnarok-ai = { workspace = true }
 ragnarok-ui-component = { workspace = true }
 ragnarok-ui = { workspace = true, features = ["test-support"] }
 ragnarok-game = { workspace = true }
+ragnarok-formats = { workspace = true }
 serde_json = { workspace = true }
 plugin-ui = { workspace = true }

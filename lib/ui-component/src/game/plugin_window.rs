@@ -54,6 +54,8 @@ const SELECTED_ROW: [f32; 4] = [0.20, 0.42, 0.88, 0.35];
 const ODD_ROW: [f32; 4] = [0.0, 0.0, 0.0, 0.04];
 /// Gap between HUD windows that stack in one slot, and the slot's margin from the screen's right edge.
 const HUD_STACK_GAP: f32 = 4.0;
+/// The plugin name of the windows the client opens on its own, unlike any server plugin's.
+const OWN_PLUGIN: &str = "@client";
 const HUD_MARGIN: f32 = 2.0;
 /// The widget after the close button: the collapse toggle, or the header line of a frameless window.
 const COLLAPSE_OFFSET: u32 = 2;
@@ -165,6 +167,38 @@ impl PluginWindows {
             waiting_for_unit: false,
             state,
         });
+    }
+
+    /// Shows the client's own window `id`, ahead of the plugins' windows of its HUD slot, or hides it with
+    /// `None`. A window equal to the one shown is left alone, so the client calls this every frame.
+    pub fn show_own(&mut self, id: &str, window: Option<PluginWindow>) {
+        let index = self
+            .open
+            .iter()
+            .position(|open| open.plugin == OWN_PLUGIN && open.window.id == id);
+        match (index, window) {
+            (Some(index), Some(window)) => {
+                let open = &mut self.open[index];
+                if open.window != window {
+                    open.state.sync(&window);
+                    open.window = window;
+                    open.arrived = Instant::now();
+                }
+            }
+            (None, Some(window)) => {
+                let count = self.open.len();
+                self.open(OWN_PLUGIN, window);
+                // HUD windows stack in list order, so the client's goes first.
+                if self.open.len() > count {
+                    let own = self.open.remove(count);
+                    self.open.insert(0, own);
+                }
+            }
+            (Some(index), None) => {
+                self.open.remove(index);
+            }
+            (None, None) => {}
+        }
     }
 
     /// Sets the top of the HUD slot below the minimap for this frame.
@@ -1336,6 +1370,34 @@ mod tests {
         let second = windows.widget_rect(SHOP, "second", "go").unwrap();
         assert!(first.y >= 30.0, "{first:?}");
         assert!(second.y >= first.y + first.h + HUD_STACK_GAP, "{first:?} {second:?}");
+    }
+
+    #[test]
+    fn the_clients_own_hud_window_stacks_above_the_plugins_and_hides_with_none() {
+        let mut windows = PluginWindows::default();
+        let mut state = StateCache::new();
+        let hud = |id: &str| {
+            Window::new(id, "Quests", 190, button("go"))
+                .hud(plugin_ui::HudSlot::BelowMinimap)
+                .frameless()
+                .collapsible()
+        };
+        windows.open(SHOP, hud("plugin"));
+        windows.show_own("quest", Some(hud("quest")));
+        windows.set_hud_top(30.0);
+        frame(&mut windows, &mut state, None, "");
+        let own = windows.widget_rect(OWN_PLUGIN, "quest", "go").unwrap();
+        let plugin = windows.widget_rect(SHOP, "plugin", "go").unwrap();
+        assert!(plugin.y > own.y, "{own:?} {plugin:?}");
+
+        // Sent again every frame, the window keeps the player's folding.
+        windows.open[0].collapsed = true;
+        windows.show_own("quest", Some(hud("quest")));
+        assert!(windows.open[0].collapsed);
+
+        windows.show_own("quest", None);
+        assert_eq!(windows.window_ids().len(), 1);
+        assert!(windows.widget_rect(SHOP, "plugin", "go").is_some());
     }
 
     #[test]
